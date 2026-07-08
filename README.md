@@ -9,7 +9,7 @@ ListenBar is a macOS menu bar utility for viewing local listening ports.
 - TCA reducer and testable port scanner dependency
 - Lists TCP `LISTEN` ports and UDP sockets with concrete ports
 - Groups ports by macOS app when available, otherwise by process PID
-- Sends `SIGTERM` to the process that owns a selected listening port
+- Supports `SIGTERM` quit and `SIGKILL` force kill actions with confirmation for risky targets
 
 ## Development
 

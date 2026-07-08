@@ -3,66 +3,86 @@ import ComposableArchitecture
 import SwiftUI
 
 struct MenuBarView: View {
-    let store: StoreOf<AppFeature>
+    @Bindable var store: StoreOf<AppFeature>
 
     var body: some View {
-        Section {
-            Button {
-                store.send(.view(.refreshTapped))
-            } label: {
-                Label(store.isLoading ? "刷新中..." : "刷新端口", systemImage: "arrow.clockwise")
-            }
-            .disabled(store.isLoading)
-            .keyboardShortcut("r", modifiers: .command)
-
-            if let lastUpdated = store.lastUpdated {
-                Text("更新于 \(lastUpdated.formatted(date: .omitted, time: .shortened))")
-                    .font(.caption)
-            }
-        } header: {
-            Text(store.title)
-        }
-
-        Divider()
-
-        if let errorMessage = store.errorMessage {
+        Group {
             Section {
-                Label(errorMessage, systemImage: "exclamationmark.triangle")
-            }
-        }
+                Button {
+                    store.send(.view(.refreshTapped))
+                } label: {
+                    Label(store.isLoading ? "刷新中..." : "刷新端口", systemImage: "arrow.clockwise")
+                }
+                .disabled(store.isLoading)
+                .keyboardShortcut("r", modifiers: .command)
 
-        if store.processGroups.isEmpty {
-            Section {
-                Text(store.isLoading ? "正在扫描..." : "未发现监听端口")
+                if let lastUpdated = store.lastUpdated {
+                    Text("更新于 \(lastUpdated.formatted(date: .omitted, time: .shortened))")
+                        .font(.caption)
+                }
+            } header: {
+                Text(store.title)
             }
-        } else {
-            Section("进程") {
-                ForEach(store.processGroups) { group in
-                    PortProcessGroupMenu(
-                        group: group,
-                        isLoading: store.isLoading
-                    ) { port in
-                        store.send(.view(.killPortTapped(port)))
+
+            Divider()
+
+            if let errorMessage = store.errorMessage {
+                Section {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle")
+                }
+            }
+
+            if store.processGroups.isEmpty {
+                Section {
+                    Text(store.isLoading ? "正在扫描..." : "未发现监听端口")
+                }
+            } else {
+                Section("进程") {
+                    ForEach(store.processGroups) { group in
+                        PortProcessGroupMenu(
+                            group: group,
+                            isLoading: store.isLoading,
+                            onOpenLocalhost: { port in
+                                store.send(.view(.openLocalhostTapped(port)))
+                            },
+                            onCopyURL: { port in
+                                store.send(.view(.copyURLTapped(port)))
+                            },
+                            onCopyPID: { port in
+                                store.send(.view(.copyPIDTapped(port)))
+                            },
+                            onCopyLsofCommand: { port in
+                                store.send(.view(.copyLsofCommandTapped(port)))
+                            },
+                            onKillPort: { port, mode in
+                                store.send(.view(.killPortTapped(port, mode)))
+                            }
+                        )
                     }
                 }
             }
-        }
 
-        Divider()
+            Divider()
 
-        Button {
-            store.send(.view(.quitTapped))
-        } label: {
-            Label("退出 ListenBar", systemImage: "power")
+            Button {
+                store.send(.view(.quitTapped))
+            } label: {
+                Label("退出 ListenBar", systemImage: "power")
+            }
+            .keyboardShortcut("q")
         }
-        .keyboardShortcut("q")
+        .confirmationDialog($store.scope(\.confirmationDialog, action: \.confirmationDialog))
     }
 }
 
 private struct PortProcessGroupMenu: View {
     let group: PortProcessGroup
     let isLoading: Bool
-    let onKillPort: (PortEntry) -> Void
+    let onOpenLocalhost: (PortEntry) -> Void
+    let onCopyURL: (PortEntry) -> Void
+    let onCopyPID: (PortEntry) -> Void
+    let onCopyLsofCommand: (PortEntry) -> Void
+    let onKillPort: (PortEntry, PortKillMode) -> Void
 
     var body: some View {
         let showsPIDInPortMenus = PortMenuLabels.showsPID(for: group.ports)
@@ -74,6 +94,10 @@ private struct PortProcessGroupMenu: View {
                     showsPID: showsPIDInPortMenus,
                     processName: group.portProcessDetails[port.id] == nil ? nil : port.command,
                     isLoading: isLoading,
+                    onOpenLocalhost: onOpenLocalhost,
+                    onCopyURL: onCopyURL,
+                    onCopyPID: onCopyPID,
+                    onCopyLsofCommand: onCopyLsofCommand,
                     onKillPort: onKillPort
                 )
             }
@@ -91,7 +115,11 @@ private struct PortMenu: View {
     let showsPID: Bool
     let processName: String?
     let isLoading: Bool
-    let onKillPort: (PortEntry) -> Void
+    let onOpenLocalhost: (PortEntry) -> Void
+    let onCopyURL: (PortEntry) -> Void
+    let onCopyPID: (PortEntry) -> Void
+    let onCopyLsofCommand: (PortEntry) -> Void
+    let onKillPort: (PortEntry, PortKillMode) -> Void
 
     var body: some View {
         let labels = PortMenuLabels(
@@ -101,10 +129,46 @@ private struct PortMenu: View {
         )
 
         Menu {
-            Button(role: .destructive) {
-                onKillPort(port)
+            if labels.localhostURLString != nil {
+                Button {
+                    onOpenLocalhost(port)
+                } label: {
+                    Label("Open localhost", systemImage: "safari")
+                }
+                .disabled(isLoading)
+
+                Button {
+                    onCopyURL(port)
+                } label: {
+                    Label("Copy URL", systemImage: "link")
+                }
+            }
+
+            Button {
+                onCopyPID(port)
             } label: {
-                Label("终止占用进程", systemImage: "xmark.circle")
+                Label("Copy PID", systemImage: "number")
+            }
+
+            Button {
+                onCopyLsofCommand(port)
+            } label: {
+                Label("Copy lsof command", systemImage: "doc.on.doc")
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+                onKillPort(port, .quit)
+            } label: {
+                Label(PortKillMode.quit.title, systemImage: "xmark.circle")
+            }
+            .disabled(isLoading)
+
+            Button(role: .destructive) {
+                onKillPort(port, .force)
+            } label: {
+                Label(PortKillMode.force.title, systemImage: "exclamationmark.octagon")
             }
             .disabled(isLoading)
         } label: {
@@ -118,6 +182,8 @@ private struct PortMenu: View {
 struct PortMenuLabels: Equatable {
     let title: String
     let subtitle: String
+    let localhostURLString: String?
+    let lsofCommand: String
 
     static func showsPID(for ports: [PortEntry]) -> Bool {
         Set(ports.map(\.pid)).count > 1
@@ -129,8 +195,10 @@ struct PortMenuLabels: Equatable {
         processName: String? = nil
     ) {
         self.title = String(port.port)
+        self.localhostURLString = port.localhostURL?.absoluteString
+        self.lsofCommand = port.lsofCommand
 
-        var subtitle = "\(port.networkProtocol.rawValue) \(port.address):\(port.port)"
+        var subtitle = "\(port.networkProtocol.rawValue) \(port.address):\(port.port) · \(port.addressExposure.label)"
         if showsPID {
             subtitle += " · PID \(port.pid)"
         }

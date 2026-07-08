@@ -5,6 +5,46 @@ enum NetworkProtocol: String, CaseIterable, Equatable, Sendable {
     case udp = "UDP"
 }
 
+enum PortAddressExposure: Equatable, Sendable {
+    case localOnly
+    case allInterfaces
+    case specificInterface
+
+    var label: String {
+        switch self {
+        case .localOnly:
+            return "Local only"
+        case .allInterfaces:
+            return "All interfaces"
+        case .specificInterface:
+            return "Specific interface"
+        }
+    }
+}
+
+enum PortKillMode: Equatable, Sendable {
+    case quit
+    case force
+
+    var title: String {
+        switch self {
+        case .quit:
+            return "Quit Process (SIGTERM)"
+        case .force:
+            return "Force Kill (SIGKILL)"
+        }
+    }
+
+    var signalName: String {
+        switch self {
+        case .quit:
+            return "SIGTERM"
+        case .force:
+            return "SIGKILL"
+        }
+    }
+}
+
 struct PortEntry: Equatable, Hashable, Identifiable, Sendable {
     let networkProtocol: NetworkProtocol
     let address: String
@@ -21,6 +61,40 @@ struct PortEntry: Equatable, Hashable, Identifiable, Sendable {
             String(pid),
             command
         ].joined(separator: "|")
+    }
+
+    var addressExposure: PortAddressExposure {
+        let normalizedAddress = address
+            .trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+            .lowercased()
+
+        if address == "*" || normalizedAddress == "0.0.0.0" || normalizedAddress == "::" {
+            return .allInterfaces
+        }
+
+        if normalizedAddress == "localhost"
+            || normalizedAddress == "::1"
+            || normalizedAddress.hasPrefix("127.") {
+            return .localOnly
+        }
+
+        return .specificInterface
+    }
+
+    var localhostURL: URL? {
+        guard networkProtocol == .tcp, addressExposure != .specificInterface else {
+            return nil
+        }
+        return URL(string: "http://localhost:\(port)")
+    }
+
+    var lsofCommand: String {
+        switch networkProtocol {
+        case .tcp:
+            return "/usr/sbin/lsof -nP -iTCP:\(port) -sTCP:LISTEN"
+        case .udp:
+            return "/usr/sbin/lsof -nP -iUDP:\(port)"
+        }
     }
 }
 

@@ -178,4 +178,26 @@ final class PortScannerParserTests: XCTestCase {
         XCTAssertEqual(ports.first?.address, "[::1]")
         XCTAssertEqual(ports.first?.port, 9090)
     }
+
+    func testParsesWildcardIPv4AndIPv6Addresses() {
+        let ports = PortScannerService.parseLsofFieldOutput(
+            """
+            p10
+            cserver
+            u501
+            f3
+            PTCP
+            n0.0.0.0:3000
+            p11
+            cserver
+            u501
+            f4
+            PTCP
+            n[::]:3001
+            """
+        )
+
+        XCTAssertEqual(ports.map(\.address), ["0.0.0.0", "[::]"])
+        XCTAssertEqual(ports.map(\.port), [3000, 3001])
+    }
 }

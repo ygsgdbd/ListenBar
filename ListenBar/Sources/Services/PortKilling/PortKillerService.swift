@@ -16,18 +16,29 @@ enum PortKillerError: LocalizedError, Equatable {
 }
 
 enum PortKillerService {
-    static func terminateProcess(pid: Int) async throws {
+    static func terminateProcess(pid: Int, mode: PortKillMode) async throws {
         try await Task.detached(priority: .userInitiated) {
             guard pid > 0 else {
                 throw PortKillerError.invalidPID(pid)
             }
 
-            let result = Darwin.kill(pid_t(pid), SIGTERM)
+            let result = Darwin.kill(pid_t(pid), mode.signal)
             guard result == 0 else {
                 let message = String(cString: strerror(errno))
                 throw PortKillerError.signalFailed(pid: pid, message: message)
             }
         }
         .value
+    }
+}
+
+private extension PortKillMode {
+    var signal: Int32 {
+        switch self {
+        case .quit:
+            return SIGTERM
+        case .force:
+            return SIGKILL
+        }
     }
 }

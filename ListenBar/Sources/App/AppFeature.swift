@@ -11,9 +11,11 @@ struct AppFeature {
 
     @ObservableState
     struct State: Equatable {
+        @Presents var confirmationDialog: ConfirmationDialogState<ConfirmationDialog>?
         var errorMessage: String?
         var isLoading = false
         var lastUpdated: Date?
+        var metadataByPID: [Int: PortProcessMetadata] = [:]
         var ports: [PortEntry] = []
         var processGroups: [PortProcessGroup] = []
 
@@ -23,17 +25,27 @@ struct AppFeature {
     }
 
     enum ViewAction: Equatable, Sendable {
-        case killPortTapped(PortEntry)
+        case copyLsofCommandTapped(PortEntry)
+        case copyPIDTapped(PortEntry)
+        case copyURLTapped(PortEntry)
+        case killPortTapped(PortEntry, PortKillMode)
+        case openLocalhostTapped(PortEntry)
         case refreshTapped
         case quitTapped
     }
 
+    @CasePathable
+    enum ConfirmationDialog: Equatable, Sendable {
+        case confirmKill(PortKillRequest)
+    }
+
     enum ResponseAction: Equatable, Sendable {
-        case portKillFinished(Result<PortEntry, PortKillerFailure>)
+        case portKillFinished(Result<PortKillRequest, PortKillerFailure>)
         case portsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
     }
 
     enum Action: Equatable, Sendable {
+        case confirmationDialog(PresentationAction<ConfirmationDialog>)
         case task
         case view(ViewAction)
         case response(ResponseAction)
@@ -47,10 +59,34 @@ struct AppFeature {
                 state.errorMessage = nil
                 return loadPortsEffect()
 
-            case let .view(.killPortTapped(port)):
+            case let .view(.copyLsofCommandTapped(port)):
+                return copyTextEffect(port.lsofCommand)
+
+            case let .view(.copyPIDTapped(port)):
+                return copyTextEffect(String(port.pid))
+
+            case let .view(.copyURLTapped(port)):
+                guard let url = port.localhostURL else { return .none }
+                return copyTextEffect(url.absoluteString)
+
+            case let .view(.killPortTapped(port, mode)):
+                let request = PortKillRequest(
+                    port: port,
+                    mode: mode,
+                    processName: state.metadataByPID[port.pid]?.name
+                )
+                let warnings = killWarnings(for: request, state: state)
+                guard warnings.isEmpty else {
+                    state.confirmationDialog = request.confirmationDialog(warnings: warnings)
+                    return .none
+                }
                 state.isLoading = true
                 state.errorMessage = nil
-                return terminatePortEffect(port)
+                return terminatePortEffect(request)
+
+            case let .view(.openLocalhostTapped(port)):
+                guard let url = port.localhostURL else { return .none }
+                return openURLEffect(url)
 
             case .view(.quitTapped):
                 return .run { _ in
@@ -59,10 +95,20 @@ struct AppFeature {
                     }
                 }
 
+            case let .confirmationDialog(.presented(.confirmKill(request))):
+                state.confirmationDialog = nil
+                state.isLoading = true
+                state.errorMessage = nil
+                return terminatePortEffect(request)
+
+            case .confirmationDialog:
+                return .none
+
             case let .response(.portsLoaded(.success(snapshot))):
                 state.isLoading = false
                 state.errorMessage = nil
                 state.lastUpdated = now
+                state.metadataByPID = snapshot.metadataByPID
                 state.ports = snapshot.ports
                 state.processGroups = snapshot.processGroups
                 return .none
@@ -81,6 +127,7 @@ struct AppFeature {
                 return .none
             }
         }
+        .ifLet(\.$confirmationDialog, action: \.confirmationDialog)
     }
 
     private func loadPortsEffect() -> Effect<Action> {
@@ -90,6 +137,7 @@ struct AppFeature {
                 let metadata = await portProcessMetadata.resolve(Set(ports.map(\.pid)))
                 let snapshot = PortScanSnapshot(
                     ports: ports,
+                    metadataByPID: metadata,
                     processGroups: PortProcessGroupingService.groups(
                         for: ports,
                         metadataByPID: metadata
@@ -102,21 +150,137 @@ struct AppFeature {
         }
     }
 
-    private func terminatePortEffect(_ port: PortEntry) -> Effect<Action> {
+    private func terminatePortEffect(_ request: PortKillRequest) -> Effect<Action> {
         .run { send in
             do {
-                try await portKiller.terminate(port.pid)
-                await send(.response(.portKillFinished(.success(port))))
+                try await portKiller.terminate(request.port.pid, request.mode)
+                await send(.response(.portKillFinished(.success(request))))
             } catch {
                 await send(.response(.portKillFinished(.failure(.init(error)))))
             }
         }
     }
+
+    private func copyTextEffect(_ text: String) -> Effect<Action> {
+        .run { _ in
+            await MainActor.run {
+                NSPasteboard.general.clearContents()
+                _ = NSPasteboard.general.setString(text, forType: .string)
+            }
+        }
+    }
+
+    private func openURLEffect(_ url: URL) -> Effect<Action> {
+        .run { _ in
+            await MainActor.run {
+                _ = NSWorkspace.shared.open(url)
+            }
+        }
+    }
+
+    private func killWarnings(
+        for request: PortKillRequest,
+        state: State
+    ) -> [PortKillWarning] {
+        var warnings: [PortKillWarning] = []
+        if request.mode == .force {
+            warnings.append(.forceKill)
+        }
+
+        guard let metadata = state.metadataByPID[request.port.pid] else {
+            return warnings
+        }
+
+        if isSystemProcess(metadata) {
+            warnings.append(.systemProcess)
+        }
+        if isAppMainProcess(metadata) {
+            warnings.append(.appMainProcess)
+        }
+        return warnings
+    }
+
+    private func isAppMainProcess(_ metadata: PortProcessMetadata) -> Bool {
+        guard case .application = metadata.kind else {
+            return false
+        }
+        return metadata.processDetailName == nil
+    }
+
+    private func isSystemProcess(_ metadata: PortProcessMetadata) -> Bool {
+        guard let path = metadata.path else {
+            return false
+        }
+        return [
+            "/System/",
+            "/usr/sbin/",
+            "/usr/libexec/",
+            "/bin/",
+            "/sbin/"
+        ].contains { path.hasPrefix($0) }
+    }
 }
 
 struct PortScanSnapshot: Equatable, Sendable {
     let ports: [PortEntry]
+    let metadataByPID: [Int: PortProcessMetadata]
     let processGroups: [PortProcessGroup]
+}
+
+struct PortKillRequest: Equatable, Sendable {
+    let port: PortEntry
+    let mode: PortKillMode
+    let processName: String
+
+    init(
+        port: PortEntry,
+        mode: PortKillMode,
+        processName: String? = nil
+    ) {
+        self.port = port
+        self.mode = mode
+        self.processName = processName ?? port.command
+    }
+
+    func confirmationDialog(
+        warnings: [PortKillWarning]
+    ) -> ConfirmationDialogState<AppFeature.ConfirmationDialog> {
+        ConfirmationDialogState {
+            TextState(mode.title)
+        } actions: {
+            ButtonState(role: .cancel) {
+                TextState("Cancel")
+            }
+            ButtonState(role: .destructive, action: .confirmKill(self)) {
+                TextState(mode.title)
+            }
+        } message: {
+            TextState(confirmationMessage(warnings: warnings))
+        }
+    }
+
+    private func confirmationMessage(warnings: [PortKillWarning]) -> String {
+        let endpoint = "\(port.networkProtocol.rawValue) \(port.address):\(port.port)"
+        let warningText = warnings.map(\.message).joined(separator: " ")
+        return "\(mode.signalName) will be sent to \(processName) (PID \(port.pid)) for \(endpoint). \(warningText)"
+    }
+}
+
+enum PortKillWarning: Equatable, Sendable {
+    case forceKill
+    case systemProcess
+    case appMainProcess
+
+    var message: String {
+        switch self {
+        case .forceKill:
+            return "Force kill cannot be handled gracefully."
+        case .systemProcess:
+            return "This looks like a system process."
+        case .appMainProcess:
+            return "This looks like the main app process."
+        }
+    }
 }
 
 struct PortScannerFailure: LocalizedError, Equatable, Sendable {
