@@ -72,6 +72,7 @@ let project = Project(
                 "CFBundleVersion": .string(buildVersion)
             ]),
             sources: ["ListenBar/Sources/**"],
+            resources: ["ListenBar/Resources/**"],
             dependencies: [
                 .package(product: "CasePaths"),
                 .package(product: "ComposableArchitecture"),

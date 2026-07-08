@@ -10,7 +10,7 @@ struct MenuBarView: View {
             Section {
                 if let lastUpdated = store.lastUpdated {
                     TimelineView(.periodic(from: Date(), by: 1)) { context in
-                        Text("更新于 \(PortLastUpdatedFormatter.relativeString(from: lastUpdated, to: context.date))")
+                        Text(updatedAtText(lastUpdated, now: context.date))
                             .font(.caption)
                     }
                 }
@@ -28,7 +28,7 @@ struct MenuBarView: View {
 
             if store.processGroups.isEmpty {
                 Section {
-                    Text(store.isLoading ? "正在扫描..." : "未发现监听端口")
+                    Text(emptyStateText)
                 }
             } else {
                 Section("进程") {
@@ -67,13 +67,28 @@ struct MenuBarView: View {
         }
         .confirmationDialog($store.scope(\.confirmationDialog, action: \.confirmationDialog))
     }
+
+    private var emptyStateText: String {
+        if store.isLoading {
+            return String(localized: "正在扫描...", bundle: .main, comment: "扫描端口时的空状态。")
+        }
+        return String(localized: "未发现监听端口", bundle: .main, comment: "没有发现监听端口时的空状态。")
+    }
+
+    private func updatedAtText(_ lastUpdated: Date, now: Date) -> String {
+        String(
+            format: String(localized: "更新于 %@", bundle: .main, comment: "最近一次端口扫描的更新时间。"),
+            locale: Locale.current,
+            PortLastUpdatedFormatter.relativeString(from: lastUpdated, to: now)
+        )
+    }
 }
 
 enum PortLastUpdatedFormatter {
     static func relativeString(from lastUpdated: Date, to now: Date) -> String {
         let seconds = max(0, Int(now.timeIntervalSince(lastUpdated)))
         guard seconds > 0 else {
-            return "刚刚"
+            return String(localized: "刚刚", bundle: .main, comment: "相对更新时间：刚刚。")
         }
 
         let days = seconds / 86_400
@@ -82,15 +97,37 @@ enum PortLastUpdatedFormatter {
         let remainingSeconds = seconds % 60
 
         if days > 0 {
-            return "\(days) 天 \(hours) 小时 \(minutes) 分 \(remainingSeconds) 秒前"
+            return String(
+                format: String(localized: "%lld 天 %lld 小时 %lld 分 %lld 秒前", bundle: .main, comment: "相对更新时间：天、小时、分钟、秒。"),
+                locale: Locale.current,
+                Int64(days),
+                Int64(hours),
+                Int64(minutes),
+                Int64(remainingSeconds)
+            )
         }
         if hours > 0 {
-            return "\(hours) 小时 \(minutes) 分 \(remainingSeconds) 秒前"
+            return String(
+                format: String(localized: "%lld 小时 %lld 分 %lld 秒前", bundle: .main, comment: "相对更新时间：小时、分钟、秒。"),
+                locale: Locale.current,
+                Int64(hours),
+                Int64(minutes),
+                Int64(remainingSeconds)
+            )
         }
         if minutes > 0 {
-            return "\(minutes) 分 \(remainingSeconds) 秒前"
+            return String(
+                format: String(localized: "%lld 分 %lld 秒前", bundle: .main, comment: "相对更新时间：分钟、秒。"),
+                locale: Locale.current,
+                Int64(minutes),
+                Int64(remainingSeconds)
+            )
         }
-        return "\(remainingSeconds) 秒前"
+        return String(
+            format: String(localized: "%lld 秒前", bundle: .main, comment: "相对更新时间：秒。"),
+            locale: Locale.current,
+            Int64(remainingSeconds)
+        )
     }
 }
 
@@ -152,27 +189,27 @@ private struct PortMenu: View {
                 Button {
                     onOpenLocalhost(port)
                 } label: {
-                    Label("Open localhost", systemImage: "safari")
+                    Label("打开 localhost", systemImage: "safari")
                 }
                 .disabled(isLoading)
 
                 Button {
                     onCopyURL(port)
                 } label: {
-                    Label("Copy URL", systemImage: "link")
+                    Label("复制 URL", systemImage: "link")
                 }
             }
 
             Button {
                 onCopyPID(port)
             } label: {
-                Label("Copy PID", systemImage: "number")
+                Label("复制 PID", systemImage: "number")
             }
 
             Button {
                 onCopyLsofCommand(port)
             } label: {
-                Label("Copy lsof command", systemImage: "doc.on.doc")
+                Label("复制 lsof 命令", systemImage: "doc.on.doc")
             }
 
             Divider()

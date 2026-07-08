@@ -8,11 +8,15 @@ enum PortScannerError: LocalizedError, Equatable {
         switch self {
         case let .lsofFailed(status, message):
             if message.isEmpty {
-                return "lsof exited with status \(status)."
+                return String(
+                    format: String(localized: "lsof 退出状态码：%d。", bundle: .main, comment: "lsof 非零退出且没有 stderr 时的兜底错误。"),
+                    locale: Locale.current,
+                    status
+                )
             }
             return message
         case .lsofOutputUnreadable:
-            return "Unable to read lsof output."
+            return String(localized: "无法读取 lsof 输出。", bundle: .main, comment: "无法解码 lsof 输出时显示的错误。")
         }
     }
 }
