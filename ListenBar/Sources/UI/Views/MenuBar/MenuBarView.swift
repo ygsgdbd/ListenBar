@@ -72,6 +72,7 @@ private struct PortProcessGroupMenu: View {
                 PortMenu(
                     port: port,
                     showsPID: showsPIDInPortMenus,
+                    processName: group.portProcessDetails[port.id] == nil ? nil : port.command,
                     isLoading: isLoading,
                     onKillPort: onKillPort
                 )
@@ -88,11 +89,16 @@ private struct PortProcessGroupMenu: View {
 private struct PortMenu: View {
     let port: PortEntry
     let showsPID: Bool
+    let processName: String?
     let isLoading: Bool
     let onKillPort: (PortEntry) -> Void
 
     var body: some View {
-        let labels = PortMenuLabels(port: port, showsPID: showsPID)
+        let labels = PortMenuLabels(
+            port: port,
+            showsPID: showsPID,
+            processName: processName
+        )
 
         Menu {
             Button(role: .destructive) {
@@ -117,12 +123,20 @@ struct PortMenuLabels: Equatable {
         Set(ports.map(\.pid)).count > 1
     }
 
-    init(port: PortEntry, showsPID: Bool) {
+    init(
+        port: PortEntry,
+        showsPID: Bool,
+        processName: String? = nil
+    ) {
         self.title = String(port.port)
 
         var subtitle = "\(port.networkProtocol.rawValue) \(port.address):\(port.port)"
         if showsPID {
             subtitle += " · PID \(port.pid)"
+        }
+        if let processName = processName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !processName.isEmpty {
+            subtitle += " · \(processName)"
         }
         self.subtitle = subtitle
     }
@@ -138,6 +152,12 @@ private struct PortProcessIconView: View {
                 Image(nsImage: NSWorkspace.shared.icon(forFile: path))
             } else {
                 Image(systemName: "app.dashed")
+            }
+        case let .executable(path):
+            if FileManager.default.fileExists(atPath: path) {
+                Image(nsImage: NSWorkspace.shared.icon(forFile: path))
+            } else {
+                Image(systemName: "terminal")
             }
         case .process:
             Image(systemName: "terminal")

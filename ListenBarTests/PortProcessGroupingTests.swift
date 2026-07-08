@@ -47,7 +47,119 @@ final class PortProcessGroupingTests: XCTestCase {
 
         XCTAssertEqual(groups.map(\.id), ["process:10:node", "process:11:node"])
         XCTAssertEqual(groups.map(\.displayName), ["node (PID 10)", "node (PID 11)"])
+        XCTAssertEqual(groups.map(\.icon), [.process, .process])
         XCTAssertEqual(groups.map(\.ports), [[firstPort], [secondPort]])
+    }
+
+    func testUsesExecutableIconWithoutMergingCommandLineProcesses() {
+        let firstPort = port(port: 3000, pid: 10, command: "node")
+        let secondPort = port(port: 3001, pid: 11, command: "node")
+
+        let groups = PortProcessGroupingService.groups(
+            for: [secondPort, firstPort],
+            metadataByPID: [
+                10: .executable(name: "node", path: "/opt/homebrew/bin/node"),
+                11: .executable(name: "node", path: "/Users/example/.local/bin/node")
+            ]
+        )
+
+        XCTAssertEqual(
+            groups,
+            [
+                PortProcessGroup(
+                    id: "process:10:node",
+                    displayName: "node (PID 10)",
+                    subtitle: "3000",
+                    icon: .executable(path: "/opt/homebrew/bin/node"),
+                    ports: [firstPort]
+                ),
+                PortProcessGroup(
+                    id: "process:11:node",
+                    displayName: "node (PID 11)",
+                    subtitle: "3001",
+                    icon: .executable(path: "/Users/example/.local/bin/node"),
+                    ports: [secondPort]
+                )
+            ]
+        )
+    }
+
+    func testGroupsHelperProcessUnderOwnerAppWithDetailSubtitle() {
+        let helperPort = port(
+            port: 61305,
+            pid: 22749,
+            command: "GitHub Desktop Helper (Renderer)"
+        )
+
+        let groups = PortProcessGroupingService.groups(
+            for: [helperPort],
+            metadataByPID: [
+                22749: PortProcessMetadata(
+                    bundleIdentifier: "com.github.GitHubClient",
+                    name: "GitHub Desktop",
+                    path: "/Applications/GitHub Desktop.app",
+                    processDetailName: "Helper (Renderer)"
+                )
+            ]
+        )
+
+        XCTAssertEqual(
+            groups,
+            [
+                PortProcessGroup(
+                    id: "app:com.github.GitHubClient",
+                    displayName: "GitHub Desktop",
+                    subtitle: "Helper (Renderer) · 61305",
+                    icon: .application(path: "/Applications/GitHub Desktop.app"),
+                    ports: [helperPort],
+                    portProcessDetails: [helperPort.id: "Helper (Renderer)"]
+                )
+            ]
+        )
+    }
+
+    func testGroupsMultipleHelperProcessesUnderOwnerApp() {
+        let rendererPort = port(
+            port: 61305,
+            pid: 20,
+            command: "GitHub Desktop Helper (Renderer)"
+        )
+        let gpuPort = port(
+            port: 61306,
+            pid: 21,
+            command: "GitHub Desktop Helper (GPU)"
+        )
+
+        let groups = PortProcessGroupingService.groups(
+            for: [gpuPort, rendererPort],
+            metadataByPID: [
+                20: PortProcessMetadata(
+                    bundleIdentifier: "com.github.GitHubClient",
+                    name: "GitHub Desktop",
+                    path: "/Applications/GitHub Desktop.app",
+                    processDetailName: "Helper (Renderer)"
+                ),
+                21: PortProcessMetadata(
+                    bundleIdentifier: "com.github.GitHubClient",
+                    name: "GitHub Desktop",
+                    path: "/Applications/GitHub Desktop.app",
+                    processDetailName: "Helper (GPU)"
+                )
+            ]
+        )
+
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups.first?.id, "app:com.github.GitHubClient")
+        XCTAssertEqual(groups.first?.displayName, "GitHub Desktop")
+        XCTAssertEqual(groups.first?.subtitle, "2 个子进程 · 61305, 61306")
+        XCTAssertEqual(groups.first?.ports, [rendererPort, gpuPort])
+        XCTAssertEqual(
+            groups.first?.portProcessDetails,
+            [
+                rendererPort.id: "Helper (Renderer)",
+                gpuPort.id: "Helper (GPU)"
+            ]
+        )
     }
 
     func testSubtitleDeduplicatesAndSortsPorts() {
@@ -110,16 +222,35 @@ final class PortMenuLabelsTests: XCTestCase {
         XCTAssertFalse(labels.subtitle.contains(","))
     }
 
+    func testPortLabelCanShowHelperProcessName() {
+        let port = self.port(
+            port: 61305,
+            pid: 22749,
+            command: "GitHub Desktop Helper (Renderer)"
+        )
+        let labels = PortMenuLabels(
+            port: port,
+            showsPID: true,
+            processName: "GitHub Desktop Helper (Renderer)"
+        )
+
+        XCTAssertEqual(
+            labels.subtitle,
+            "TCP 127.0.0.1:61305 · PID 22749 · GitHub Desktop Helper (Renderer)"
+        )
+    }
+
     private func port(
         port: Int,
-        pid: Int
+        pid: Int,
+        command: String = "Example"
     ) -> PortEntry {
         PortEntry(
             networkProtocol: .tcp,
             address: "127.0.0.1",
             port: port,
             pid: pid,
-            command: "Example",
+            command: command,
             user: "501"
         )
     }

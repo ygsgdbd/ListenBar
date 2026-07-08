@@ -24,14 +24,49 @@ struct PortEntry: Equatable, Hashable, Identifiable, Sendable {
     }
 }
 
+enum PortProcessMetadataKind: Equatable, Sendable {
+    case application(bundleIdentifier: String)
+    case executable
+}
+
 struct PortProcessMetadata: Equatable, Sendable {
-    let bundleIdentifier: String
+    let kind: PortProcessMetadataKind
     let name: String
     let path: String?
+    let processDetailName: String?
+
+    init(
+        bundleIdentifier: String,
+        name: String,
+        path: String?,
+        processDetailName: String? = nil
+    ) {
+        self.kind = .application(bundleIdentifier: bundleIdentifier)
+        self.name = name
+        self.path = path
+        self.processDetailName = processDetailName
+    }
+
+    private init(
+        kind: PortProcessMetadataKind,
+        name: String,
+        path: String?,
+        processDetailName: String? = nil
+    ) {
+        self.kind = kind
+        self.name = name
+        self.path = path
+        self.processDetailName = processDetailName
+    }
+
+    static func executable(name: String, path: String) -> Self {
+        Self(kind: .executable, name: name, path: path)
+    }
 }
 
 enum PortProcessIcon: Equatable, Sendable {
     case application(path: String?)
+    case executable(path: String)
     case process
 }
 
@@ -41,4 +76,21 @@ struct PortProcessGroup: Equatable, Identifiable, Sendable {
     let subtitle: String
     let icon: PortProcessIcon
     let ports: [PortEntry]
+    let portProcessDetails: [String: String]
+
+    init(
+        id: String,
+        displayName: String,
+        subtitle: String,
+        icon: PortProcessIcon,
+        ports: [PortEntry],
+        portProcessDetails: [String: String] = [:]
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.subtitle = subtitle
+        self.icon = icon
+        self.ports = ports
+        self.portProcessDetails = portProcessDetails
+    }
 }

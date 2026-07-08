@@ -8,9 +8,13 @@ enum PortProcessGroupingService {
         var accumulators: [String: GroupAccumulator] = [:]
 
         for port in ports {
-            let identity = identity(for: port, metadata: metadataByPID[port.pid])
+            let metadata = metadataByPID[port.pid]
+            let identity = identity(for: port, metadata: metadata)
             var accumulator = accumulators[identity.id] ?? GroupAccumulator(identity: identity)
             accumulator.ports.append(port)
+            if let processDetailName = metadata?.processDetailName {
+                accumulator.portProcessDetails[port.id] = processDetailName
+            }
             accumulators[identity.id] = accumulator
         }
 
@@ -24,11 +28,21 @@ enum PortProcessGroupingService {
         metadata: PortProcessMetadata?
     ) -> GroupIdentity {
         if let metadata {
-            return GroupIdentity(
-                id: "app:\(metadata.bundleIdentifier)",
-                displayName: metadata.name,
-                icon: .application(path: metadata.path)
-            )
+            switch metadata.kind {
+            case let .application(bundleIdentifier):
+                return GroupIdentity(
+                    id: "app:\(bundleIdentifier)",
+                    displayName: metadata.name,
+                    icon: .application(path: metadata.path)
+                )
+
+            case .executable:
+                return GroupIdentity(
+                    id: "process:\(port.pid):\(port.command)",
+                    displayName: "\(port.command) (PID \(port.pid))",
+                    icon: metadata.path.map(PortProcessIcon.executable(path:)) ?? .process
+                )
+            }
         }
 
         return GroupIdentity(
@@ -77,20 +91,33 @@ private struct GroupIdentity {
 private struct GroupAccumulator {
     let identity: GroupIdentity
     var ports: [PortEntry] = []
+    var portProcessDetails: [String: String] = [:]
 
     var group: PortProcessGroup {
         let sortedPorts = ports.sorted(by: PortProcessGroupingService.portSort)
-        let subtitle = Set(sortedPorts.map(\.port))
+        let portSummary = Set(sortedPorts.map(\.port))
             .sorted()
             .map(String.init)
             .joined(separator: ", ")
+        let detailNames = Set(portProcessDetails.values)
+            .sorted()
+        let subtitle: String
+
+        if detailNames.count == 1, let detailName = detailNames.first {
+            subtitle = "\(detailName) · \(portSummary)"
+        } else if detailNames.count > 1 {
+            subtitle = "\(detailNames.count) 个子进程 · \(portSummary)"
+        } else {
+            subtitle = portSummary
+        }
 
         return PortProcessGroup(
             id: identity.id,
             displayName: identity.displayName,
             subtitle: subtitle,
             icon: identity.icon,
-            ports: sortedPorts
+            ports: sortedPorts,
+            portProcessDetails: portProcessDetails
         )
     }
 }

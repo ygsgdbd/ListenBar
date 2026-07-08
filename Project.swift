@@ -29,6 +29,10 @@ let project = Project(
         .remote(
             url: "https://github.com/pointfreeco/swift-sharing",
             requirement: .upToNextMajor(from: "2.0.0")
+        ),
+        .remote(
+            url: "https://github.com/SwifterSwift/SwifterSwift",
+            requirement: .upToNextMajor(from: "8.0.0")
         )
     ],
     settings: .settings(
@@ -69,7 +73,8 @@ let project = Project(
                 .package(product: "ComposableArchitecture"),
                 .package(product: "Dependencies"),
                 .package(product: "PerceptionCore"),
-                .package(product: "Sharing")
+                .package(product: "Sharing"),
+                .package(product: "SwifterSwift")
             ],
             settings: .settings(
                 base: [
