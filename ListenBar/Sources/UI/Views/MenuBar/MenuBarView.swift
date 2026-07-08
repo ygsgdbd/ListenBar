@@ -8,17 +8,11 @@ struct MenuBarView: View {
     var body: some View {
         Group {
             Section {
-                Button {
-                    store.send(.view(.refreshTapped))
-                } label: {
-                    Label(store.isLoading ? "刷新中..." : "刷新端口", systemImage: "arrow.clockwise")
-                }
-                .disabled(store.isLoading)
-                .keyboardShortcut("r", modifiers: .command)
-
                 if let lastUpdated = store.lastUpdated {
-                    Text("更新于 \(lastUpdated.formatted(date: .omitted, time: .shortened))")
-                        .font(.caption)
+                    TimelineView(.periodic(from: Date(), by: 1)) { context in
+                        Text("更新于 \(PortLastUpdatedFormatter.relativeString(from: lastUpdated, to: context.date))")
+                            .font(.caption)
+                    }
                 }
             } header: {
                 Text(store.title)
@@ -72,6 +66,31 @@ struct MenuBarView: View {
             .keyboardShortcut("q")
         }
         .confirmationDialog($store.scope(\.confirmationDialog, action: \.confirmationDialog))
+    }
+}
+
+enum PortLastUpdatedFormatter {
+    static func relativeString(from lastUpdated: Date, to now: Date) -> String {
+        let seconds = max(0, Int(now.timeIntervalSince(lastUpdated)))
+        guard seconds > 0 else {
+            return "刚刚"
+        }
+
+        let days = seconds / 86_400
+        let hours = seconds % 86_400 / 3_600
+        let minutes = seconds % 3_600 / 60
+        let remainingSeconds = seconds % 60
+
+        if days > 0 {
+            return "\(days) 天 \(hours) 小时 \(minutes) 分 \(remainingSeconds) 秒前"
+        }
+        if hours > 0 {
+            return "\(hours) 小时 \(minutes) 分 \(remainingSeconds) 秒前"
+        }
+        if minutes > 0 {
+            return "\(minutes) 分 \(remainingSeconds) 秒前"
+        }
+        return "\(remainingSeconds) 秒前"
     }
 }
 
