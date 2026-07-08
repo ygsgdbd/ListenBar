@@ -30,7 +30,6 @@ struct AppFeature {
         case copyURLTapped(PortEntry)
         case killPortTapped(PortEntry, PortKillMode)
         case openLocalhostTapped(PortEntry)
-        case refreshTapped
         case quitTapped
     }
 
@@ -54,7 +53,7 @@ struct AppFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .task, .view(.refreshTapped):
+            case .task:
                 state.isLoading = true
                 state.errorMessage = nil
                 return loadPortsEffect()
