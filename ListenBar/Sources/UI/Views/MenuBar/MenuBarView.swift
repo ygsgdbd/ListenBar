@@ -13,6 +13,7 @@ struct MenuBarView: View {
                 Label(store.isLoading ? "刷新中..." : "刷新端口", systemImage: "arrow.clockwise")
             }
             .disabled(store.isLoading)
+            .keyboardShortcut("r", modifiers: .command)
 
             if let lastUpdated = store.lastUpdated {
                 Text("更新于 \(lastUpdated.formatted(date: .omitted, time: .shortened))")
@@ -64,10 +65,13 @@ private struct PortProcessGroupMenu: View {
     let onKillPort: (PortEntry) -> Void
 
     var body: some View {
+        let showsPIDInPortMenus = PortMenuLabels.showsPID(for: group.ports)
+
         Menu {
             ForEach(group.ports) { port in
                 PortMenu(
                     port: port,
+                    showsPID: showsPIDInPortMenus,
                     isLoading: isLoading,
                     onKillPort: onKillPort
                 )
@@ -83,10 +87,13 @@ private struct PortProcessGroupMenu: View {
 
 private struct PortMenu: View {
     let port: PortEntry
+    let showsPID: Bool
     let isLoading: Bool
     let onKillPort: (PortEntry) -> Void
 
     var body: some View {
+        let labels = PortMenuLabels(port: port, showsPID: showsPID)
+
         Menu {
             Button(role: .destructive) {
                 onKillPort(port)
@@ -95,10 +102,29 @@ private struct PortMenu: View {
             }
             .disabled(isLoading)
         } label: {
-            Text("\(port.networkProtocol.rawValue) \(port.address):\(port.port)")
-            Text("PID \(port.pid)")
+            Text(verbatim: labels.title)
+            Text(verbatim: labels.subtitle)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+struct PortMenuLabels: Equatable {
+    let title: String
+    let subtitle: String
+
+    static func showsPID(for ports: [PortEntry]) -> Bool {
+        Set(ports.map(\.pid)).count > 1
+    }
+
+    init(port: PortEntry, showsPID: Bool) {
+        self.title = String(port.port)
+
+        var subtitle = "\(port.networkProtocol.rawValue) \(port.address):\(port.port)"
+        if showsPID {
+            subtitle += " · PID \(port.pid)"
+        }
+        self.subtitle = subtitle
     }
 }
 

@@ -178,6 +178,7 @@ final class AppFeatureTests: XCTestCase {
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 4_000))
         store.dependencies.portKiller.terminate = { _ in
             throw PortKillerFailure(message: "permission denied")
         }

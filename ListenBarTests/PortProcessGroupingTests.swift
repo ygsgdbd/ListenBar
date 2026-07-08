@@ -81,3 +81,46 @@ final class PortProcessGroupingTests: XCTestCase {
         )
     }
 }
+
+final class PortMenuLabelsTests: XCTestCase {
+    func testSinglePIDGroupHidesPID() {
+        let port = self.port(port: 20017, pid: 51487)
+        let labels = PortMenuLabels(port: port, showsPID: false)
+
+        XCTAssertFalse(PortMenuLabels.showsPID(for: [port]))
+        XCTAssertEqual(labels.title, "20017")
+        XCTAssertEqual(labels.subtitle, "TCP 127.0.0.1:20017")
+    }
+
+    func testMultiplePIDGroupShowsPID() {
+        let firstPort = port(port: 20017, pid: 51487)
+        let secondPort = port(port: 20018, pid: 51488)
+        let labels = PortMenuLabels(port: firstPort, showsPID: true)
+
+        XCTAssertTrue(PortMenuLabels.showsPID(for: [firstPort, secondPort]))
+        XCTAssertEqual(labels.title, "20017")
+        XCTAssertEqual(labels.subtitle, "TCP 127.0.0.1:20017 · PID 51487")
+    }
+
+    func testPortAndPIDLabelsDoNotUseThousandsSeparators() {
+        let port = self.port(port: 20017, pid: 51487)
+        let labels = PortMenuLabels(port: port, showsPID: true)
+
+        XCTAssertFalse(labels.title.contains(","))
+        XCTAssertFalse(labels.subtitle.contains(","))
+    }
+
+    private func port(
+        port: Int,
+        pid: Int
+    ) -> PortEntry {
+        PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: port,
+            pid: pid,
+            command: "Example",
+            user: "501"
+        )
+    }
+}
