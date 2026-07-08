@@ -32,6 +32,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = false
             $0.errorMessage = nil
             $0.lastUpdated = now
+            $0.metadataByPID = snapshot.metadataByPID
             $0.ports = ports
             $0.processGroups = snapshot.processGroups
         }
@@ -74,6 +75,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = false
             $0.errorMessage = nil
             $0.lastUpdated = now
+            $0.metadataByPID = snapshot.metadataByPID
             $0.ports = [newPort]
             $0.processGroups = snapshot.processGroups
         }
@@ -112,7 +114,7 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.processGroups, initialState.processGroups)
     }
 
-    func testKillPortTerminatesPidThenRefreshesPorts() async {
+    func testQuitPortTerminatesPidThenRefreshesPorts() async {
         let oldPort = PortEntry(
             networkProtocol: .tcp,
             address: "*",
@@ -130,7 +132,7 @@ final class AppFeatureTests: XCTestCase {
             user: "501"
         )
         let now = Date(timeIntervalSince1970: 3_000)
-        let recorder = PIDRecorder()
+        let recorder = KillRecorder()
         var initialState = AppFeature.State()
         initialState.ports = [oldPort]
         initialState.processGroups = makeSnapshot([oldPort]).processGroups
@@ -140,26 +142,28 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
         store.dependencies.date = .constant(now)
-        store.dependencies.portKiller.terminate = { pid in
-            await recorder.record(pid)
+        store.dependencies.portKiller.terminate = { pid, mode in
+            await recorder.record(pid: pid, mode: mode)
         }
         store.dependencies.portScanner.scan = { [refreshedPort] }
 
-        await store.send(.view(.killPortTapped(oldPort))) {
+        let request = PortKillRequest(port: oldPort, mode: .quit)
+        await store.send(.view(.killPortTapped(oldPort, .quit))) {
             $0.isLoading = true
             $0.errorMessage = nil
         }
-        await store.receive(.response(.portKillFinished(.success(oldPort))))
+        await store.receive(.response(.portKillFinished(.success(request))))
         await store.receive(.response(.portsLoaded(.success(refreshedSnapshot)))) {
             $0.isLoading = false
             $0.errorMessage = nil
             $0.lastUpdated = now
+            $0.metadataByPID = refreshedSnapshot.metadataByPID
             $0.ports = [refreshedPort]
             $0.processGroups = refreshedSnapshot.processGroups
         }
 
-        let terminatedPIDs = await recorder.values()
-        XCTAssertEqual(terminatedPIDs, [oldPort.pid])
+        let calls = await recorder.values()
+        XCTAssertEqual(calls, [.init(pid: oldPort.pid, mode: .quit)])
     }
 
     func testKillPortFailureKeepsExistingPortsAndStoresError() async {
@@ -179,11 +183,11 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
         store.dependencies.date = .constant(Date(timeIntervalSince1970: 4_000))
-        store.dependencies.portKiller.terminate = { _ in
+        store.dependencies.portKiller.terminate = { _, _ in
             throw PortKillerFailure(message: "permission denied")
         }
 
-        await store.send(.view(.killPortTapped(oldPort))) {
+        await store.send(.view(.killPortTapped(oldPort, .quit))) {
             $0.isLoading = true
             $0.errorMessage = nil
         }
@@ -195,6 +199,143 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.ports, [oldPort])
         XCTAssertEqual(store.state.processGroups, initialState.processGroups)
     }
+
+    func testForceKillRequiresConfirmationThenKills() async {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501"
+        )
+        let recorder = KillRecorder()
+        var initialState = AppFeature.State()
+        initialState.ports = [port]
+        initialState.processGroups = makeSnapshot([port]).processGroups
+        let now = Date(timeIntervalSince1970: 5_000)
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+        store.dependencies.portKiller.terminate = { pid, mode in
+            await recorder.record(pid: pid, mode: mode)
+        }
+        store.dependencies.portScanner.scan = { [] }
+
+        let request = PortKillRequest(port: port, mode: .force)
+        await store.send(.view(.killPortTapped(port, .force))) {
+            $0.confirmationDialog = request.confirmationDialog(warnings: [.forceKill])
+        }
+        await store.send(.confirmationDialog(.presented(.confirmKill(request)))) {
+            $0.confirmationDialog = nil
+            $0.isLoading = true
+            $0.errorMessage = nil
+        }
+        await store.receive(.response(.portKillFinished(.success(request))))
+        await store.receive(.response(.portsLoaded(.success(makeSnapshot([]))))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.lastUpdated = now
+            $0.metadataByPID = [:]
+            $0.ports = []
+            $0.processGroups = []
+        }
+
+        let calls = await recorder.values()
+        XCTAssertEqual(calls, [.init(pid: port.pid, mode: .force)])
+    }
+
+    func testSystemProcessQuitRequiresConfirmation() async {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "0.0.0.0",
+            port: 22,
+            pid: 222,
+            command: "sshd",
+            user: "0"
+        )
+        let metadata = [
+            port.pid: PortProcessMetadata.executable(
+                name: "sshd",
+                path: "/usr/sbin/sshd"
+            )
+        ]
+        var initialState = AppFeature.State()
+        initialState.metadataByPID = metadata
+        initialState.ports = [port]
+        initialState.processGroups = makeSnapshot([port], metadata: metadata).processGroups
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        let request = PortKillRequest(port: port, mode: .quit, processName: "sshd")
+        await store.send(.view(.killPortTapped(port, .quit))) {
+            $0.confirmationDialog = request.confirmationDialog(warnings: [.systemProcess])
+        }
+    }
+
+    func testAppMainProcessQuitRequiresConfirmation() async {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 14013,
+            pid: 333,
+            command: "WeChat",
+            user: "501"
+        )
+        let metadata = [
+            port.pid: PortProcessMetadata(
+                bundleIdentifier: "com.tencent.xinWeChat",
+                name: "WeChat",
+                path: "/Applications/WeChat.app"
+            )
+        ]
+        var initialState = AppFeature.State()
+        initialState.metadataByPID = metadata
+        initialState.ports = [port]
+        initialState.processGroups = makeSnapshot([port], metadata: metadata).processGroups
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        let request = PortKillRequest(port: port, mode: .quit, processName: "WeChat")
+        await store.send(.view(.killPortTapped(port, .quit))) {
+            $0.confirmationDialog = request.confirmationDialog(warnings: [.appMainProcess])
+        }
+    }
+
+    func testDismissConfirmationDoesNotKill() async {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501"
+        )
+        let recorder = KillRecorder()
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        store.dependencies.portKiller.terminate = { pid, mode in
+            await recorder.record(pid: pid, mode: mode)
+        }
+
+        let request = PortKillRequest(port: port, mode: .force)
+        await store.send(.view(.killPortTapped(port, .force))) {
+            $0.confirmationDialog = request.confirmationDialog(warnings: [.forceKill])
+        }
+        await store.send(.confirmationDialog(.dismiss)) {
+            $0.confirmationDialog = nil
+        }
+
+        let calls = await recorder.values()
+        XCTAssertEqual(calls, [])
+    }
 }
 
 private func makeSnapshot(
@@ -203,6 +344,7 @@ private func makeSnapshot(
 ) -> PortScanSnapshot {
     PortScanSnapshot(
         ports: ports,
+        metadataByPID: metadata,
         processGroups: PortProcessGroupingService.groups(
             for: ports,
             metadataByPID: metadata
@@ -210,14 +352,19 @@ private func makeSnapshot(
     )
 }
 
-private actor PIDRecorder {
-    private var pids: [Int] = []
+private struct KillCall: Equatable {
+    let pid: Int
+    let mode: PortKillMode
+}
 
-    func record(_ pid: Int) {
-        pids.append(pid)
+private actor KillRecorder {
+    private var calls: [KillCall] = []
+
+    func record(pid: Int, mode: PortKillMode) {
+        calls.append(.init(pid: pid, mode: mode))
     }
 
-    func values() -> [Int] {
-        pids
+    func values() -> [KillCall] {
+        calls
     }
 }

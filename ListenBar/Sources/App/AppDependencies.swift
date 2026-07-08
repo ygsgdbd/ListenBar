@@ -10,7 +10,7 @@ struct PortProcessMetadataClient {
 }
 
 struct PortKillerClient {
-    var terminate: @Sendable (Int) async throws -> Void
+    var terminate: @Sendable (Int, PortKillMode) async throws -> Void
 }
 
 extension PortScannerClient: DependencyKey {
@@ -39,13 +39,13 @@ extension PortProcessMetadataClient: DependencyKey {
 
 extension PortKillerClient: DependencyKey {
     static let liveValue = Self(
-        terminate: { pid in
-            try await PortKillerService.terminateProcess(pid: pid)
+        terminate: { pid, mode in
+            try await PortKillerService.terminateProcess(pid: pid, mode: mode)
         }
     )
 
     static let testValue = Self(
-        terminate: { _ in }
+        terminate: { _, _ in }
     )
 }
 
