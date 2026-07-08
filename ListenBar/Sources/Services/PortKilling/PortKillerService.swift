@@ -8,9 +8,18 @@ enum PortKillerError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case let .invalidPID(pid):
-            return "无效的 PID：\(pid)"
+            return String(
+                format: String(localized: "无效的 PID：%lld", bundle: .main, comment: "进程 ID 无效时显示的错误。"),
+                locale: Locale.current,
+                Int64(pid)
+            )
         case let .signalFailed(pid, message):
-            return "无法终止 PID \(pid)：\(message)"
+            return String(
+                format: String(localized: "无法终止 PID %lld：%@", bundle: .main, comment: "向进程发送信号失败时显示的错误。"),
+                locale: Locale.current,
+                Int64(pid),
+                message
+            )
         }
     }
 }

@@ -13,11 +13,11 @@ enum PortAddressExposure: Equatable, Sendable {
     var label: String {
         switch self {
         case .localOnly:
-            return "Local only"
+            return String(localized: "仅本机", bundle: .main, comment: "端口只绑定到 localhost 或 loopback。")
         case .allInterfaces:
-            return "All interfaces"
+            return String(localized: "所有网络接口", bundle: .main, comment: "端口绑定到所有网络接口。")
         case .specificInterface:
-            return "Specific interface"
+            return String(localized: "指定网络接口", bundle: .main, comment: "端口绑定到指定的非 loopback 接口。")
         }
     }
 }
@@ -29,9 +29,9 @@ enum PortKillMode: Equatable, Sendable {
     var title: String {
         switch self {
         case .quit:
-            return "Quit Process (SIGTERM)"
+            return String(localized: "终止进程 (SIGTERM)", bundle: .main, comment: "使用 SIGTERM 终止进程。")
         case .force:
-            return "Force Kill (SIGKILL)"
+            return String(localized: "强制终止 (SIGKILL)", bundle: .main, comment: "使用 SIGKILL 强制终止进程。")
         }
     }
 

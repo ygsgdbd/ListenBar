@@ -20,7 +20,12 @@ struct AppFeature {
         var processGroups: [PortProcessGroup] = []
 
         var title: String {
-            "监听进程 \(processGroups.count) · 端口 \(ports.count)"
+            String(
+                format: String(localized: "监听进程 %lld · 端口 %lld", bundle: .main, comment: "菜单标题，显示监听进程和端口数量。"),
+                locale: Locale.current,
+                Int64(processGroups.count),
+                Int64(ports.count)
+            )
         }
     }
 
@@ -249,7 +254,7 @@ struct PortKillRequest: Equatable, Sendable {
             TextState(mode.title)
         } actions: {
             ButtonState(role: .cancel) {
-                TextState("Cancel")
+                TextState(String(localized: "取消", bundle: .main, comment: "取消按钮标题。"))
             }
             ButtonState(role: .destructive, action: .confirmKill(self)) {
                 TextState(mode.title)
@@ -262,7 +267,15 @@ struct PortKillRequest: Equatable, Sendable {
     private func confirmationMessage(warnings: [PortKillWarning]) -> String {
         let endpoint = "\(port.networkProtocol.rawValue) \(port.address):\(port.port)"
         let warningText = warnings.map(\.message).joined(separator: " ")
-        return "\(mode.signalName) will be sent to \(processName) (PID \(port.pid)) for \(endpoint). \(warningText)"
+        return String(
+            format: String(localized: "%@ 将发送到 %@ (PID %lld)，目标为 %@。%@", bundle: .main, comment: "发送进程终止信号前的确认说明。"),
+            locale: Locale.current,
+            mode.signalName,
+            processName,
+            Int64(port.pid),
+            endpoint,
+            warningText
+        )
     }
 }
 
@@ -274,11 +287,11 @@ enum PortKillWarning: Equatable, Sendable {
     var message: String {
         switch self {
         case .forceKill:
-            return "Force kill cannot be handled gracefully."
+            return String(localized: "强制终止无法被进程优雅处理。", bundle: .main, comment: "发送 SIGKILL 前显示的警告。")
         case .systemProcess:
-            return "This looks like a system process."
+            return String(localized: "这看起来是系统进程。", bundle: .main, comment: "终止系统进程前显示的警告。")
         case .appMainProcess:
-            return "This looks like the main app process."
+            return String(localized: "这看起来是主应用进程。", bundle: .main, comment: "终止应用主进程前显示的警告。")
         }
     }
 }

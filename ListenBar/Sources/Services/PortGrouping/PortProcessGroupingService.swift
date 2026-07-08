@@ -106,7 +106,12 @@ private struct GroupAccumulator {
         if detailNames.count == 1, let detailName = detailNames.first {
             subtitle = "\(detailName) · \(portSummary)"
         } else if detailNames.count > 1 {
-            subtitle = "\(detailNames.count) 个子进程 · \(portSummary)"
+            subtitle = String(
+                format: String(localized: "%lld 个子进程 · %@", bundle: .main, comment: "多个 helper 进程及其端口的分组副标题。"),
+                locale: Locale.current,
+                Int64(detailNames.count),
+                portSummary
+            )
         } else {
             subtitle = portSummary
         }

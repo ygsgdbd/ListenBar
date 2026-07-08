@@ -11,13 +11,13 @@ struct MenuBarView: View {
                 Button {
                     store.send(.view(.refreshTapped))
                 } label: {
-                    Label(store.isLoading ? "刷新中..." : "刷新端口", systemImage: "arrow.clockwise")
+                    Label(refreshTitle, systemImage: "arrow.clockwise")
                 }
                 .disabled(store.isLoading)
                 .keyboardShortcut("r", modifiers: .command)
 
                 if let lastUpdated = store.lastUpdated {
-                    Text("更新于 \(lastUpdated.formatted(date: .omitted, time: .shortened))")
+                    Text(updatedAtText(lastUpdated))
                         .font(.caption)
                 }
             } header: {
@@ -34,7 +34,7 @@ struct MenuBarView: View {
 
             if store.processGroups.isEmpty {
                 Section {
-                    Text(store.isLoading ? "正在扫描..." : "未发现监听端口")
+                    Text(emptyStateText)
                 }
             } else {
                 Section("进程") {
@@ -72,6 +72,28 @@ struct MenuBarView: View {
             .keyboardShortcut("q")
         }
         .confirmationDialog($store.scope(\.confirmationDialog, action: \.confirmationDialog))
+    }
+
+    private var refreshTitle: String {
+        if store.isLoading {
+            return String(localized: "刷新中...", bundle: .main, comment: "扫描端口时的刷新按钮标题。")
+        }
+        return String(localized: "刷新端口", bundle: .main, comment: "刷新按钮标题。")
+    }
+
+    private var emptyStateText: String {
+        if store.isLoading {
+            return String(localized: "正在扫描...", bundle: .main, comment: "扫描端口时的空状态。")
+        }
+        return String(localized: "未发现监听端口", bundle: .main, comment: "没有发现监听端口时的空状态。")
+    }
+
+    private func updatedAtText(_ date: Date) -> String {
+        String(
+            format: String(localized: "更新于 %@", bundle: .main, comment: "最近一次端口扫描的更新时间。"),
+            locale: Locale.current,
+            date.formatted(date: .omitted, time: .shortened)
+        )
     }
 }
 
@@ -133,27 +155,27 @@ private struct PortMenu: View {
                 Button {
                     onOpenLocalhost(port)
                 } label: {
-                    Label("Open localhost", systemImage: "safari")
+                    Label("打开 localhost", systemImage: "safari")
                 }
                 .disabled(isLoading)
 
                 Button {
                     onCopyURL(port)
                 } label: {
-                    Label("Copy URL", systemImage: "link")
+                    Label("复制 URL", systemImage: "link")
                 }
             }
 
             Button {
                 onCopyPID(port)
             } label: {
-                Label("Copy PID", systemImage: "number")
+                Label("复制 PID", systemImage: "number")
             }
 
             Button {
                 onCopyLsofCommand(port)
             } label: {
-                Label("Copy lsof command", systemImage: "doc.on.doc")
+                Label("复制 lsof 命令", systemImage: "doc.on.doc")
             }
 
             Divider()

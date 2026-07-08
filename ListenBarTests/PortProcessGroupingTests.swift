@@ -201,7 +201,7 @@ final class PortMenuLabelsTests: XCTestCase {
 
         XCTAssertFalse(PortMenuLabels.showsPID(for: [port]))
         XCTAssertEqual(labels.title, "20017")
-        XCTAssertEqual(labels.subtitle, "TCP 127.0.0.1:20017 · Local only")
+        XCTAssertEqual(labels.subtitle, "TCP 127.0.0.1:20017 · 仅本机")
     }
 
     func testMultiplePIDGroupShowsPID() {
@@ -211,7 +211,7 @@ final class PortMenuLabelsTests: XCTestCase {
 
         XCTAssertTrue(PortMenuLabels.showsPID(for: [firstPort, secondPort]))
         XCTAssertEqual(labels.title, "20017")
-        XCTAssertEqual(labels.subtitle, "TCP 127.0.0.1:20017 · Local only · PID 51487")
+        XCTAssertEqual(labels.subtitle, "TCP 127.0.0.1:20017 · 仅本机 · PID 51487")
     }
 
     func testPortAndPIDLabelsDoNotUseThousandsSeparators() {
@@ -236,7 +236,7 @@ final class PortMenuLabelsTests: XCTestCase {
 
         XCTAssertEqual(
             labels.subtitle,
-            "TCP 127.0.0.1:61305 · Local only · PID 22749 · GitHub Desktop Helper (Renderer)"
+            "TCP 127.0.0.1:61305 · 仅本机 · PID 22749 · GitHub Desktop Helper (Renderer)"
         )
     }
 
@@ -244,7 +244,7 @@ final class PortMenuLabelsTests: XCTestCase {
         let port = self.port(address: "0.0.0.0", port: 3000, pid: 51487)
         let labels = PortMenuLabels(port: port, showsPID: false)
 
-        XCTAssertEqual(labels.subtitle, "TCP 0.0.0.0:3000 · All interfaces")
+        XCTAssertEqual(labels.subtitle, "TCP 0.0.0.0:3000 · 所有网络接口")
         XCTAssertEqual(labels.localhostURLString, "http://localhost:3000")
         XCTAssertEqual(labels.lsofCommand, "/usr/sbin/lsof -nP -iTCP:3000 -sTCP:LISTEN")
     }
@@ -259,15 +259,15 @@ final class PortMenuLabelsTests: XCTestCase {
             showsPID: false
         )
 
-        XCTAssertEqual(loopbackLabels.subtitle, "TCP [::1]:9090 · Local only")
-        XCTAssertEqual(wildcardLabels.subtitle, "TCP [::]:9091 · All interfaces")
+        XCTAssertEqual(loopbackLabels.subtitle, "TCP [::1]:9090 · 仅本机")
+        XCTAssertEqual(wildcardLabels.subtitle, "TCP [::]:9091 · 所有网络接口")
     }
 
     func testLabelsClassifySpecificInterfaceAndHideLocalhostURL() {
         let port = self.port(address: "192.168.1.5", port: 8080, pid: 51487)
         let labels = PortMenuLabels(port: port, showsPID: false)
 
-        XCTAssertEqual(labels.subtitle, "TCP 192.168.1.5:8080 · Specific interface")
+        XCTAssertEqual(labels.subtitle, "TCP 192.168.1.5:8080 · 指定网络接口")
         XCTAssertNil(labels.localhostURLString)
     }
 
@@ -280,7 +280,7 @@ final class PortMenuLabelsTests: XCTestCase {
         )
         let labels = PortMenuLabels(port: port, showsPID: false)
 
-        XCTAssertEqual(labels.subtitle, "UDP *:5353 · All interfaces")
+        XCTAssertEqual(labels.subtitle, "UDP *:5353 · 所有网络接口")
         XCTAssertNil(labels.localhostURLString)
         XCTAssertEqual(labels.lsofCommand, "/usr/sbin/lsof -nP -iUDP:5353")
     }
