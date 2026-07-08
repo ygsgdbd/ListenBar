@@ -8,17 +8,11 @@ struct MenuBarView: View {
     var body: some View {
         Group {
             Section {
-                Button {
-                    store.send(.view(.refreshTapped))
-                } label: {
-                    Label(refreshTitle, systemImage: "arrow.clockwise")
-                }
-                .disabled(store.isLoading)
-                .keyboardShortcut("r", modifiers: .command)
-
                 if let lastUpdated = store.lastUpdated {
-                    Text(updatedAtText(lastUpdated))
-                        .font(.caption)
+                    TimelineView(.periodic(from: Date(), by: 1)) { context in
+                        Text(updatedAtText(lastUpdated, now: context.date))
+                            .font(.caption)
+                    }
                 }
             } header: {
                 Text(store.title)
@@ -74,13 +68,6 @@ struct MenuBarView: View {
         .confirmationDialog($store.scope(\.confirmationDialog, action: \.confirmationDialog))
     }
 
-    private var refreshTitle: String {
-        if store.isLoading {
-            return String(localized: "刷新中...", bundle: .main, comment: "扫描端口时的刷新按钮标题。")
-        }
-        return String(localized: "刷新端口", bundle: .main, comment: "刷新按钮标题。")
-    }
-
     private var emptyStateText: String {
         if store.isLoading {
             return String(localized: "正在扫描...", bundle: .main, comment: "扫描端口时的空状态。")
@@ -88,11 +75,58 @@ struct MenuBarView: View {
         return String(localized: "未发现监听端口", bundle: .main, comment: "没有发现监听端口时的空状态。")
     }
 
-    private func updatedAtText(_ date: Date) -> String {
+    private func updatedAtText(_ lastUpdated: Date, now: Date) -> String {
         String(
             format: String(localized: "更新于 %@", bundle: .main, comment: "最近一次端口扫描的更新时间。"),
             locale: Locale.current,
-            date.formatted(date: .omitted, time: .shortened)
+            PortLastUpdatedFormatter.relativeString(from: lastUpdated, to: now)
+        )
+    }
+}
+
+enum PortLastUpdatedFormatter {
+    static func relativeString(from lastUpdated: Date, to now: Date) -> String {
+        let seconds = max(0, Int(now.timeIntervalSince(lastUpdated)))
+        guard seconds > 0 else {
+            return String(localized: "刚刚", bundle: .main, comment: "相对更新时间：刚刚。")
+        }
+
+        let days = seconds / 86_400
+        let hours = seconds % 86_400 / 3_600
+        let minutes = seconds % 3_600 / 60
+        let remainingSeconds = seconds % 60
+
+        if days > 0 {
+            return String(
+                format: String(localized: "%lld 天 %lld 小时 %lld 分 %lld 秒前", bundle: .main, comment: "相对更新时间：天、小时、分钟、秒。"),
+                locale: Locale.current,
+                Int64(days),
+                Int64(hours),
+                Int64(minutes),
+                Int64(remainingSeconds)
+            )
+        }
+        if hours > 0 {
+            return String(
+                format: String(localized: "%lld 小时 %lld 分 %lld 秒前", bundle: .main, comment: "相对更新时间：小时、分钟、秒。"),
+                locale: Locale.current,
+                Int64(hours),
+                Int64(minutes),
+                Int64(remainingSeconds)
+            )
+        }
+        if minutes > 0 {
+            return String(
+                format: String(localized: "%lld 分 %lld 秒前", bundle: .main, comment: "相对更新时间：分钟、秒。"),
+                locale: Locale.current,
+                Int64(minutes),
+                Int64(remainingSeconds)
+            )
+        }
+        return String(
+            format: String(localized: "%lld 秒前", bundle: .main, comment: "相对更新时间：秒。"),
+            locale: Locale.current,
+            Int64(remainingSeconds)
         )
     }
 }

@@ -38,49 +38,6 @@ final class AppFeatureTests: XCTestCase {
         }
     }
 
-    func testRefreshReplacesPorts() async {
-        let oldPort = PortEntry(
-            networkProtocol: .tcp,
-            address: "*",
-            port: 3000,
-            pid: 11,
-            command: "old",
-            user: nil
-        )
-        let newPort = PortEntry(
-            networkProtocol: .udp,
-            address: "*",
-            port: 5353,
-            pid: 22,
-            command: "new",
-            user: "501"
-        )
-        let now = Date(timeIntervalSince1970: 2_000)
-        var initialState = AppFeature.State()
-        initialState.ports = [oldPort]
-        initialState.processGroups = makeSnapshot([oldPort]).processGroups
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(now)
-        store.dependencies.portScanner.scan = { [newPort] }
-        let snapshot = makeSnapshot([newPort])
-
-        await store.send(.view(.refreshTapped)) {
-            $0.isLoading = true
-            $0.errorMessage = nil
-        }
-        await store.receive(.response(.portsLoaded(.success(snapshot)))) {
-            $0.isLoading = false
-            $0.errorMessage = nil
-            $0.lastUpdated = now
-            $0.metadataByPID = snapshot.metadataByPID
-            $0.ports = [newPort]
-            $0.processGroups = snapshot.processGroups
-        }
-    }
-
     func testScanFailureKeepsExistingPortsAndStoresError() async {
         let oldPort = PortEntry(
             networkProtocol: .tcp,
@@ -101,7 +58,7 @@ final class AppFeatureTests: XCTestCase {
             throw PortScannerFailure(message: "lsof failed")
         }
 
-        await store.send(.view(.refreshTapped)) {
+        await store.send(.task) {
             $0.isLoading = true
             $0.errorMessage = nil
         }
@@ -112,6 +69,53 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertEqual(store.state.ports, [oldPort])
         XCTAssertEqual(store.state.processGroups, initialState.processGroups)
+    }
+
+    func testLastUpdatedRelativeStringIncludesSeconds() {
+        let now = Date(timeIntervalSince1970: 100_000)
+
+        XCTAssertEqual(
+            PortLastUpdatedFormatter.relativeString(
+                from: now.addingTimeInterval(-5),
+                to: now
+            ),
+            "5 秒前"
+        )
+        XCTAssertEqual(
+            PortLastUpdatedFormatter.relativeString(
+                from: now.addingTimeInterval(-65),
+                to: now
+            ),
+            "1 分 5 秒前"
+        )
+        XCTAssertEqual(
+            PortLastUpdatedFormatter.relativeString(
+                from: now.addingTimeInterval(-3_661),
+                to: now
+            ),
+            "1 小时 1 分 1 秒前"
+        )
+        XCTAssertEqual(
+            PortLastUpdatedFormatter.relativeString(
+                from: now.addingTimeInterval(-90_061),
+                to: now
+            ),
+            "1 天 1 小时 1 分 1 秒前"
+        )
+        XCTAssertEqual(
+            PortLastUpdatedFormatter.relativeString(
+                from: now.addingTimeInterval(1),
+                to: now
+            ),
+            "刚刚"
+        )
+        XCTAssertEqual(
+            PortLastUpdatedFormatter.relativeString(
+                from: now.addingTimeInterval(-0.5),
+                to: now
+            ),
+            "刚刚"
+        )
     }
 
     func testQuitPortTerminatesPidThenRefreshesPorts() async {
