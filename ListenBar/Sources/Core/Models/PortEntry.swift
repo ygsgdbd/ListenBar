@@ -103,38 +103,125 @@ enum PortProcessMetadataKind: Equatable, Sendable {
     case executable
 }
 
+enum PortProcessClassification: Equatable, Sendable {
+    case user
+    case systemOrOtherUser
+
+    var sectionTitle: String {
+        switch self {
+        case .user:
+            return String(localized: "用户进程", bundle: .main, comment: "当前用户进程列表分区标题。")
+        case .systemOrOtherUser:
+            return String(localized: "系统/其他用户进程", bundle: .main, comment: "系统或其他用户进程列表分区标题。")
+        }
+    }
+}
+
+enum PortProcessSource: Equatable, Sendable {
+    case application
+    case homebrew
+    case visualStudioCode
+    case terminal
+    case launchd
+    case system
+    case executable
+    case unknown
+
+    var label: String {
+        switch self {
+        case .application:
+            return String(localized: "App", bundle: .main, comment: "进程来源推断：普通 App。")
+        case .homebrew:
+            return String(localized: "Homebrew", bundle: .main, comment: "进程来源推断：Homebrew。")
+        case .visualStudioCode:
+            return String(localized: "VS Code", bundle: .main, comment: "进程来源推断：VS Code。")
+        case .terminal:
+            return String(localized: "Terminal", bundle: .main, comment: "进程来源推断：终端。")
+        case .launchd:
+            return String(localized: "launchd", bundle: .main, comment: "进程来源推断：launchd。")
+        case .system:
+            return String(localized: "系统", bundle: .main, comment: "进程来源推断：系统。")
+        case .executable:
+            return String(localized: "可执行文件", bundle: .main, comment: "进程来源推断：普通可执行文件。")
+        case .unknown:
+            return String(localized: "未知来源", bundle: .main, comment: "无法推断进程来源。")
+        }
+    }
+}
+
 struct PortProcessMetadata: Equatable, Sendable {
     let kind: PortProcessMetadataKind
     let name: String
     let path: String?
     let processDetailName: String?
+    let executablePath: String?
+    let commandLine: String?
+    let commandLineSummary: String?
+    let source: PortProcessSource
+    let classification: PortProcessClassification
 
     init(
         bundleIdentifier: String,
         name: String,
         path: String?,
-        processDetailName: String? = nil
+        processDetailName: String? = nil,
+        executablePath: String? = nil,
+        commandLine: String? = nil,
+        commandLineSummary: String? = nil,
+        source: PortProcessSource = .application,
+        classification: PortProcessClassification = .user
     ) {
         self.kind = .application(bundleIdentifier: bundleIdentifier)
         self.name = name
         self.path = path
         self.processDetailName = processDetailName
+        self.executablePath = executablePath
+        self.commandLine = commandLine
+        self.commandLineSummary = commandLineSummary
+        self.source = source
+        self.classification = classification
     }
 
     private init(
         kind: PortProcessMetadataKind,
         name: String,
         path: String?,
-        processDetailName: String? = nil
+        processDetailName: String? = nil,
+        executablePath: String? = nil,
+        commandLine: String? = nil,
+        commandLineSummary: String? = nil,
+        source: PortProcessSource = .unknown,
+        classification: PortProcessClassification = .user
     ) {
         self.kind = kind
         self.name = name
         self.path = path
         self.processDetailName = processDetailName
+        self.executablePath = executablePath
+        self.commandLine = commandLine
+        self.commandLineSummary = commandLineSummary
+        self.source = source
+        self.classification = classification
     }
 
-    static func executable(name: String, path: String) -> Self {
-        Self(kind: .executable, name: name, path: path)
+    static func executable(
+        name: String,
+        path: String,
+        commandLine: String? = nil,
+        commandLineSummary: String? = nil,
+        source: PortProcessSource = .executable,
+        classification: PortProcessClassification = .user
+    ) -> Self {
+        Self(
+            kind: .executable,
+            name: name,
+            path: path,
+            executablePath: path,
+            commandLine: commandLine,
+            commandLineSummary: commandLineSummary,
+            source: source,
+            classification: classification
+        )
     }
 }
 
@@ -149,6 +236,7 @@ struct PortProcessGroup: Equatable, Identifiable, Sendable {
     let displayName: String
     let subtitle: String
     let icon: PortProcessIcon
+    let classification: PortProcessClassification
     let ports: [PortEntry]
     let portProcessDetails: [String: String]
 
@@ -157,6 +245,7 @@ struct PortProcessGroup: Equatable, Identifiable, Sendable {
         displayName: String,
         subtitle: String,
         icon: PortProcessIcon,
+        classification: PortProcessClassification = .user,
         ports: [PortEntry],
         portProcessDetails: [String: String] = [:]
     ) {
@@ -164,6 +253,7 @@ struct PortProcessGroup: Equatable, Identifiable, Sendable {
         self.displayName = displayName
         self.subtitle = subtitle
         self.icon = icon
+        self.classification = classification
         self.ports = ports
         self.portProcessDetails = portProcessDetails
     }

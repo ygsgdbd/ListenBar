@@ -66,4 +66,98 @@ final class PortProcessMetadataServiceTests: XCTestCase {
             )
         )
     }
+
+    func testCommandLineStringQuotesArgumentsAndSummarizesLongCommands() {
+        let commandLine = PortProcessMetadataService.commandLineString(
+            arguments: [
+                "/opt/homebrew/bin/node",
+                "server.js",
+                "--name",
+                "hello world"
+            ]
+        )
+
+        XCTAssertEqual(
+            commandLine,
+            "/opt/homebrew/bin/node server.js --name 'hello world'"
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.commandLineSummary(for: "1234567890", limit: 8),
+            "12345..."
+        )
+    }
+
+    func testInferredSourceUsesPathAndParentProcessNames() {
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSource(
+                executablePath: "/opt/homebrew/bin/node",
+                applicationPath: nil,
+                parentProcessNames: ["Terminal"]
+            ),
+            .homebrew
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSource(
+                executablePath: "/Users/example/.nvm/node",
+                applicationPath: nil,
+                parentProcessNames: ["Code Helper", "Visual Studio Code"]
+            ),
+            .visualStudioCode
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSource(
+                executablePath: "/usr/libexec/exampled",
+                applicationPath: nil,
+                parentProcessNames: []
+            ),
+            .system
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSource(
+                executablePath: nil,
+                applicationPath: nil,
+                parentProcessNames: []
+            ),
+            .unknown
+        )
+    }
+
+    func testProcessClassificationUsesUIDAndSystemPaths() {
+        XCTAssertEqual(
+            PortProcessMetadataService.processClassification(
+                uid: 501,
+                executablePath: "/Users/example/bin/server",
+                applicationPath: nil,
+                currentUID: 501
+            ),
+            .user
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.processClassification(
+                uid: 0,
+                executablePath: "/Users/example/bin/server",
+                applicationPath: nil,
+                currentUID: 501
+            ),
+            .systemOrOtherUser
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.processClassification(
+                uid: 502,
+                executablePath: "/Users/example/bin/server",
+                applicationPath: nil,
+                currentUID: 501
+            ),
+            .systemOrOtherUser
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.processClassification(
+                uid: 501,
+                executablePath: "/usr/sbin/sshd",
+                applicationPath: nil,
+                currentUID: 501
+            ),
+            .systemOrOtherUser
+        )
+    }
 }

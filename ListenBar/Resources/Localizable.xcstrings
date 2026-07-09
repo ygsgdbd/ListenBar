@@ -35,6 +35,23 @@
         }
       }
     },
+    "%lld 分 %lld 秒前" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldm %llds ago"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 分 %lld 秒前"
+          }
+        }
+      }
+    },
     "%lld 天 %lld 小时 %lld 分 %lld 秒前" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -65,23 +82,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 小时 %lld 分 %lld 秒前"
-          }
-        }
-      }
-    },
-    "%lld 分 %lld 秒前" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lldm %llds ago"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 分 %lld 秒前"
           }
         }
       }
@@ -137,6 +137,23 @@
         }
       }
     },
+    "刚刚" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刚刚"
+          }
+        }
+      }
+    },
     "取消" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -154,22 +171,8 @@
         }
       }
     },
-    "刚刚" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Just now"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刚刚"
-          }
-        }
-      }
+    "在 Finder 中显示" : {
+
     },
     "复制 lsof 命令" : {
       "extractionState" : "stale",
@@ -221,6 +224,12 @@
           }
         }
       }
+    },
+    "复制启动命令" : {
+
+    },
+    "复制路径" : {
+
     },
     "强制终止 (SIGKILL)" : {
       "extractionState" : "stale",

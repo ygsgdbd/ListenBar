@@ -312,6 +312,196 @@ final class AppFeatureTests: XCTestCase {
         }
     }
 
+    func testProcessPathAndCommandLineSelectorsUsePIDMetadata() {
+        let metadata = [
+            101: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: "/Applications/Example.app",
+                executablePath: "/Applications/Example.app/Contents/MacOS/Example",
+                commandLine: "Example --port 3000",
+                commandLineSummary: "Example --port 3000"
+            ),
+            102: PortProcessMetadata.executable(
+                name: "node",
+                path: "/opt/homebrew/bin/node",
+                commandLine: "node server.js",
+                commandLineSummary: "node server.js"
+            )
+        ]
+
+        XCTAssertEqual(
+            AppFeature.processPath(forPID: 101, metadataByPID: metadata),
+            "/Applications/Example.app/Contents/MacOS/Example"
+        )
+        XCTAssertEqual(
+            AppFeature.commandLine(forPID: 101, metadataByPID: metadata),
+            "Example --port 3000"
+        )
+        XCTAssertEqual(
+            AppFeature.processPath(forPID: 102, metadataByPID: metadata),
+            "/opt/homebrew/bin/node"
+        )
+        XCTAssertEqual(
+            AppFeature.commandLine(forPID: 102, metadataByPID: metadata),
+            "node server.js"
+        )
+        XCTAssertNil(AppFeature.processPath(forPID: 999, metadataByPID: metadata))
+        XCTAssertNil(AppFeature.commandLine(forPID: 999, metadataByPID: metadata))
+    }
+
+    func testKillGroupRequiresConfirmationThenTerminatesUniquePIDsAndRefreshes() async throws {
+        let firstPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example Helper",
+            user: "501"
+        )
+        let secondPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3001,
+            pid: 101,
+            command: "Example Helper",
+            user: "501"
+        )
+        let thirdPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3002,
+            pid: 202,
+            command: "Example Helper",
+            user: "501"
+        )
+        let metadata = appMetadata(for: [101, 202])
+        let initialSnapshot = makeSnapshot(
+            [firstPort, secondPort, thirdPort],
+            metadata: metadata
+        )
+        var initialState = AppFeature.State()
+        initialState.metadataByPID = metadata
+        initialState.ports = initialSnapshot.ports
+        initialState.processGroups = initialSnapshot.processGroups
+        let group = try XCTUnwrap(initialState.processGroups.first)
+        let request = PortGroupKillRequest(group: group, mode: .quit)
+        let now = Date(timeIntervalSince1970: 6_000)
+        let recorder = KillRecorder()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+        store.dependencies.portKiller.terminate = { pid, mode in
+            await recorder.record(pid: pid, mode: mode)
+        }
+        store.dependencies.portScanner.scan = { [] }
+
+        await store.send(.view(.killGroupTapped(group, .quit))) {
+            $0.confirmationDialog = request.confirmationDialog(warnings: [.multipleProcesses(2)])
+        }
+        await store.send(.confirmationDialog(.presented(.confirmKillGroup(request)))) {
+            $0.confirmationDialog = nil
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+        }
+        await store.receive(.response(.portGroupKillFinished(.init(request: request, failures: []))))
+        await store.receive(.response(.portsLoaded(.success(makeSnapshot([]))))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+            $0.lastUpdated = now
+            $0.metadataByPID = [:]
+            $0.ports = []
+            $0.processGroups = []
+        }
+
+        let calls = await recorder.values()
+        XCTAssertEqual(
+            calls,
+            [
+                .init(pid: 101, mode: .quit),
+                .init(pid: 202, mode: .quit)
+            ]
+        )
+    }
+
+    func testKillGroupPartialFailureShowsErrorAfterRefresh() async throws {
+        let firstPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example Helper",
+            user: "501"
+        )
+        let secondPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3001,
+            pid: 202,
+            command: "Example Helper",
+            user: "501"
+        )
+        let metadata = appMetadata(for: [101, 202])
+        let initialSnapshot = makeSnapshot([firstPort, secondPort], metadata: metadata)
+        var initialState = AppFeature.State()
+        initialState.metadataByPID = metadata
+        initialState.ports = initialSnapshot.ports
+        initialState.processGroups = initialSnapshot.processGroups
+        let group = try XCTUnwrap(initialState.processGroups.first)
+        let request = PortGroupKillRequest(group: group, mode: .quit)
+        let failure = PortKillPIDFailure(pid: 202, message: "permission denied")
+        let result = PortGroupKillResult(request: request, failures: [failure])
+        let now = Date(timeIntervalSince1970: 7_000)
+        let recorder = KillRecorder()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+        store.dependencies.portKiller.terminate = { pid, mode in
+            await recorder.record(pid: pid, mode: mode)
+            if pid == 202 {
+                throw PortKillerFailure(message: "permission denied")
+            }
+        }
+        store.dependencies.portScanner.scan = { [] }
+
+        await store.send(.view(.killGroupTapped(group, .quit))) {
+            $0.confirmationDialog = request.confirmationDialog(warnings: [.multipleProcesses(2)])
+        }
+        await store.send(.confirmationDialog(.presented(.confirmKillGroup(request)))) {
+            $0.confirmationDialog = nil
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+        }
+        await store.receive(.response(.portGroupKillFinished(result))) {
+            $0.postRefreshErrorMessage = result.failureMessage
+        }
+        await store.receive(.response(.portsLoaded(.success(makeSnapshot([]))))) {
+            $0.isLoading = false
+            $0.errorMessage = result.failureMessage
+            $0.postRefreshErrorMessage = nil
+            $0.lastUpdated = now
+            $0.metadataByPID = [:]
+            $0.ports = []
+            $0.processGroups = []
+        }
+
+        let calls = await recorder.values()
+        XCTAssertEqual(
+            calls,
+            [
+                .init(pid: 101, mode: .quit),
+                .init(pid: 202, mode: .quit)
+            ]
+        )
+    }
+
     func testDismissConfirmationDoesNotKill() async {
         let port = PortEntry(
             networkProtocol: .tcp,
@@ -353,6 +543,21 @@ private func makeSnapshot(
             for: ports,
             metadataByPID: metadata
         )
+    )
+}
+
+private func appMetadata(for pids: [Int]) -> [Int: PortProcessMetadata] {
+    Dictionary(
+        uniqueKeysWithValues: pids.map { pid in
+            (
+                pid,
+                PortProcessMetadata(
+                    bundleIdentifier: "com.example.App",
+                    name: "Example",
+                    path: "/Applications/Example.app"
+                )
+            )
+        }
     )
 }
 

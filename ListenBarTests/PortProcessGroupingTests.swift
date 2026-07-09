@@ -176,12 +176,47 @@ final class PortProcessGroupingTests: XCTestCase {
         XCTAssertEqual(groups.first?.ports.map(\.networkProtocol), [.tcp, .udp, .tcp])
     }
 
+    func testClassifiesRootProcessWithoutMetadataAsSystemOrOtherUser() {
+        let port = port(port: 22, pid: 10, command: "sshd", user: "0")
+
+        let groups = PortProcessGroupingService.groups(for: [port], metadataByPID: [:])
+
+        XCTAssertEqual(groups.first?.classification, .systemOrOtherUser)
+    }
+
+    func testGroupClassificationUsesMetadataAndPromotesMixedAppGroupToSystem() {
+        let userPort = port(port: 3000, pid: 10, command: "Example Helper")
+        let systemPort = port(port: 3001, pid: 11, command: "Example Helper")
+
+        let groups = PortProcessGroupingService.groups(
+            for: [userPort, systemPort],
+            metadataByPID: [
+                10: PortProcessMetadata(
+                    bundleIdentifier: "com.example.App",
+                    name: "Example",
+                    path: "/Applications/Example.app",
+                    classification: .user
+                ),
+                11: PortProcessMetadata(
+                    bundleIdentifier: "com.example.App",
+                    name: "Example",
+                    path: "/Applications/Example.app",
+                    classification: .systemOrOtherUser
+                )
+            ]
+        )
+
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups.first?.classification, .systemOrOtherUser)
+    }
+
     private func port(
         networkProtocol: NetworkProtocol = .tcp,
         address: String = "*",
         port: Int,
         pid: Int,
-        command: String
+        command: String,
+        user: String = "501"
     ) -> PortEntry {
         PortEntry(
             networkProtocol: networkProtocol,
@@ -189,7 +224,7 @@ final class PortProcessGroupingTests: XCTestCase {
             port: port,
             pid: pid,
             command: command,
-            user: "501"
+            user: user
         )
     }
 }
@@ -283,6 +318,169 @@ final class PortMenuLabelsTests: XCTestCase {
         XCTAssertEqual(labels.subtitle, "UDP *:5353 · 所有网络接口")
         XCTAssertNil(labels.localhostURLString)
         XCTAssertEqual(labels.lsofCommand, "/usr/sbin/lsof -nP -iUDP:5353")
+    }
+
+    func testProcessInfoLabelsShowSourcePathAndCommandSummary() {
+        let labels = PortProcessInfoLabels(
+            metadata: PortProcessMetadata.executable(
+                name: "node",
+                path: "/opt/homebrew/bin/node",
+                commandLine: "/opt/homebrew/bin/node server.js",
+                commandLineSummary: "/opt/homebrew/bin/node server.js",
+                source: .homebrew
+            )
+        )
+
+        XCTAssertTrue(labels.hasDetails)
+        XCTAssertEqual(labels.source, "来源：Homebrew")
+        XCTAssertEqual(labels.path, "/opt/homebrew/bin/node")
+        XCTAssertEqual(labels.commandLineSummary, "/opt/homebrew/bin/node server.js")
+    }
+
+    func testProcessInfoItemsDeduplicateRepeatedPIDPorts() throws {
+        let firstPort = self.port(port: 5037, pid: 63759, command: "adb")
+        let secondPort = self.port(
+            networkProtocol: .udp,
+            address: "*",
+            port: 5353,
+            pid: 63759,
+            command: "adb"
+        )
+        let metadata = [
+            63759: PortProcessMetadata.executable(
+                name: "adb",
+                path: "/Users/rainbow/Library/Android/sdk/platform-tools/adb",
+                commandLine: "adb -L tcp:5037 fork-server server --reply-fd 4",
+                commandLineSummary: "adb -L tcp:5037 fork-server server --reply-fd 4",
+                source: .launchd
+            )
+        ]
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(
+                for: [secondPort, firstPort],
+                metadataByPID: metadata
+            ).first
+        )
+
+        let items = PortProcessInfoItems(
+            group: group,
+            metadataByPID: metadata
+        )
+
+        XCTAssertEqual(items.items.map(\.pid), [63759])
+        XCTAssertEqual(items.singleItem?.title, "PID 63759")
+        XCTAssertEqual(
+            items.singleItem?.labels.path,
+            "/Users/rainbow/Library/Android/sdk/platform-tools/adb"
+        )
+        XCTAssertEqual(
+            items.singleItem?.labels.commandLineSummary,
+            "adb -L tcp:5037 fork-server server --reply-fd 4"
+        )
+    }
+
+    func testProcessInfoItemsCreateSeparateEntriesForMultipleAppPIDs() throws {
+        let rendererPort = self.port(
+            port: 61305,
+            pid: 20,
+            command: "GitHub Desktop Helper (Renderer)"
+        )
+        let gpuPort = self.port(
+            port: 61306,
+            pid: 21,
+            command: "GitHub Desktop Helper (GPU)"
+        )
+        let metadata = [
+            20: PortProcessMetadata(
+                bundleIdentifier: "com.github.GitHubClient",
+                name: "GitHub Desktop",
+                path: "/Applications/GitHub Desktop.app",
+                processDetailName: "Helper (Renderer)",
+                executablePath: "/Applications/GitHub Desktop.app/Contents/Frameworks/GitHub Desktop Helper (Renderer).app/Contents/MacOS/GitHub Desktop Helper (Renderer)",
+                commandLine: "renderer --type=renderer",
+                commandLineSummary: "renderer --type=renderer"
+            ),
+            21: PortProcessMetadata(
+                bundleIdentifier: "com.github.GitHubClient",
+                name: "GitHub Desktop",
+                path: "/Applications/GitHub Desktop.app",
+                processDetailName: "Helper (GPU)",
+                executablePath: "/Applications/GitHub Desktop.app/Contents/Frameworks/GitHub Desktop Helper (GPU).app/Contents/MacOS/GitHub Desktop Helper (GPU)",
+                commandLine: "gpu --type=gpu-process",
+                commandLineSummary: "gpu --type=gpu-process"
+            )
+        ]
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(
+                for: [gpuPort, rendererPort],
+                metadataByPID: metadata
+            ).first
+        )
+
+        let items = PortProcessInfoItems(
+            group: group,
+            metadataByPID: metadata
+        )
+
+        XCTAssertNil(items.singleItem)
+        XCTAssertEqual(items.items.map(\.pid), [20, 21])
+        XCTAssertEqual(
+            items.items.map(\.title),
+            [
+                "Helper (Renderer) · PID 20",
+                "Helper (GPU) · PID 21"
+            ]
+        )
+        XCTAssertEqual(
+            items.items.map(\.labels.commandLineSummary),
+            [
+                "renderer --type=renderer",
+                "gpu --type=gpu-process"
+            ]
+        )
+    }
+
+    func testProcessInfoItemsHideMissingMetadata() throws {
+        let port = self.port(port: 3000, pid: 10)
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(
+                for: [port],
+                metadataByPID: [:]
+            ).first
+        )
+
+        let items = PortProcessInfoItems(
+            group: group,
+            metadataByPID: [:]
+        )
+
+        XCTAssertTrue(items.items.isEmpty)
+        XCTAssertNil(items.singleItem)
+    }
+
+    func testProcessInfoLabelsHideMissingMetadata() {
+        let labels = PortProcessInfoLabels(metadata: nil)
+
+        XCTAssertFalse(labels.hasDetails)
+        XCTAssertEqual(labels.source, "")
+        XCTAssertNil(labels.path)
+        XCTAssertNil(labels.commandLineSummary)
+    }
+
+    func testProcessInfoLabelsHideSourceOnlyMetadata() {
+        let labels = PortProcessInfoLabels(
+            metadata: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: nil,
+                source: .application
+            )
+        )
+
+        XCTAssertFalse(labels.hasDetails)
+        XCTAssertEqual(labels.source, "来源：App")
+        XCTAssertNil(labels.path)
+        XCTAssertNil(labels.commandLineSummary)
     }
 
     private func port(
