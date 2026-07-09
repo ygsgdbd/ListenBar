@@ -327,6 +327,8 @@ final class PortMenuLabelsTests: XCTestCase {
                 path: "/opt/homebrew/bin/node",
                 commandLine: "/opt/homebrew/bin/node server.js",
                 commandLineSummary: "/opt/homebrew/bin/node server.js",
+                redactedCommandLine: "/opt/homebrew/bin/node server.js",
+                redactedCommandLineSummary: "/opt/homebrew/bin/node server.js",
                 source: .homebrew
             )
         )
@@ -335,6 +337,45 @@ final class PortMenuLabelsTests: XCTestCase {
         XCTAssertEqual(labels.source, "来源：Homebrew")
         XCTAssertEqual(labels.path, "/opt/homebrew/bin/node")
         XCTAssertEqual(labels.commandLineSummary, "/opt/homebrew/bin/node server.js")
+        XCTAssertEqual(labels.redactedCommandLineSummary, "/opt/homebrew/bin/node server.js")
+    }
+
+    func testSectionLabelsCountUniqueProcessesAndPorts() {
+        let first = self.port(port: 3000, pid: 101, command: "node")
+        let second = self.port(port: 3001, pid: 101, command: "node")
+        let third = self.port(port: 5432, pid: 202, command: "postgres")
+        let groups = PortProcessGroupingService.groups(
+            for: [first, second, third],
+            metadataByPID: [:]
+        )
+
+        XCTAssertEqual(
+            PortProcessSectionLabels.title(classification: .user, groups: groups),
+            "用户进程（2 进程 · 3 端口）"
+        )
+    }
+
+    func testPortListFormatterOutputsSpaceGroupedText() throws {
+        let port = self.port(port: 3000, pid: 101, command: "node")
+        let metadata = [
+            101: PortProcessMetadata.executable(
+                name: "node",
+                path: "/opt/homebrew/bin/node",
+                source: .homebrew
+            )
+        ]
+        let groups = PortProcessGroupingService.groups(
+            for: [port],
+            metadataByPID: metadata
+        )
+
+        XCTAssertEqual(
+            PortListFormatter.text(groups: groups, metadataByPID: metadata),
+            """
+            group 'node (PID 101)' processes=1 ports=1 source=Homebrew
+            TCP 127.0.0.1 3000 pid=101 command=node source=Homebrew url=http://localhost:3000 path=/opt/homebrew/bin/node
+            """
+        )
     }
 
     func testProcessInfoItemsDeduplicateRepeatedPIDPorts() throws {

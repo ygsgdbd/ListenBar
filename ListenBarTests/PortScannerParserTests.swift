@@ -76,6 +76,49 @@ final class PortScannerParserTests: XCTestCase {
         )
     }
 
+    func testParsesConnectedUdpUsingLocalEndpointPort() {
+        let ports = PortScannerService.parseLsofFieldOutput(
+            """
+            p42
+            cdns-proxy
+            u501
+            f9
+            PUDP
+            n127.0.0.1:53000->127.0.0.1:53
+            """
+        )
+
+        XCTAssertEqual(
+            ports,
+            [
+                PortEntry(
+                    networkProtocol: .udp,
+                    address: "127.0.0.1",
+                    port: 53000,
+                    pid: 42,
+                    command: "dns-proxy",
+                    user: "501"
+                )
+            ]
+        )
+    }
+
+    func testParsesConnectedIPv6UdpUsingLocalEndpointPort() {
+        let ports = PortScannerService.parseLsofFieldOutput(
+            """
+            p43
+            cdns-proxy
+            u501
+            f9
+            PUDP
+            n[::1]:53000->[::1]:53
+            """
+        )
+
+        XCTAssertEqual(ports.first?.address, "[::1]")
+        XCTAssertEqual(ports.first?.port, 53000)
+    }
+
     func testDeduplicatesRepeatedFileDescriptors() {
         let ports = PortScannerService.parseLsofFieldOutput(
             """

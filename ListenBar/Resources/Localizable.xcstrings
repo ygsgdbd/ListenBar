@@ -18,6 +18,38 @@
         }
       }
     },
+    "%@ 将发送到 %@ 的 %lld 个监听进程，端口为 %@。%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ will be sent to %@'s %lld listening processes on ports %@. %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 将发送到 %@ 的 %lld 个监听进程，端口为 %@。%@"
+          }
+        }
+      }
+    },
+    "%@（%lld 进程 · %lld 端口）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (%lld processes · %lld ports)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（%lld 进程 · %lld 端口）"
+          }
+        }
+      }
+    },
     "%lld 个子进程 · %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -171,6 +203,22 @@
         }
       }
     },
+    "关闭" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
+          }
+        }
+      }
+    },
     "在 Finder 中显示" : {
 
     },
@@ -225,11 +273,72 @@
         }
       }
     },
+    "复制全部端口" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy all ports"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制全部端口"
+          }
+        }
+      }
+    },
     "复制启动命令" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy launch command"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制启动命令"
+          }
+        }
+      }
+    },
+    "复制脱敏启动命令" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy redacted launch command"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制脱敏启动命令"
+          }
+        }
+      }
     },
     "复制路径" : {
 
+    },
+    "强制终止全部监听进程 (SIGKILL)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Kill All Listening Processes (SIGKILL)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制终止全部监听进程 (SIGKILL)"
+          }
+        }
+      }
     },
     "强制终止 (SIGKILL)" : {
       "extractionState" : "stale",
@@ -367,6 +476,38 @@
         }
       }
     },
+    "每 10 秒" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every 10 seconds"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每 10 秒"
+          }
+        }
+      }
+    },
+    "每 5 秒" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every 5 seconds"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每 5 秒"
+          }
+        }
+      }
+    },
     "更新于 %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -384,22 +525,6 @@
         }
       }
     },
-    "检查更新..." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check for Updates..."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "检查更新..."
-          }
-        }
-      }
-    },
     "未发现监听端口" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -413,6 +538,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未发现监听端口"
+          }
+        }
+      }
+    },
+    "检查更新..." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check for Updates..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查更新..."
           }
         }
       }
@@ -447,6 +589,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "监听进程 %lld · 端口 %lld"
+          }
+        }
+      }
+    },
+    "用户进程" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User processes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户进程"
+          }
+        }
+      }
+    },
+    "系统/其他用户进程" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System/other user processes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统/其他用户进程"
+          }
+        }
+      }
+    },
+    "终止全部监听进程 (SIGTERM)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit All Listening Processes (SIGTERM)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终止全部监听进程 (SIGTERM)"
           }
         }
       }
@@ -502,6 +692,22 @@
         }
       }
     },
+    "这会影响 %lld 个进程。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This affects %lld processes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这会影响 %lld 个进程。"
+          }
+        }
+      }
+    },
     "进程" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -515,6 +721,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "进程"
+          }
+        }
+      }
+    },
+    "部分进程未能终止：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some processes could not be terminated: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分进程未能终止：%@"
+          }
+        }
+      }
+    },
+    "端口占用已变化，请重新确认。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Port ownership changed. Please confirm again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端口占用已变化，请重新确认。"
+          }
+        }
+      }
+    },
+    "自动刷新：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto refresh: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动刷新：%@"
           }
         }
       }

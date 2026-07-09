@@ -87,6 +87,26 @@ final class PortProcessMetadataServiceTests: XCTestCase {
         )
     }
 
+    func testRedactedCommandLineStringRedactsSensitiveArguments() {
+        let commandLine = PortProcessMetadataService.redactedCommandLineString(
+            arguments: [
+                "/opt/homebrew/bin/node",
+                "server.js",
+                "--token",
+                "abc123",
+                "--password=secret value",
+                "API_KEY=private",
+                "--name",
+                "hello"
+            ]
+        )
+
+        XCTAssertEqual(
+            commandLine,
+            "/opt/homebrew/bin/node server.js --token <redacted> --password=<redacted> API_KEY=<redacted> --name hello"
+        )
+    }
+
     func testInferredSourceUsesPathAndParentProcessNames() {
         XCTAssertEqual(
             PortProcessMetadataService.inferredSource(
