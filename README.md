@@ -20,6 +20,7 @@ rtk xcodebuild test \
   -project ListenBar.xcodeproj \
   -scheme ListenBar \
   -destination 'platform=macOS' \
+  -testLanguage zh-Hans \
   -skipPackagePluginValidation \
   -skipMacroValidation \
   CODE_SIGN_IDENTITY='' \
