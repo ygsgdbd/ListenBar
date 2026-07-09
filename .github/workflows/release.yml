@@ -1,0 +1,331 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag
+        id: release_tag
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error title=Invalid release tag::Production releases must use vX.Y.Z, for example v0.1.0. Got ${GITHUB_REF_NAME}."
+            exit 1
+          fi
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release version: $VERSION"
+
+      - name: Check publishing secrets
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [[ -z "$SPARKLE_ED_PRIVATE_KEY" ]]; then
+            echo "::error title=Missing Sparkle signing key::Set the SPARKLE_ED_PRIVATE_KEY repository secret before publishing a release."
+            exit 1
+          fi
+
+          if [[ -z "$HOMEBREW_TAP_TOKEN" ]]; then
+            echo "::error title=Missing Homebrew tap token::Set the HOMEBREW_TAP_TOKEN repository secret before publishing a release."
+            exit 1
+          fi
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.2'
+
+      - name: Install Tuist
+        run: |
+          brew install tuist
+
+      - name: Generate Xcode Project
+        env:
+          TUIST_APP_VERSION: ${{ steps.release_tag.outputs.version }}
+        run: |
+          TUIST_BUILD_VERSION=$(date "+%Y%m%d%H%M")
+          export TUIST_BUILD_VERSION
+          echo "App version set to: $TUIST_APP_VERSION"
+          echo "Build number set to: $TUIST_BUILD_VERSION"
+          tuist generate --no-open
+
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project ListenBar.xcodeproj \
+            -scheme ListenBar \
+            -destination "platform=macOS" \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Archive App
+        run: |
+          xcodebuild \
+            -project ListenBar.xcodeproj \
+            -scheme ListenBar \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            -archivePath ./DerivedData/Archives/ListenBar.xcarchive \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            archive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            ARCHS="arm64 x86_64"
+
+      - name: Verify Universal Binary
+        run: |
+          BINARY_PATH="DerivedData/Archives/ListenBar.xcarchive/Products/Applications/ListenBar.app/Contents/MacOS/ListenBar"
+          ARCHS=$(lipo -archs "$BINARY_PATH")
+          echo "ListenBar architectures: $ARCHS"
+
+          if [[ " $ARCHS " != *" arm64 "* || " $ARCHS " != *" x86_64 "* ]]; then
+            echo "::error title=Invalid binary architectures::Expected universal binary with arm64 and x86_64, got: $ARCHS"
+            exit 1
+          fi
+
+      - name: Package App
+        run: |
+          mkdir -p DerivedData/Exports
+          ditto DerivedData/Archives/ListenBar.xcarchive/Products/Applications/ListenBar.app DerivedData/Exports/ListenBar.app
+          cd DerivedData/Exports
+          ditto -c -k --sequesterRsrc --keepParent ListenBar.app ../../ListenBar-macOS-universal.zip
+
+      - name: Prepare release notes
+        run: |
+          if ! awk -v version="${GITHUB_REF_NAME}" '
+            $0 == "## " version {
+              found = 1
+              next
+            }
+            found && /^## / {
+              exit
+            }
+            found {
+              lines[++count] = $0
+            }
+            END {
+              if (!found) {
+                exit 2
+              }
+
+              start = 1
+              while (start <= count && lines[start] ~ /^[[:space:]]*$/) {
+                start++
+              }
+
+              end = count
+              while (end >= start && lines[end] ~ /^[[:space:]]*$/) {
+                end--
+              }
+
+              if (end < start) {
+                exit 3
+              }
+
+              for (i = start; i <= end; i++) {
+                print lines[i]
+              }
+            }
+          ' CHANGELOG.md > release-notes.md; then
+            echo "::error title=Missing release notes::CHANGELOG.md must contain a non-empty ## ${GITHUB_REF_NAME} section."
+            exit 1
+          fi
+
+          echo "Release notes for ${GITHUB_REF_NAME}:"
+          cat release-notes.md
+
+      - name: Render Sparkle release notes HTML
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api markdown \
+            --method POST \
+            -F text=@release-notes.md \
+            -f mode=gfm \
+            -f context="${GITHUB_REPOSITORY}" \
+            > release-notes.html
+
+          if [[ ! -s release-notes.html ]]; then
+            echo "::error title=Missing rendered release notes::GitHub Markdown API returned an empty release-notes.html file."
+            exit 1
+          fi
+
+      - name: Generate Checksums
+        run: |
+          echo "### SHA-256 Checksums" > checksums.txt
+          echo '```' >> checksums.txt
+          shasum -a 256 ListenBar-macOS-universal.zip >> checksums.txt
+          echo '```' >> checksums.txt
+
+          {
+            echo "## ListenBar ${{ github.ref_name }}"
+            echo ""
+            cat release-notes.md
+            echo ""
+            echo "### Build"
+            echo ""
+            echo "- Universal Binary (Apple Silicon + Intel)"
+            echo "- macOS 14.0+"
+            echo ""
+            cat checksums.txt
+          } > release-body.md
+
+      - name: Download Sparkle tools
+        run: |
+          curl -fsSL -o Sparkle-2.9.4.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz
+          mkdir -p sparkle-tools
+          tar -xf Sparkle-2.9.4.tar.xz -C sparkle-tools --strip-components=1
+
+      - name: Generate Sparkle appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          mkdir -p DerivedData/SparkleFeed
+          cp ListenBar-macOS-universal.zip DerivedData/SparkleFeed/
+          cp release-notes.html DerivedData/SparkleFeed/ListenBar-macOS-universal.html
+
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | ./sparkle-tools/bin/generate_appcast \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/ygsgdbd/ListenBar/releases/download/${GITHUB_REF_NAME}/" \
+            --link "https://github.com/ygsgdbd/ListenBar" \
+            --embed-release-notes \
+            --maximum-versions 1 \
+            DerivedData/SparkleFeed
+
+          cp DerivedData/SparkleFeed/appcast.xml appcast.xml
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ListenBar-macOS-universal.zip
+            checksums.txt
+            appcast.xml
+          body_path: release-body.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: ygsgdbd/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update Homebrew cask
+        env:
+          ASSET_NAME: ListenBar-macOS-universal.zip
+          VERSION: ${{ steps.release_tag.outputs.version }}
+        run: |
+          SHA256=$(shasum -a 256 "$ASSET_NAME" | awk '{print $1}')
+          CASK_PATH="homebrew-tap/Casks/listenbar.rb"
+
+          export VERSION SHA256 CASK_PATH
+          ruby <<'RUBY'
+          require "fileutils"
+
+          path = ENV.fetch("CASK_PATH")
+          version = ENV.fetch("VERSION")
+          sha256 = ENV.fetch("SHA256")
+
+          FileUtils.mkdir_p(File.dirname(path))
+          File.write(path, <<~CASK)
+          cask "listenbar" do
+            version "#{version}"
+            sha256 "#{sha256}"
+
+            url "https://github.com/ygsgdbd/ListenBar/releases/download/v#{version}/ListenBar-macOS-universal.zip"
+            name "ListenBar"
+            desc "macOS menu bar utility for viewing local listening ports"
+            homepage "https://github.com/ygsgdbd/ListenBar"
+
+            auto_updates false
+            depends_on macos: :sonoma
+
+            app "ListenBar.app"
+
+            uninstall quit: "top.ygsgdbd.ListenBar"
+
+            caveats <<~EOS
+              ListenBar is currently unsigned. You need to trust it manually:
+              1. Right-click the app and select "Open"
+              2. Click "Open" in the dialog that appears
+              3. Go to System Settings > Privacy & Security and approve the app
+
+              ListenBar 目前未签名，需要手动信任：
+              1. 右键点击应用，选择“打开”
+              2. 在弹出的对话框中再次点击“打开”
+              3. 前往“系统设置”>“隐私与安全性”中允许该应用
+            EOS
+
+            zap trash: [
+              "~/Library/Application Support/top.ygsgdbd.ListenBar",
+              "~/Library/Application Support/ListenBar",
+              "~/Library/Preferences/top.ygsgdbd.ListenBar.plist",
+              "~/Library/Caches/top.ygsgdbd.ListenBar",
+            ]
+          end
+          CASK
+
+          readme_path = "homebrew-tap/README.md"
+          readme = File.read(readme_path)
+
+          unless readme.include?("brew install --cask listenbar")
+            lines = readme.lines
+            index = lines.index { |line| line == "brew install --cask typeswitch\n" }
+            lines.insert(index ? index + 1 : lines.length, "brew install --cask listenbar\n")
+            readme = lines.join
+          end
+
+          unless readme.include?("[`listenbar`](https://github.com/ygsgdbd/ListenBar)")
+            lines = readme.lines
+            index = lines.index { |line| line.start_with?("- [`typeswitch`]") }
+            if index
+              index += 1 while index + 1 < lines.length && lines[index + 1].start_with?("  - ")
+              lines.insert(index + 1, "- [`listenbar`](https://github.com/ygsgdbd/ListenBar): macOS menu bar utility for viewing local listening ports\n")
+            else
+              lines << "- [`listenbar`](https://github.com/ygsgdbd/ListenBar): macOS menu bar utility for viewing local listening ports\n"
+            end
+            readme = lines.join
+          end
+
+          File.write(readme_path, readme)
+          RUBY
+
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/listenbar.rb README.md
+
+          if git diff --cached --quiet; then
+            echo "Homebrew cask is already up to date."
+            exit 0
+          fi
+
+          git commit -m "Update ListenBar cask to ${GITHUB_REF_NAME}"
+          git push

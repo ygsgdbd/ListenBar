@@ -1,9 +1,11 @@
 import AppKit
 import ComposableArchitecture
+import Sparkle
 import SwiftUI
 
 struct MenuBarView: View {
     @Bindable var store: StoreOf<AppFeature>
+    let updaterController: SPUStandardUpdaterController
 
     var body: some View {
         Group {
@@ -57,6 +59,12 @@ struct MenuBarView: View {
             }
 
             Divider()
+
+            Button {
+                updaterController.checkForUpdates(nil)
+            } label: {
+                Label("检查更新...", systemImage: "arrow.triangle.2.circlepath")
+            }
 
             Button {
                 store.send(.view(.quitTapped))
@@ -325,6 +333,11 @@ private struct PortProcessIconView: View {
             )
         ) {
             AppFeature()
-        }
+        },
+        updaterController: SPUStandardUpdaterController(
+            startingUpdater: false,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
     )
 }

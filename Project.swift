@@ -35,6 +35,10 @@ let project = Project(
             requirement: .upToNextMajor(from: "2.10.3")
         ),
         .remote(
+            url: "https://github.com/sparkle-project/Sparkle",
+            requirement: .upToNextMajor(from: "2.9.4")
+        ),
+        .remote(
             url: "https://github.com/SwifterSwift/SwifterSwift",
             requirement: .upToNextMajor(from: "8.0.0")
         )
@@ -69,7 +73,10 @@ let project = Project(
                 "LSMinimumSystemVersion": "14.0",
                 "NSHumanReadableCopyright": "Copyright © 2026 ygsgdbd. All rights reserved.",
                 "CFBundleShortVersionString": .string(appVersion),
-                "CFBundleVersion": .string(buildVersion)
+                "CFBundleVersion": .string(buildVersion),
+                "SUFeedURL": "https://github.com/ygsgdbd/ListenBar/releases/latest/download/appcast.xml",
+                "SUPublicEDKey": "J+ZJPF3atcveHHVhQk2hXnQwfNiAzfUNUflfBKpQKgc=",
+                "SUEnableAutomaticChecks": false
             ]),
             sources: ["ListenBar/Sources/**"],
             resources: ["ListenBar/Resources/**"],
@@ -79,6 +86,7 @@ let project = Project(
                 .package(product: "Dependencies"),
                 .package(product: "PerceptionCore"),
                 .package(product: "Sharing"),
+                .package(product: "Sparkle"),
                 .package(product: "SwiftNavigation"),
                 .package(product: "SwifterSwift")
             ],
