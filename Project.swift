@@ -19,6 +19,10 @@ let project = Project(
             requirement: .upToNextMajor(from: "1.25.5")
         ),
         .remote(
+            url: "https://github.com/pointfreeco/swift-clocks",
+            requirement: .upToNextMajor(from: "1.1.0")
+        ),
+        .remote(
             url: "https://github.com/pointfreeco/swift-dependencies",
             requirement: .upToNextMajor(from: "1.12.0")
         ),
@@ -114,6 +118,7 @@ let project = Project(
             sources: ["ListenBarTests/**"],
             dependencies: [
                 .package(product: "CasePaths"),
+                .package(product: "Clocks"),
                 .target(name: "ListenBar"),
                 .package(product: "ComposableArchitecture"),
                 .package(product: "Dependencies"),

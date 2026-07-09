@@ -4,6 +4,7 @@ import Foundation
 
 @Reducer
 struct AppFeature {
+    @Dependency(\.continuousClock) var clock
     @Dependency(\.date.now) var now
     @Dependency(\.portKiller) var portKiller
     @Dependency(\.portProcessMetadata) var portProcessMetadata
@@ -12,6 +13,7 @@ struct AppFeature {
     @ObservableState
     struct State: Equatable {
         @Presents var confirmationDialog: ConfirmationDialogState<ConfirmationDialog>?
+        var autoRefreshInterval: AutoRefreshInterval = .off
         var errorMessage: String?
         var isLoading = false
         var lastUpdated: Date?
@@ -31,9 +33,12 @@ struct AppFeature {
     }
 
     enum ViewAction: Equatable, Sendable {
+        case autoRefreshIntervalTapped(AutoRefreshInterval)
+        case copyAllPortsTapped
         case copyLsofCommandTapped(PortEntry)
         case copyProcessPathTapped(pid: Int)
         case copyCommandLineTapped(pid: Int)
+        case copyRedactedCommandLineTapped(pid: Int)
         case copyPIDTapped(PortEntry)
         case copyURLTapped(PortEntry)
         case killGroupTapped(PortProcessGroup, PortKillMode)
@@ -51,11 +56,12 @@ struct AppFeature {
 
     enum ResponseAction: Equatable, Sendable {
         case portGroupKillFinished(PortGroupKillResult)
-        case portKillFinished(Result<PortKillRequest, PortKillerFailure>)
+        case portKillFinished(PortKillResult)
         case portsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
     }
 
     enum Action: Equatable, Sendable {
+        case autoRefreshTick
         case confirmationDialog(PresentationAction<ConfirmationDialog>)
         case task
         case view(ViewAction)
@@ -65,11 +71,33 @@ struct AppFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .autoRefreshTick:
+                guard !state.isLoading else { return .none }
+                state.isLoading = true
+                state.errorMessage = nil
+                state.postRefreshErrorMessage = nil
+                return loadPortsEffect()
+
             case .task:
                 state.isLoading = true
                 state.errorMessage = nil
                 state.postRefreshErrorMessage = nil
                 return loadPortsEffect()
+
+            case let .view(.autoRefreshIntervalTapped(interval)):
+                state.autoRefreshInterval = interval
+                guard interval != .off else {
+                    return .cancel(id: CancelID.autoRefresh)
+                }
+                return autoRefreshEffect(interval)
+
+            case .view(.copyAllPortsTapped):
+                return copyTextEffect(
+                    PortListFormatter.text(
+                        groups: state.processGroups,
+                        metadataByPID: state.metadataByPID
+                    )
+                )
 
             case let .view(.copyLsofCommandTapped(port)):
                 return copyTextEffect(port.lsofCommand)
@@ -82,6 +110,10 @@ struct AppFeature {
                 guard let commandLine = Self.commandLine(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
                 return copyTextEffect(commandLine)
 
+            case let .view(.copyRedactedCommandLineTapped(pid)):
+                guard let commandLine = Self.redactedCommandLine(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
+                return copyTextEffect(commandLine)
+
             case let .view(.copyPIDTapped(port)):
                 return copyTextEffect(String(port.pid))
 
@@ -90,7 +122,11 @@ struct AppFeature {
                 return copyTextEffect(url.absoluteString)
 
             case let .view(.killGroupTapped(group, mode)):
-                let request = PortGroupKillRequest(group: group, mode: mode)
+                let request = PortGroupKillRequest(
+                    group: group,
+                    mode: mode,
+                    metadataByPID: state.metadataByPID
+                )
                 state.confirmationDialog = request.confirmationDialog(warnings: groupKillWarnings(for: request))
                 return .none
 
@@ -98,7 +134,11 @@ struct AppFeature {
                 let request = PortKillRequest(
                     port: port,
                     mode: mode,
-                    processName: state.metadataByPID[port.pid]?.name
+                    processName: state.metadataByPID[port.pid]?.name,
+                    expectedExecutablePath: Self.processPath(
+                        forPID: port.pid,
+                        metadataByPID: state.metadataByPID
+                    )
                 )
                 let warnings = killWarnings(for: request, state: state)
                 guard warnings.isEmpty else {
@@ -128,6 +168,7 @@ struct AppFeature {
                 state.confirmationDialog = nil
                 state.isLoading = true
                 state.errorMessage = nil
+                state.postRefreshErrorMessage = nil
                 return terminatePortEffect(request)
 
             case let .confirmationDialog(.presented(.confirmKillGroup(request))):
@@ -157,34 +198,39 @@ struct AppFeature {
                 return .none
 
             case let .response(.portGroupKillFinished(result)):
+                if let snapshot = result.refreshedSnapshot {
+                    apply(snapshot, to: &state)
+                    state.errorMessage = result.failureMessage
+                    return .none
+                }
                 state.postRefreshErrorMessage = result.failureMessage
                 return loadPortsEffect()
 
-            case .response(.portKillFinished(.success)):
+            case let .response(.portKillFinished(result)):
+                if let snapshot = result.refreshedSnapshot {
+                    apply(snapshot, to: &state)
+                    state.errorMessage = result.failure?.message
+                    return .none
+                }
+                if let failure = result.failure {
+                    state.isLoading = false
+                    state.errorMessage = failure.message
+                    return .none
+                }
                 return loadPortsEffect()
-
-            case let .response(.portKillFinished(.failure(failure))):
-                state.isLoading = false
-                state.errorMessage = failure.message
-                return .none
             }
         }
         .ifLet(\.$confirmationDialog, action: \.confirmationDialog)
     }
 
+    private enum CancelID: Hashable {
+        case autoRefresh
+    }
+
     private func loadPortsEffect() -> Effect<Action> {
         .run { send in
             do {
-                let ports = try await portScanner.scan()
-                let metadata = await portProcessMetadata.resolve(Set(ports.map(\.pid)))
-                let snapshot = PortScanSnapshot(
-                    ports: ports,
-                    metadataByPID: metadata,
-                    processGroups: PortProcessGroupingService.groups(
-                        for: ports,
-                        metadataByPID: metadata
-                    )
-                )
+                let snapshot = try await scanSnapshot()
                 await send(.response(.portsLoaded(.success(snapshot))))
             } catch {
                 await send(.response(.portsLoaded(.failure(.init(error)))))
@@ -192,19 +238,90 @@ struct AppFeature {
         }
     }
 
+    private func autoRefreshEffect(_ interval: AutoRefreshInterval) -> Effect<Action> {
+        .run { send in
+            while !Task.isCancelled {
+                try await clock.sleep(for: .seconds(interval.seconds))
+                await send(.autoRefreshTick)
+            }
+        }
+        .cancellable(id: CancelID.autoRefresh, cancelInFlight: true)
+    }
+
+    private func scanSnapshot() async throws -> PortScanSnapshot {
+        let ports = try await portScanner.scan()
+        let metadata = await portProcessMetadata.resolve(Set(ports.map(\.pid)))
+        return PortScanSnapshot(
+            ports: ports,
+            metadataByPID: metadata,
+            processGroups: PortProcessGroupingService.groups(
+                for: ports,
+                metadataByPID: metadata
+            )
+        )
+    }
+
     private func terminatePortEffect(_ request: PortKillRequest) -> Effect<Action> {
         .run { send in
             do {
+                let snapshot = try await scanSnapshot()
+                guard Self.preflightMatches(request, snapshot: snapshot) else {
+                    await send(
+                        .response(
+                            .portKillFinished(
+                                .aborted(
+                                    request: request,
+                                    refreshedSnapshot: snapshot,
+                                    failure: .staleTarget
+                                )
+                            )
+                        )
+                    )
+                    return
+                }
                 try await portKiller.terminate(request.port.pid, request.mode)
-                await send(.response(.portKillFinished(.success(request))))
+                await send(.response(.portKillFinished(.success(request: request))))
             } catch {
-                await send(.response(.portKillFinished(.failure(.init(error)))))
+                await send(.response(.portKillFinished(.failure(request: request, failure: .init(error)))))
             }
         }
     }
 
     private func terminateGroupEffect(_ request: PortGroupKillRequest) -> Effect<Action> {
         .run { send in
+            let snapshot: PortScanSnapshot
+            do {
+                snapshot = try await scanSnapshot()
+            } catch {
+                await send(
+                    .response(
+                        .portGroupKillFinished(
+                            PortGroupKillResult(
+                                request: request,
+                                failures: [.init(pid: 0, message: PortScannerFailure(error).message)],
+                                refreshedSnapshot: nil
+                            )
+                        )
+                    )
+                )
+                return
+            }
+
+            guard Self.preflightMatches(request, snapshot: snapshot) else {
+                await send(
+                    .response(
+                        .portGroupKillFinished(
+                            PortGroupKillResult(
+                                request: request,
+                                failures: [.init(pid: 0, message: PortKillerFailure.staleTarget.message)],
+                                refreshedSnapshot: snapshot
+                            )
+                        )
+                    )
+                )
+                return
+            }
+
             var failures: [PortKillPIDFailure] = []
             for pid in request.pids {
                 do {
@@ -313,6 +430,54 @@ struct AppFeature {
         metadataByPID[pid]?.commandLine
     }
 
+    static func redactedCommandLine(
+        forPID pid: Int,
+        metadataByPID: [Int: PortProcessMetadata]
+    ) -> String? {
+        metadataByPID[pid]?.redactedCommandLine
+    }
+
+    static func preflightMatches(
+        _ request: PortKillRequest,
+        snapshot: PortScanSnapshot
+    ) -> Bool {
+        guard snapshot.ports.contains(where: { $0.matchesEndpoint(of: request.port) }) else {
+            return false
+        }
+        guard let expectedExecutablePath = request.expectedExecutablePath else {
+            return true
+        }
+        return processPath(forPID: request.port.pid, metadataByPID: snapshot.metadataByPID) == expectedExecutablePath
+    }
+
+    static func preflightMatches(
+        _ request: PortGroupKillRequest,
+        snapshot: PortScanSnapshot
+    ) -> Bool {
+        guard let group = snapshot.processGroups.first(where: { $0.id == request.groupID }) else {
+            return false
+        }
+        guard Set(group.ports.map(\.id)) == Set(request.ports.map(\.id)) else {
+            return false
+        }
+        for port in request.ports {
+            if let expectedExecutablePath = request.expectedExecutablePathsByPID[port.pid],
+               processPath(forPID: port.pid, metadataByPID: snapshot.metadataByPID) != expectedExecutablePath {
+                return false
+            }
+        }
+        return true
+    }
+
+    private func apply(_ snapshot: PortScanSnapshot, to state: inout State) {
+        state.isLoading = false
+        state.postRefreshErrorMessage = nil
+        state.lastUpdated = now
+        state.metadataByPID = snapshot.metadataByPID
+        state.ports = snapshot.ports
+        state.processGroups = snapshot.processGroups
+    }
+
     private func isSystemProcess(_ metadata: PortProcessMetadata) -> Bool {
         let paths = [metadata.path, metadata.executablePath].compactMap { $0 }
         return paths.contains { path in
@@ -333,19 +498,52 @@ struct PortScanSnapshot: Equatable, Sendable {
     let processGroups: [PortProcessGroup]
 }
 
+enum AutoRefreshInterval: CaseIterable, Equatable, Identifiable, Sendable {
+    case off
+    case fiveSeconds
+    case tenSeconds
+
+    var id: Self { self }
+
+    var seconds: Int {
+        switch self {
+        case .off:
+            return 0
+        case .fiveSeconds:
+            return 5
+        case .tenSeconds:
+            return 10
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .off:
+            return String(localized: "关闭", bundle: .main, comment: "自动刷新关闭。")
+        case .fiveSeconds:
+            return String(localized: "每 5 秒", bundle: .main, comment: "每 5 秒自动刷新。")
+        case .tenSeconds:
+            return String(localized: "每 10 秒", bundle: .main, comment: "每 10 秒自动刷新。")
+        }
+    }
+}
+
 struct PortKillRequest: Equatable, Sendable {
     let port: PortEntry
     let mode: PortKillMode
     let processName: String
+    let expectedExecutablePath: String?
 
     init(
         port: PortEntry,
         mode: PortKillMode,
-        processName: String? = nil
+        processName: String? = nil,
+        expectedExecutablePath: String? = nil
     ) {
         self.port = port
         self.mode = mode
         self.processName = processName ?? port.command
+        self.expectedExecutablePath = expectedExecutablePath
     }
 
     func confirmationDialog(
@@ -387,14 +585,27 @@ struct PortGroupKillRequest: Equatable, Sendable {
     let pids: [Int]
     let mode: PortKillMode
     let classification: PortProcessClassification
+    let expectedExecutablePathsByPID: [Int: String]
 
-    init(group: PortProcessGroup, mode: PortKillMode) {
+    init(
+        group: PortProcessGroup,
+        mode: PortKillMode,
+        metadataByPID: [Int: PortProcessMetadata] = [:]
+    ) {
         self.groupID = group.id
         self.processName = group.displayName
         self.ports = group.ports
         self.pids = Array(Set(group.ports.map(\.pid))).sorted()
         self.mode = mode
         self.classification = group.classification
+        self.expectedExecutablePathsByPID = Dictionary(
+            uniqueKeysWithValues: pids.compactMap { pid in
+                guard let path = AppFeature.processPath(forPID: pid, metadataByPID: metadataByPID) else {
+                    return nil
+                }
+                return (pid, path)
+            }
+        )
     }
 
     func confirmationDialog(
@@ -437,13 +648,39 @@ struct PortKillPIDFailure: Equatable, Sendable {
     let message: String
 }
 
+struct PortKillResult: Equatable, Sendable {
+    let request: PortKillRequest
+    let refreshedSnapshot: PortScanSnapshot?
+    let failure: PortKillerFailure?
+
+    static func success(request: PortKillRequest) -> Self {
+        Self(request: request, refreshedSnapshot: nil, failure: nil)
+    }
+
+    static func failure(request: PortKillRequest, failure: PortKillerFailure) -> Self {
+        Self(request: request, refreshedSnapshot: nil, failure: failure)
+    }
+
+    static func aborted(
+        request: PortKillRequest,
+        refreshedSnapshot: PortScanSnapshot,
+        failure: PortKillerFailure
+    ) -> Self {
+        Self(request: request, refreshedSnapshot: refreshedSnapshot, failure: failure)
+    }
+}
+
 struct PortGroupKillResult: Equatable, Sendable {
     let request: PortGroupKillRequest
     let failures: [PortKillPIDFailure]
+    var refreshedSnapshot: PortScanSnapshot?
 
     var failureMessage: String? {
         guard !failures.isEmpty else {
             return nil
+        }
+        if failures.count == 1, let failure = failures.first, failure.pid == 0 {
+            return failure.message
         }
 
         let details = failures
@@ -517,6 +754,16 @@ struct PortScannerFailure: LocalizedError, Equatable, Sendable {
 
 struct PortKillerFailure: LocalizedError, Equatable, Sendable {
     let message: String
+
+    static var staleTarget: Self {
+        Self(
+            message: String(
+                localized: "端口占用已变化，请重新确认。",
+                bundle: .main,
+                comment: "终止进程前重新扫描发现端口占用已变化。"
+            )
+        )
+    }
 
     var errorDescription: String? {
         message

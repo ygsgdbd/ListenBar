@@ -135,12 +135,17 @@ enum PortScannerService {
     }
 
     private static func parseEndpoint(_ value: String) -> (address: String, port: Int)? {
-        guard let separatorIndex = value.lastIndex(of: ":") else {
+        let localEndpoint = value
+            .split(separator: "->", maxSplits: 1, omittingEmptySubsequences: false)
+            .first
+            .map(String.init) ?? value
+
+        guard let separatorIndex = localEndpoint.lastIndex(of: ":") else {
             return nil
         }
 
-        let rawAddress = String(value[..<separatorIndex])
-        let rawPort = String(value[value.index(after: separatorIndex)...])
+        let rawAddress = String(localEndpoint[..<separatorIndex])
+        let rawPort = String(localEndpoint[localEndpoint.index(after: separatorIndex)...])
 
         guard !rawPort.isEmpty, rawPort != "*", let port = Int(rawPort) else {
             return nil

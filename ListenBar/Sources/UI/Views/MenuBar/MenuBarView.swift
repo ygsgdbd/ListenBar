@@ -38,19 +38,55 @@ struct MenuBarView: View {
 
                 if !userGroups.isEmpty {
                     processGroupsSection(
-                        title: PortProcessClassification.user.sectionTitle,
+                        title: PortProcessSectionLabels.title(
+                            classification: .user,
+                            groups: userGroups
+                        ),
                         groups: userGroups
                     )
                 }
                 if !systemGroups.isEmpty {
                     processGroupsSection(
-                        title: PortProcessClassification.systemOrOtherUser.sectionTitle,
+                        title: PortProcessSectionLabels.title(
+                            classification: .systemOrOtherUser,
+                            groups: systemGroups
+                        ),
                         groups: systemGroups
                     )
                 }
             }
 
             Divider()
+
+            Button {
+                store.send(.view(.copyAllPortsTapped))
+            } label: {
+                Label("复制全部端口", systemImage: "list.clipboard")
+            }
+            .disabled(store.processGroups.isEmpty)
+
+            Menu {
+                ForEach(AutoRefreshInterval.allCases) { interval in
+                    Button {
+                        store.send(.view(.autoRefreshIntervalTapped(interval)))
+                    } label: {
+                        if store.autoRefreshInterval == interval {
+                            Label(interval.title, systemImage: "checkmark")
+                        } else {
+                            Text(interval.title)
+                        }
+                    }
+                }
+            } label: {
+                Label(
+                    String(
+                        format: String(localized: "自动刷新：%@", bundle: .main, comment: "自动刷新菜单标题。"),
+                        locale: Locale.current,
+                        store.autoRefreshInterval.title
+                    ),
+                    systemImage: "clock.arrow.circlepath"
+                )
+            }
 
             Button {
                 updaterController.checkForUpdates(nil)
@@ -92,6 +128,9 @@ struct MenuBarView: View {
                     },
                     onCopyCommandLine: { pid in
                         store.send(.view(.copyCommandLineTapped(pid: pid)))
+                    },
+                    onCopyRedactedCommandLine: { pid in
+                        store.send(.view(.copyRedactedCommandLineTapped(pid: pid)))
                     },
                     onCopyLsofCommand: { port in
                         store.send(.view(.copyLsofCommandTapped(port)))
@@ -182,6 +221,7 @@ private struct PortProcessGroupMenu: View {
     let onCopyPID: (PortEntry) -> Void
     let onCopyProcessPath: (Int) -> Void
     let onCopyCommandLine: (Int) -> Void
+    let onCopyRedactedCommandLine: (Int) -> Void
     let onCopyLsofCommand: (PortEntry) -> Void
     let onRevealProcessPath: (Int) -> Void
     let onKillPort: (PortEntry, PortKillMode) -> Void
@@ -235,6 +275,7 @@ private struct PortProcessGroupMenu: View {
                     isLoading: isLoading,
                     onCopyProcessPath: onCopyProcessPath,
                     onCopyCommandLine: onCopyCommandLine,
+                    onCopyRedactedCommandLine: onCopyRedactedCommandLine,
                     onRevealProcessPath: onRevealProcessPath
                 )
             } else if !processInfoItems.items.isEmpty {
@@ -248,6 +289,7 @@ private struct PortProcessGroupMenu: View {
                                 isLoading: isLoading,
                                 onCopyProcessPath: onCopyProcessPath,
                                 onCopyCommandLine: onCopyCommandLine,
+                                onCopyRedactedCommandLine: onCopyRedactedCommandLine,
                                 onRevealProcessPath: onRevealProcessPath
                             )
                         } label: {
@@ -341,6 +383,7 @@ private struct PortProcessInfoMenuContent: View {
     let isLoading: Bool
     let onCopyProcessPath: (Int) -> Void
     let onCopyCommandLine: (Int) -> Void
+    let onCopyRedactedCommandLine: (Int) -> Void
     let onRevealProcessPath: (Int) -> Void
 
     var body: some View {
@@ -372,17 +415,25 @@ private struct PortProcessInfoMenuContent: View {
                 }
             }
 
-            if let commandLineSummary = item.labels.commandLineSummary {
+            if let redactedCommandLineSummary = item.labels.redactedCommandLineSummary {
+                Button {
+                    onCopyRedactedCommandLine(item.pid)
+                } label: {
+                    Label {
+                        Text("复制脱敏启动命令")
+                        Text(verbatim: redactedCommandLineSummary)
+                            .foregroundStyle(.secondary)
+                    } icon: {
+                        Image(systemName: "lock.doc")
+                    }
+                }
+            }
+
+            if item.labels.commandLineSummary != nil {
                 Button {
                     onCopyCommandLine(item.pid)
                 } label: {
-                    Label {
-                        Text("复制启动命令")
-                        Text(verbatim: commandLineSummary)
-                            .foregroundStyle(.secondary)
-                    } icon: {
-                        Image(systemName: "terminal")
-                    }
+                    Label("复制启动命令", systemImage: "terminal")
                 }
             }
         }
@@ -458,9 +509,10 @@ struct PortProcessInfoLabels: Equatable {
     let source: String
     let path: String?
     let commandLineSummary: String?
+    let redactedCommandLineSummary: String?
 
     var hasDetails: Bool {
-        path != nil || commandLineSummary != nil
+        path != nil || commandLineSummary != nil || redactedCommandLineSummary != nil
     }
 
     init(metadata: PortProcessMetadata?) {
@@ -468,6 +520,7 @@ struct PortProcessInfoLabels: Equatable {
             self.source = ""
             self.path = nil
             self.commandLineSummary = nil
+            self.redactedCommandLineSummary = nil
             return
         }
 
@@ -478,6 +531,26 @@ struct PortProcessInfoLabels: Equatable {
         )
         self.path = metadata.executablePath ?? metadata.path
         self.commandLineSummary = metadata.commandLineSummary
+        self.redactedCommandLineSummary = metadata.redactedCommandLineSummary
+    }
+}
+
+struct PortProcessSectionLabels: Equatable {
+    static func title(
+        classification: PortProcessClassification,
+        groups: [PortProcessGroup]
+    ) -> String {
+        let processCount = Set(groups.flatMap { group in
+            group.ports.map(\.pid)
+        }).count
+        let portCount = groups.reduce(0) { $0 + $1.ports.count }
+        return String(
+            format: String(localized: "%@（%lld 进程 · %lld 端口）", bundle: .main, comment: "进程分区标题，包含进程数和端口数。"),
+            locale: Locale.current,
+            classification.sectionTitle,
+            Int64(processCount),
+            Int64(portCount)
+        )
     }
 }
 

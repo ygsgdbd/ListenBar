@@ -96,6 +96,14 @@ struct PortEntry: Equatable, Hashable, Identifiable, Sendable {
             return "/usr/sbin/lsof -nP -iUDP:\(port)"
         }
     }
+
+    func matchesEndpoint(of other: PortEntry) -> Bool {
+        networkProtocol == other.networkProtocol
+            && address == other.address
+            && port == other.port
+            && pid == other.pid
+            && command == other.command
+    }
 }
 
 enum PortProcessMetadataKind: Equatable, Sendable {
@@ -157,6 +165,8 @@ struct PortProcessMetadata: Equatable, Sendable {
     let executablePath: String?
     let commandLine: String?
     let commandLineSummary: String?
+    let redactedCommandLine: String?
+    let redactedCommandLineSummary: String?
     let source: PortProcessSource
     let classification: PortProcessClassification
 
@@ -168,6 +178,8 @@ struct PortProcessMetadata: Equatable, Sendable {
         executablePath: String? = nil,
         commandLine: String? = nil,
         commandLineSummary: String? = nil,
+        redactedCommandLine: String? = nil,
+        redactedCommandLineSummary: String? = nil,
         source: PortProcessSource = .application,
         classification: PortProcessClassification = .user
     ) {
@@ -178,6 +190,8 @@ struct PortProcessMetadata: Equatable, Sendable {
         self.executablePath = executablePath
         self.commandLine = commandLine
         self.commandLineSummary = commandLineSummary
+        self.redactedCommandLine = redactedCommandLine
+        self.redactedCommandLineSummary = redactedCommandLineSummary
         self.source = source
         self.classification = classification
     }
@@ -190,6 +204,8 @@ struct PortProcessMetadata: Equatable, Sendable {
         executablePath: String? = nil,
         commandLine: String? = nil,
         commandLineSummary: String? = nil,
+        redactedCommandLine: String? = nil,
+        redactedCommandLineSummary: String? = nil,
         source: PortProcessSource = .unknown,
         classification: PortProcessClassification = .user
     ) {
@@ -200,6 +216,8 @@ struct PortProcessMetadata: Equatable, Sendable {
         self.executablePath = executablePath
         self.commandLine = commandLine
         self.commandLineSummary = commandLineSummary
+        self.redactedCommandLine = redactedCommandLine
+        self.redactedCommandLineSummary = redactedCommandLineSummary
         self.source = source
         self.classification = classification
     }
@@ -209,6 +227,8 @@ struct PortProcessMetadata: Equatable, Sendable {
         path: String,
         commandLine: String? = nil,
         commandLineSummary: String? = nil,
+        redactedCommandLine: String? = nil,
+        redactedCommandLineSummary: String? = nil,
         source: PortProcessSource = .executable,
         classification: PortProcessClassification = .user
     ) -> Self {
@@ -219,6 +239,8 @@ struct PortProcessMetadata: Equatable, Sendable {
             executablePath: path,
             commandLine: commandLine,
             commandLineSummary: commandLineSummary,
+            redactedCommandLine: redactedCommandLine,
+            redactedCommandLineSummary: redactedCommandLineSummary,
             source: source,
             classification: classification
         )
