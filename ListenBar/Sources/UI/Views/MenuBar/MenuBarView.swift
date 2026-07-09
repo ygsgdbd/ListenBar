@@ -33,28 +33,20 @@ struct MenuBarView: View {
                     Text(emptyStateText)
                 }
             } else {
-                Section("进程") {
-                    ForEach(store.processGroups) { group in
-                        PortProcessGroupMenu(
-                            group: group,
-                            isLoading: store.isLoading,
-                            onOpenLocalhost: { port in
-                                store.send(.view(.openLocalhostTapped(port)))
-                            },
-                            onCopyURL: { port in
-                                store.send(.view(.copyURLTapped(port)))
-                            },
-                            onCopyPID: { port in
-                                store.send(.view(.copyPIDTapped(port)))
-                            },
-                            onCopyLsofCommand: { port in
-                                store.send(.view(.copyLsofCommandTapped(port)))
-                            },
-                            onKillPort: { port, mode in
-                                store.send(.view(.killPortTapped(port, mode)))
-                            }
-                        )
-                    }
+                let userGroups = store.processGroups.filter { $0.classification == .user }
+                let systemGroups = store.processGroups.filter { $0.classification == .systemOrOtherUser }
+
+                if !userGroups.isEmpty {
+                    processGroupsSection(
+                        title: PortProcessClassification.user.sectionTitle,
+                        groups: userGroups
+                    )
+                }
+                if !systemGroups.isEmpty {
+                    processGroupsSection(
+                        title: PortProcessClassification.systemOrOtherUser.sectionTitle,
+                        groups: systemGroups
+                    )
                 }
             }
 
@@ -74,6 +66,48 @@ struct MenuBarView: View {
             .keyboardShortcut("q")
         }
         .confirmationDialog($store.scope(\.confirmationDialog, action: \.confirmationDialog))
+    }
+
+    private func processGroupsSection(
+        title: String,
+        groups: [PortProcessGroup]
+    ) -> some View {
+        Section(title) {
+            ForEach(groups) { group in
+                PortProcessGroupMenu(
+                    group: group,
+                    metadataByPID: store.metadataByPID,
+                    isLoading: store.isLoading,
+                    onOpenLocalhost: { port in
+                        store.send(.view(.openLocalhostTapped(port)))
+                    },
+                    onCopyURL: { port in
+                        store.send(.view(.copyURLTapped(port)))
+                    },
+                    onCopyPID: { port in
+                        store.send(.view(.copyPIDTapped(port)))
+                    },
+                    onCopyProcessPath: { pid in
+                        store.send(.view(.copyProcessPathTapped(pid: pid)))
+                    },
+                    onCopyCommandLine: { pid in
+                        store.send(.view(.copyCommandLineTapped(pid: pid)))
+                    },
+                    onCopyLsofCommand: { port in
+                        store.send(.view(.copyLsofCommandTapped(port)))
+                    },
+                    onRevealProcessPath: { pid in
+                        store.send(.view(.revealProcessPathTapped(pid: pid)))
+                    },
+                    onKillPort: { port, mode in
+                        store.send(.view(.killPortTapped(port, mode)))
+                    },
+                    onKillGroup: { group, mode in
+                        store.send(.view(.killGroupTapped(group, mode)))
+                    }
+                )
+            }
+        }
     }
 
     private var emptyStateText: String {
@@ -141,15 +175,24 @@ enum PortLastUpdatedFormatter {
 
 private struct PortProcessGroupMenu: View {
     let group: PortProcessGroup
+    let metadataByPID: [Int: PortProcessMetadata]
     let isLoading: Bool
     let onOpenLocalhost: (PortEntry) -> Void
     let onCopyURL: (PortEntry) -> Void
     let onCopyPID: (PortEntry) -> Void
+    let onCopyProcessPath: (Int) -> Void
+    let onCopyCommandLine: (Int) -> Void
     let onCopyLsofCommand: (PortEntry) -> Void
+    let onRevealProcessPath: (Int) -> Void
     let onKillPort: (PortEntry, PortKillMode) -> Void
+    let onKillGroup: (PortProcessGroup, PortKillMode) -> Void
 
     var body: some View {
         let showsPIDInPortMenus = PortMenuLabels.showsPID(for: group.ports)
+        let processInfoItems = PortProcessInfoItems(
+            group: group,
+            metadataByPID: metadataByPID
+        )
 
         Menu {
             ForEach(group.ports) { port in
@@ -164,6 +207,56 @@ private struct PortProcessGroupMenu: View {
                     onCopyLsofCommand: onCopyLsofCommand,
                     onKillPort: onKillPort
                 )
+            }
+
+            if group.id.hasPrefix("app:") {
+                Divider()
+
+                Button(role: .destructive) {
+                    onKillGroup(group, .quit)
+                } label: {
+                    Label("终止全部监听进程 (SIGTERM)", systemImage: "xmark.circle")
+                }
+                .disabled(isLoading)
+
+                Button(role: .destructive) {
+                    onKillGroup(group, .force)
+                } label: {
+                    Label("强制终止全部监听进程 (SIGKILL)", systemImage: "exclamationmark.octagon")
+                }
+                .disabled(isLoading)
+            }
+
+            if let processInfoItem = processInfoItems.singleItem {
+                Divider()
+
+                PortProcessInfoMenuContent(
+                    item: processInfoItem,
+                    isLoading: isLoading,
+                    onCopyProcessPath: onCopyProcessPath,
+                    onCopyCommandLine: onCopyCommandLine,
+                    onRevealProcessPath: onRevealProcessPath
+                )
+            } else if !processInfoItems.items.isEmpty {
+                Divider()
+
+                Menu {
+                    ForEach(processInfoItems.items) { item in
+                        Menu {
+                            PortProcessInfoMenuContent(
+                                item: item,
+                                isLoading: isLoading,
+                                onCopyProcessPath: onCopyProcessPath,
+                                onCopyCommandLine: onCopyCommandLine,
+                                onRevealProcessPath: onRevealProcessPath
+                            )
+                        } label: {
+                            Text(verbatim: item.title)
+                        }
+                    }
+                } label: {
+                    Label("进程详情", systemImage: "info.circle")
+                }
             }
         } label: {
             PortProcessIconView(icon: group.icon)
@@ -240,6 +333,151 @@ private struct PortMenu: View {
             Text(verbatim: labels.subtitle)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+private struct PortProcessInfoMenuContent: View {
+    let item: PortProcessInfoItem
+    let isLoading: Bool
+    let onCopyProcessPath: (Int) -> Void
+    let onCopyCommandLine: (Int) -> Void
+    let onRevealProcessPath: (Int) -> Void
+
+    var body: some View {
+        Section(item.labels.source) {
+            if let path = item.labels.path {
+                Button {
+                    onRevealProcessPath(item.pid)
+                } label: {
+                    Label {
+                        Text("在 Finder 中显示")
+                        Text(verbatim: path)
+                            .foregroundStyle(.secondary)
+                    } icon: {
+                        Image(systemName: "folder")
+                    }
+                }
+                .disabled(isLoading)
+
+                Button {
+                    onCopyProcessPath(item.pid)
+                } label: {
+                    Label {
+                        Text("复制路径")
+                        Text(verbatim: path)
+                            .foregroundStyle(.secondary)
+                    } icon: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                }
+            }
+
+            if let commandLineSummary = item.labels.commandLineSummary {
+                Button {
+                    onCopyCommandLine(item.pid)
+                } label: {
+                    Label {
+                        Text("复制启动命令")
+                        Text(verbatim: commandLineSummary)
+                            .foregroundStyle(.secondary)
+                    } icon: {
+                        Image(systemName: "terminal")
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct PortProcessInfoItems: Equatable {
+    let items: [PortProcessInfoItem]
+
+    var singleItem: PortProcessInfoItem? {
+        items.count == 1 ? items.first : nil
+    }
+
+    init(
+        group: PortProcessGroup,
+        metadataByPID: [Int: PortProcessMetadata]
+    ) {
+        var seenPIDs: Set<Int> = []
+        var items: [PortProcessInfoItem] = []
+
+        for port in group.ports where !seenPIDs.contains(port.pid) {
+            guard let metadata = metadataByPID[port.pid] else {
+                continue
+            }
+
+            let labels = PortProcessInfoLabels(metadata: metadata)
+            guard labels.hasDetails else {
+                continue
+            }
+
+            seenPIDs.insert(port.pid)
+            items.append(
+                PortProcessInfoItem(
+                    pid: port.pid,
+                    title: Self.title(
+                        for: port,
+                        metadata: metadata,
+                        group: group
+                    ),
+                    labels: labels
+                )
+            )
+        }
+
+        self.items = items
+    }
+
+    private static func title(
+        for port: PortEntry,
+        metadata: PortProcessMetadata,
+        group: PortProcessGroup
+    ) -> String {
+        if let detailName = group.portProcessDetails[port.id] ?? metadata.processDetailName,
+           !detailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "\(detailName) · PID \(port.pid)"
+        }
+
+        return "PID \(port.pid)"
+    }
+}
+
+struct PortProcessInfoItem: Equatable, Identifiable {
+    let pid: Int
+    let title: String
+    let labels: PortProcessInfoLabels
+
+    var id: Int {
+        pid
+    }
+}
+
+struct PortProcessInfoLabels: Equatable {
+    let source: String
+    let path: String?
+    let commandLineSummary: String?
+
+    var hasDetails: Bool {
+        path != nil || commandLineSummary != nil
+    }
+
+    init(metadata: PortProcessMetadata?) {
+        guard let metadata else {
+            self.source = ""
+            self.path = nil
+            self.commandLineSummary = nil
+            return
+        }
+
+        self.source = String(
+            format: String(localized: "来源：%@", bundle: .main, comment: "进程来源推断标签。"),
+            locale: Locale.current,
+            metadata.source.label
+        )
+        self.path = metadata.executablePath ?? metadata.path
+        self.commandLineSummary = metadata.commandLineSummary
     }
 }
 
