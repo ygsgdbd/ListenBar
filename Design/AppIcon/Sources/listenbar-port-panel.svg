@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <title>ListenBar minimal port foreground source</title>
+  <g id="port-symbol">
+    <rect x="236" y="432" width="552" height="160" rx="80" fill="#232a32"/>
+    <circle cx="334" cy="512" r="34" fill="#eef3f8"/>
+    <rect x="432" y="480" width="250" height="64" rx="32" fill="#eef3f8"/>
+  </g>
+</svg>
