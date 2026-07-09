@@ -11,7 +11,7 @@ permissions:
 jobs:
   build:
     name: Build and Release
-    runs-on: macos-26
+    runs-on: macos-15
 
     steps:
       - name: Checkout
