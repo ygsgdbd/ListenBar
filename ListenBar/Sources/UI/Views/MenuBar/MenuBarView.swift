@@ -59,9 +59,9 @@ struct MenuBarView: View {
             Divider()
 
             Button {
-                store.send(.view(.copyAllPortsTapped))
+                store.send(.view(.copyFullInformationTapped))
             } label: {
-                Label("复制全部端口", systemImage: "list.clipboard")
+                Label("复制完整信息", systemImage: "list.clipboard")
             }
             .disabled(store.processGroups.isEmpty)
 
@@ -101,7 +101,6 @@ struct MenuBarView: View {
             }
             .keyboardShortcut("q")
         }
-        .confirmationDialog($store.scope(\.confirmationDialog, action: \.confirmationDialog))
     }
 
     private func processGroupsSection(
@@ -122,6 +121,12 @@ struct MenuBarView: View {
                     },
                     onCopyPID: { port in
                         store.send(.view(.copyPIDTapped(port)))
+                    },
+                    onCopyGroupPorts: { group in
+                        store.send(.view(.copyGroupPortsTapped(group)))
+                    },
+                    onCopyProcessInformation: { group in
+                        store.send(.view(.copyProcessInformationTapped(group)))
                     },
                     onCopyProcessPath: { pid in
                         store.send(.view(.copyProcessPathTapped(pid: pid)))
@@ -219,6 +224,8 @@ private struct PortProcessGroupMenu: View {
     let onOpenLocalhost: (PortEntry) -> Void
     let onCopyURL: (PortEntry) -> Void
     let onCopyPID: (PortEntry) -> Void
+    let onCopyGroupPorts: (PortProcessGroup) -> Void
+    let onCopyProcessInformation: (PortProcessGroup) -> Void
     let onCopyProcessPath: (Int) -> Void
     let onCopyCommandLine: (Int) -> Void
     let onCopyRedactedCommandLine: (Int) -> Void
@@ -247,6 +254,20 @@ private struct PortProcessGroupMenu: View {
                     onCopyLsofCommand: onCopyLsofCommand,
                     onKillPort: onKillPort
                 )
+            }
+
+            Divider()
+
+            Button {
+                onCopyGroupPorts(group)
+            } label: {
+                Label("复制全部端口", systemImage: "list.clipboard")
+            }
+
+            Button {
+                onCopyProcessInformation(group)
+            } label: {
+                Label("复制进程信息", systemImage: "doc.text")
             }
 
             if group.id.hasPrefix("app:") {

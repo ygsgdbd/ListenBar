@@ -6,13 +6,13 @@ enum PortListFormatter {
         metadataByPID: [Int: PortProcessMetadata]
     ) -> String {
         groups.map { group in
-            groupText(group: group, metadataByPID: metadataByPID)
+            text(group: group, metadataByPID: metadataByPID)
         }
         .filter { !$0.isEmpty }
         .joined(separator: "\n\n")
     }
 
-    private static func groupText(
+    static func text(
         group: PortProcessGroup,
         metadataByPID: [Int: PortProcessMetadata]
     ) -> String {
@@ -30,6 +30,13 @@ enum PortListFormatter {
         }
 
         return ([header] + rows).joined(separator: "\n")
+    }
+
+    static func portsText(group: PortProcessGroup) -> String {
+        Set(group.ports.map(\.port))
+            .sorted()
+            .map(String.init)
+            .joined(separator: " ")
     }
 
     private static func portText(

@@ -1,6 +1,57 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "%@ · %lld 个进程 · 端口 %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld processes · ports %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld 个进程 · 端口 %@"
+          }
+        }
+      }
+    },
+    "%@ · 成功 %lld/%lld · %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · succeeded %lld/%lld · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · 成功 %lld/%lld · %@"
+          }
+        }
+      }
+    },
+    "%@ (PID %lld) · %@ %@:%lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (PID %lld) · %@ %@:%lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (PID %lld) · %@ %@:%lld"
+          }
+        }
+      }
+    },
     "%@ 将发送到 %@ (PID %lld)，目标为 %@。%@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -19,6 +70,7 @@
       }
     },
     "%@ 将发送到 %@ 的 %lld 个监听进程，端口为 %@。%@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -35,6 +87,7 @@
       }
     },
     "%@（%lld 进程 · %lld 端口）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -169,6 +222,23 @@
         }
       }
     },
+    "关闭" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
+          }
+        }
+      }
+    },
     "刚刚" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -186,6 +256,23 @@
         }
       }
     },
+    "发送 %@ 失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to send %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送 %@ 失败"
+          }
+        }
+      }
+    },
     "取消" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -199,22 +286,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
-          }
-        }
-      }
-    },
-    "关闭" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Off"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭"
           }
         }
       }
@@ -274,6 +345,7 @@
       }
     },
     "复制全部端口" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -290,6 +362,7 @@
       }
     },
     "复制启动命令" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -301,6 +374,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制启动命令"
+          }
+        }
+      }
+    },
+    "复制完整信息" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Full Details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制完整信息"
           }
         }
       }
@@ -324,18 +414,36 @@
     "复制路径" : {
 
     },
-    "强制终止全部监听进程 (SIGKILL)" : {
+    "复制进程信息" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Force Kill All Listening Processes (SIGKILL)"
+            "value" : "Copy Process Details"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "强制终止全部监听进程 (SIGKILL)"
+            "value" : "复制进程信息"
+          }
+        }
+      }
+    },
+    "已发送 %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送 %@"
           }
         }
       }
@@ -353,6 +461,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "强制终止 (SIGKILL)"
+          }
+        }
+      }
+    },
+    "强制终止全部监听进程 (SIGKILL)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Kill All Listening Processes (SIGKILL)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制终止全部监听进程 (SIGKILL)"
           }
         }
       }
@@ -476,38 +601,6 @@
         }
       }
     },
-    "每 10 秒" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every 10 seconds"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每 10 秒"
-          }
-        }
-      }
-    },
-    "每 5 秒" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every 5 seconds"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每 5 秒"
-          }
-        }
-      }
-    },
     "更新于 %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -576,6 +669,57 @@
         }
       }
     },
+    "每 5 秒" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every 5 seconds"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每 5 秒"
+          }
+        }
+      }
+    },
+    "每 10 秒" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every 10 seconds"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每 10 秒"
+          }
+        }
+      }
+    },
+    "用户进程" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User processes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户进程"
+          }
+        }
+      }
+    },
     "监听进程 %lld · 端口 %lld" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -593,23 +737,25 @@
         }
       }
     },
-    "用户进程" : {
+    "端口占用已变化，请重新确认。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "User processes"
+            "value" : "Port ownership changed. Please confirm again."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "用户进程"
+            "value" : "端口占用已变化，请重新确认。"
           }
         }
       }
     },
     "系统/其他用户进程" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -626,6 +772,7 @@
       }
     },
     "终止全部监听进程 (SIGTERM)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -654,6 +801,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "终止进程 (SIGTERM)"
+          }
+        }
+      }
+    },
+    "自动刷新：%@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto refresh: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动刷新：%@"
+          }
+        }
+      }
+    },
+    "这会影响 %lld 个进程。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This affects %lld processes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这会影响 %lld 个进程。"
           }
         }
       }
@@ -692,22 +873,6 @@
         }
       }
     },
-    "这会影响 %lld 个进程。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This affects %lld processes."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "这会影响 %lld 个进程。"
-          }
-        }
-      }
-    },
     "进程" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -725,54 +890,6 @@
         }
       }
     },
-    "部分进程未能终止：%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Some processes could not be terminated: %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "部分进程未能终止：%@"
-          }
-        }
-      }
-    },
-    "端口占用已变化，请重新确认。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Port ownership changed. Please confirm again."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "端口占用已变化，请重新确认。"
-          }
-        }
-      }
-    },
-    "自动刷新：%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auto refresh: %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动刷新：%@"
-          }
-        }
-      }
-    },
     "退出 ListenBar" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -786,6 +903,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出 ListenBar"
+          }
+        }
+      }
+    },
+    "部分进程发送 %@ 失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to send %@ to some processes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分进程发送 %@ 失败"
+          }
+        }
+      }
+    },
+    "部分进程未能终止：%@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some processes could not be terminated: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分进程未能终止：%@"
           }
         }
       }

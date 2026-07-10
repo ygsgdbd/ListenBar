@@ -35,10 +35,6 @@ let project = Project(
             requirement: .upToNextMajor(from: "2.0.0")
         ),
         .remote(
-            url: "https://github.com/pointfreeco/swift-navigation",
-            requirement: .upToNextMajor(from: "2.10.3")
-        ),
-        .remote(
             url: "https://github.com/sparkle-project/Sparkle",
             requirement: .upToNextMajor(from: "2.9.4")
         ),
@@ -91,7 +87,6 @@ let project = Project(
                 .package(product: "PerceptionCore"),
                 .package(product: "Sharing"),
                 .package(product: "Sparkle"),
-                .package(product: "SwiftNavigation"),
                 .package(product: "SwifterSwift")
             ],
             settings: .settings(
@@ -122,8 +117,7 @@ let project = Project(
                 .target(name: "ListenBar"),
                 .package(product: "ComposableArchitecture"),
                 .package(product: "Dependencies"),
-                .package(product: "Sharing"),
-                .package(product: "SwiftNavigation")
+                .package(product: "Sharing")
             ],
             settings: .settings(
                 base: [
