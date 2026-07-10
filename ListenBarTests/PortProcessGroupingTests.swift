@@ -355,7 +355,7 @@ final class PortMenuLabelsTests: XCTestCase {
         )
     }
 
-    func testPortListFormatterOutputsSpaceGroupedText() throws {
+    func testPortListFormatterOutputsCompleteInformation() throws {
         let port = self.port(port: 3000, pid: 101, command: "node")
         let metadata = [
             101: PortProcessMetadata.executable(
@@ -376,6 +376,43 @@ final class PortMenuLabelsTests: XCTestCase {
             TCP 127.0.0.1 3000 pid=101 command=node source=Homebrew url=http://localhost:3000 path=/opt/homebrew/bin/node
             """
         )
+    }
+
+    func testPortListFormatterOutputsOneGroupOnly() throws {
+        let nodePort = self.port(port: 3000, pid: 101, command: "node")
+        let postgresPort = self.port(port: 5432, pid: 202, command: "postgres")
+        let groups = PortProcessGroupingService.groups(
+            for: [postgresPort, nodePort],
+            metadataByPID: [:]
+        )
+        let nodeGroup = try XCTUnwrap(groups.first { $0.ports.contains(nodePort) })
+
+        XCTAssertEqual(
+            PortListFormatter.text(group: nodeGroup, metadataByPID: [:]),
+            """
+            group 'node (PID 101)' processes=1 ports=1 source=未知来源
+            TCP 127.0.0.1 3000 pid=101 command=node url=http://localhost:3000
+            """
+        )
+    }
+
+    func testPortListFormatterOutputsUniqueSortedSpaceSeparatedPorts() throws {
+        let ports = [
+            self.port(port: 7000, pid: 101, command: "node"),
+            self.port(port: 5000, pid: 101, command: "node"),
+            self.port(
+                networkProtocol: .udp,
+                address: "*",
+                port: 5000,
+                pid: 101,
+                command: "node"
+            )
+        ]
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(for: ports, metadataByPID: [:]).first
+        )
+
+        XCTAssertEqual(PortListFormatter.portsText(group: group), "5000 7000")
     }
 
     func testProcessInfoItemsDeduplicateRepeatedPIDPorts() throws {
