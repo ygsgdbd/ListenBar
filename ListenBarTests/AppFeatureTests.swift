@@ -118,6 +118,46 @@ final class AppFeatureTests: XCTestCase {
         )
     }
 
+    func testOnlyForceKillIsDestructive() {
+        XCTAssertFalse(PortKillMode.quit.isDestructive)
+        XCTAssertTrue(PortKillMode.force.isDestructive)
+    }
+
+    func testConfirmationDialogsOnlyUseDestructiveRoleForForceKill() throws {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501"
+        )
+        let group = try XCTUnwrap(makeSnapshot([port]).processGroups.first)
+
+        XCTAssertNil(
+            PortKillRequest(port: port, mode: .quit)
+                .confirmationDialog(warnings: [.systemProcess])
+                .buttons.last?.role
+        )
+        XCTAssertEqual(
+            PortKillRequest(port: port, mode: .force)
+                .confirmationDialog(warnings: [.forceKill])
+                .buttons.last?.role,
+            .destructive
+        )
+        XCTAssertNil(
+            PortGroupKillRequest(group: group, mode: .quit)
+                .confirmationDialog(warnings: [.multipleProcesses(1)])
+                .buttons.last?.role
+        )
+        XCTAssertEqual(
+            PortGroupKillRequest(group: group, mode: .force)
+                .confirmationDialog(warnings: [.forceKill])
+                .buttons.last?.role,
+            .destructive
+        )
+    }
+
     func testQuitPortTerminatesPidThenRefreshesPorts() async {
         let oldPort = PortEntry(
             networkProtocol: .tcp,
@@ -459,8 +499,9 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(Date(timeIntervalSince1970: 0))
         store.dependencies.portScanner.scan = { [port] }
-        store.dependencies.portProcessMetadata.resolve = { pids in
-            newMetadata.filter { pids.contains($0.key) }
+        store.dependencies.portProcessMetadata.resolve = { ports in
+            let pids = Set(ports.map(\.pid))
+            return newMetadata.filter { pids.contains($0.key) }
         }
 
         let request = PortKillRequest(
@@ -484,7 +525,7 @@ final class AppFeatureTests: XCTestCase {
         }
     }
 
-    func testAutoRefreshTicksAndCanBeCancelled() async {
+    func testAutoRefreshStartsImmediatelyTicksAndCanBeCancelled() async {
         let clock = TestClock()
         let port = PortEntry(
             networkProtocol: .tcp,
@@ -505,6 +546,18 @@ final class AppFeatureTests: XCTestCase {
 
         await store.send(.view(.autoRefreshIntervalTapped(.fiveSeconds))) {
             $0.autoRefreshInterval = .fiveSeconds
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+        }
+        await store.receive(.response(.portsLoaded(.success(snapshot)))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+            $0.lastUpdated = Date(timeIntervalSince1970: 0)
+            $0.metadataByPID = [:]
+            $0.ports = [port]
+            $0.processGroups = snapshot.processGroups
         }
         await clock.advance(by: .seconds(5))
         await store.receive(.autoRefreshTick) {
@@ -576,8 +629,9 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.portKiller.terminate = { pid, mode in
             await recorder.record(pid: pid, mode: mode)
         }
-        store.dependencies.portProcessMetadata.resolve = { pids in
-            metadata.filter { pids.contains($0.key) }
+        store.dependencies.portProcessMetadata.resolve = { ports in
+            let pids = Set(ports.map(\.pid))
+            return metadata.filter { pids.contains($0.key) }
         }
         let scans = PortScanSequence([[firstPort, secondPort, thirdPort], []])
         store.dependencies.portScanner.scan = {
@@ -722,8 +776,9 @@ final class AppFeatureTests: XCTestCase {
             await recorder.record(pid: pid, mode: mode)
         }
         store.dependencies.portScanner.scan = { [originalPort, additionalPort] }
-        store.dependencies.portProcessMetadata.resolve = { pids in
-            refreshedMetadata.filter { pids.contains($0.key) }
+        store.dependencies.portProcessMetadata.resolve = { ports in
+            let pids = Set(ports.map(\.pid))
+            return refreshedMetadata.filter { pids.contains($0.key) }
         }
 
         await store.send(.view(.killGroupTapped(group, .quit))) {
@@ -803,8 +858,9 @@ final class AppFeatureTests: XCTestCase {
                 throw PortKillerFailure(message: "permission denied")
             }
         }
-        store.dependencies.portProcessMetadata.resolve = { pids in
-            metadata.filter { pids.contains($0.key) }
+        store.dependencies.portProcessMetadata.resolve = { ports in
+            let pids = Set(ports.map(\.pid))
+            return metadata.filter { pids.contains($0.key) }
         }
         let scans = PortScanSequence([[firstPort, secondPort], []])
         store.dependencies.portScanner.scan = {

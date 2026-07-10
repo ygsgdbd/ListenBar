@@ -21,6 +21,7 @@ struct AppFeature {
         var postRefreshErrorMessage: String?
         var ports: [PortEntry] = []
         var processGroups: [PortProcessGroup] = []
+        var refreshPending = false
 
         var title: String {
             String(
@@ -73,23 +74,22 @@ struct AppFeature {
             switch action {
             case .autoRefreshTick:
                 guard !state.isLoading else { return .none }
-                state.isLoading = true
-                state.errorMessage = nil
-                state.postRefreshErrorMessage = nil
-                return loadPortsEffect()
+                return startRefresh(&state)
 
             case .task:
-                state.isLoading = true
-                state.errorMessage = nil
-                state.postRefreshErrorMessage = nil
-                return loadPortsEffect()
+                return startRefresh(&state)
 
             case let .view(.autoRefreshIntervalTapped(interval)):
                 state.autoRefreshInterval = interval
                 guard interval != .off else {
                     return .cancel(id: CancelID.autoRefresh)
                 }
-                return autoRefreshEffect(interval)
+                let timer = autoRefreshEffect(interval)
+                guard !state.isLoading else {
+                    state.refreshPending = true
+                    return timer
+                }
+                return .merge(startRefresh(&state), timer)
 
             case .view(.copyAllPortsTapped):
                 return copyTextEffect(
@@ -182,26 +182,22 @@ struct AppFeature {
                 return .none
 
             case let .response(.portsLoaded(.success(snapshot))):
-                state.isLoading = false
-                state.errorMessage = state.postRefreshErrorMessage
-                state.postRefreshErrorMessage = nil
-                state.lastUpdated = now
-                state.metadataByPID = snapshot.metadataByPID
-                state.ports = snapshot.ports
-                state.processGroups = snapshot.processGroups
-                return .none
+                let postRefreshErrorMessage = state.postRefreshErrorMessage
+                apply(snapshot, to: &state)
+                state.errorMessage = postRefreshErrorMessage
+                return startPendingRefreshIfNeeded(&state)
 
             case let .response(.portsLoaded(.failure(failure))):
                 state.isLoading = false
                 state.errorMessage = failure.message
                 state.postRefreshErrorMessage = nil
-                return .none
+                return startPendingRefreshIfNeeded(&state)
 
             case let .response(.portGroupKillFinished(result)):
                 if let snapshot = result.refreshedSnapshot {
                     apply(snapshot, to: &state)
                     state.errorMessage = result.failureMessage
-                    return .none
+                    return startPendingRefreshIfNeeded(&state)
                 }
                 state.postRefreshErrorMessage = result.failureMessage
                 return loadPortsEffect()
@@ -210,12 +206,12 @@ struct AppFeature {
                 if let snapshot = result.refreshedSnapshot {
                     apply(snapshot, to: &state)
                     state.errorMessage = result.failure?.message
-                    return .none
+                    return startPendingRefreshIfNeeded(&state)
                 }
                 if let failure = result.failure {
                     state.isLoading = false
                     state.errorMessage = failure.message
-                    return .none
+                    return startPendingRefreshIfNeeded(&state)
                 }
                 return loadPortsEffect()
             }
@@ -238,6 +234,21 @@ struct AppFeature {
         }
     }
 
+    private func startRefresh(_ state: inout State) -> Effect<Action> {
+        state.isLoading = true
+        state.errorMessage = nil
+        state.postRefreshErrorMessage = nil
+        return loadPortsEffect()
+    }
+
+    private func startPendingRefreshIfNeeded(_ state: inout State) -> Effect<Action> {
+        guard state.refreshPending else {
+            return .none
+        }
+        state.refreshPending = false
+        return startRefresh(&state)
+    }
+
     private func autoRefreshEffect(_ interval: AutoRefreshInterval) -> Effect<Action> {
         .run { send in
             while !Task.isCancelled {
@@ -250,7 +261,7 @@ struct AppFeature {
 
     private func scanSnapshot() async throws -> PortScanSnapshot {
         let ports = try await portScanner.scan()
-        let metadata = await portProcessMetadata.resolve(Set(ports.map(\.pid)))
+        let metadata = await portProcessMetadata.resolve(ports)
         return PortScanSnapshot(
             ports: ports,
             metadataByPID: metadata,
@@ -555,7 +566,7 @@ struct PortKillRequest: Equatable, Sendable {
             ButtonState(role: .cancel) {
                 TextState(String(localized: "取消", bundle: .main, comment: "取消按钮标题。"))
             }
-            ButtonState(role: .destructive, action: .confirmKill(self)) {
+            ButtonState(role: mode.isDestructive ? .destructive : nil, action: .confirmKill(self)) {
                 TextState(mode.title)
             }
         } message: {
@@ -617,7 +628,7 @@ struct PortGroupKillRequest: Equatable, Sendable {
             ButtonState(role: .cancel) {
                 TextState(String(localized: "取消", bundle: .main, comment: "取消按钮标题。"))
             }
-            ButtonState(role: .destructive, action: .confirmKillGroup(self)) {
+            ButtonState(role: mode.isDestructive ? .destructive : nil, action: .confirmKillGroup(self)) {
                 TextState(mode.groupTitle)
             }
         } message: {

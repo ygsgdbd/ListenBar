@@ -329,15 +329,25 @@ final class PortMenuLabelsTests: XCTestCase {
                 commandLineSummary: "/opt/homebrew/bin/node server.js",
                 redactedCommandLine: "/opt/homebrew/bin/node server.js",
                 redactedCommandLineSummary: "/opt/homebrew/bin/node server.js",
-                source: .homebrew
+                residentMemoryBytes: 5_452_595,
+                sources: [.executable, .homebrew, .visualStudioCode]
             )
         )
 
         XCTAssertTrue(labels.hasDetails)
-        XCTAssertEqual(labels.source, "来源：Homebrew")
+        XCTAssertEqual(labels.source, "来源：可执行文件 • Homebrew • VS Code")
+        XCTAssertEqual(labels.memory, "常驻内存：5.2 MB")
         XCTAssertEqual(labels.path, "/opt/homebrew/bin/node")
         XCTAssertEqual(labels.commandLineSummary, "/opt/homebrew/bin/node server.js")
         XCTAssertEqual(labels.redactedCommandLineSummary, "/opt/homebrew/bin/node server.js")
+    }
+
+    func testMemoryFormatterUsesBinaryUnits() {
+        let locale = Locale(identifier: "en_US")
+
+        XCTAssertEqual(PortMemoryFormatter.string(bytes: 1_024, locale: locale), "1.0 KB")
+        XCTAssertEqual(PortMemoryFormatter.string(bytes: 5_452_595, locale: locale), "5.2 MB")
+        XCTAssertEqual(PortMemoryFormatter.string(bytes: 2_147_483_648, locale: locale), "2.0 GB")
     }
 
     func testSectionLabelsCountUniqueProcessesAndPorts() {
@@ -361,7 +371,7 @@ final class PortMenuLabelsTests: XCTestCase {
             101: PortProcessMetadata.executable(
                 name: "node",
                 path: "/opt/homebrew/bin/node",
-                source: .homebrew
+                sources: [.executable, .homebrew]
             )
         ]
         let groups = PortProcessGroupingService.groups(
@@ -372,8 +382,8 @@ final class PortMenuLabelsTests: XCTestCase {
         XCTAssertEqual(
             PortListFormatter.text(groups: groups, metadataByPID: metadata),
             """
-            group 'node (PID 101)' processes=1 ports=1 source=Homebrew
-            TCP 127.0.0.1 3000 pid=101 command=node source=Homebrew url=http://localhost:3000 path=/opt/homebrew/bin/node
+            group 'node (PID 101)' processes=1 ports=1 source='可执行文件 • Homebrew'
+            TCP 127.0.0.1 3000 pid=101 command=node source='可执行文件 • Homebrew' url=http://localhost:3000 path=/opt/homebrew/bin/node
             """
         )
     }
@@ -393,7 +403,7 @@ final class PortMenuLabelsTests: XCTestCase {
                 path: "/Users/rainbow/Library/Android/sdk/platform-tools/adb",
                 commandLine: "adb -L tcp:5037 fork-server server --reply-fd 4",
                 commandLineSummary: "adb -L tcp:5037 fork-server server --reply-fd 4",
-                source: .launchd
+                sources: [.executable, .launchd]
             )
         ]
         let group = try XCTUnwrap(
@@ -481,22 +491,29 @@ final class PortMenuLabelsTests: XCTestCase {
         )
     }
 
-    func testProcessInfoItemsHideMissingMetadata() throws {
+    func testProcessInfoItemsShowFallbackMetadataForUnreadablePID() throws {
         let port = self.port(port: 3000, pid: 10)
+        let metadata = PortProcessMetadataService.fallbackMetadata(
+            for: port,
+            processName: nil,
+            uid: nil,
+            residentMemoryBytes: nil
+        )
         let group = try XCTUnwrap(
             PortProcessGroupingService.groups(
                 for: [port],
-                metadataByPID: [:]
+                metadataByPID: [port.pid: metadata]
             ).first
         )
 
         let items = PortProcessInfoItems(
             group: group,
-            metadataByPID: [:]
+            metadataByPID: [port.pid: metadata]
         )
 
-        XCTAssertTrue(items.items.isEmpty)
-        XCTAssertNil(items.singleItem)
+        XCTAssertEqual(items.items.map(\.pid), [port.pid])
+        XCTAssertEqual(items.singleItem?.labels.source, "来源：未知来源")
+        XCTAssertEqual(items.singleItem?.labels.memory, "常驻内存：不可用")
     }
 
     func testProcessInfoLabelsHideMissingMetadata() {
@@ -504,22 +521,23 @@ final class PortMenuLabelsTests: XCTestCase {
 
         XCTAssertFalse(labels.hasDetails)
         XCTAssertEqual(labels.source, "")
+        XCTAssertNil(labels.memory)
         XCTAssertNil(labels.path)
         XCTAssertNil(labels.commandLineSummary)
     }
 
-    func testProcessInfoLabelsHideSourceOnlyMetadata() {
+    func testProcessInfoLabelsShowUnavailableMemoryWhenMetadataExists() {
         let labels = PortProcessInfoLabels(
             metadata: PortProcessMetadata(
                 bundleIdentifier: "com.example.App",
                 name: "Example",
-                path: nil,
-                source: .application
+                path: nil
             )
         )
 
-        XCTAssertFalse(labels.hasDetails)
+        XCTAssertTrue(labels.hasDetails)
         XCTAssertEqual(labels.source, "来源：App")
+        XCTAssertEqual(labels.memory, "常驻内存：不可用")
         XCTAssertNil(labels.path)
         XCTAssertNil(labels.commandLineSummary)
     }
