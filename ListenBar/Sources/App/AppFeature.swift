@@ -44,7 +44,7 @@ struct AppFeature {
         case copyProcessPathTapped(pid: Int)
         case copyCommandLineTapped(pid: Int)
         case copyRedactedCommandLineTapped(pid: Int)
-        case copyPIDTapped(PortEntry)
+        case copyPIDTapped(pid: Int)
         case copyURLTapped(PortEntry)
         case killGroupTapped(PortProcessGroup, PortKillMode)
         case killPortTapped(PortEntry, PortKillMode)
@@ -135,8 +135,8 @@ struct AppFeature {
                 guard let commandLine = Self.redactedCommandLine(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
                 return copyTextEffect(commandLine)
 
-            case let .view(.copyPIDTapped(port)):
-                return copyTextEffect(String(port.pid))
+            case let .view(.copyPIDTapped(pid)):
+                return copyTextEffect(String(pid))
 
             case let .view(.copyURLTapped(port)):
                 guard let url = port.localhostURL else { return .none }

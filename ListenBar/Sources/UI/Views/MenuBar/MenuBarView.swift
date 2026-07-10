@@ -123,8 +123,8 @@ struct MenuBarView: View {
                     onCopyURL: { port in
                         store.send(.view(.copyURLTapped(port)))
                     },
-                    onCopyPID: { port in
-                        store.send(.view(.copyPIDTapped(port)))
+                    onCopyPID: { pid in
+                        store.send(.view(.copyPIDTapped(pid: pid)))
                     },
                     onCopyGroupPorts: { group in
                         store.send(.view(.copyGroupPortsTapped(group)))
@@ -230,7 +230,7 @@ private struct PortProcessGroupMenu: View {
     let isLoading: Bool
     let onOpenLocalhost: (PortEntry) -> Void
     let onCopyURL: (PortEntry) -> Void
-    let onCopyPID: (PortEntry) -> Void
+    let onCopyPID: (Int) -> Void
     let onCopyGroupPorts: (PortProcessGroup) -> Void
     let onCopyProcessInformation: (PortProcessGroup) -> Void
     let onCopyProcessPath: (Int) -> Void
@@ -258,7 +258,6 @@ private struct PortProcessGroupMenu: View {
                     isLoading: isLoading,
                     onOpenLocalhost: onOpenLocalhost,
                     onCopyURL: onCopyURL,
-                    onCopyPID: onCopyPID,
                     onCopyLsofCommand: onCopyLsofCommand,
                     onKillPort: onKillPort
                 )
@@ -332,6 +331,7 @@ private struct PortProcessGroupMenu: View {
                 PortProcessInfoMenuContent(
                     item: processInfoItem,
                     isLoading: isLoading,
+                    onCopyPID: onCopyPID,
                     onCopyProcessPath: onCopyProcessPath,
                     onCopyCommandLine: onCopyCommandLine,
                     onCopyRedactedCommandLine: onCopyRedactedCommandLine,
@@ -346,6 +346,7 @@ private struct PortProcessGroupMenu: View {
                             PortProcessInfoMenuContent(
                                 item: item,
                                 isLoading: isLoading,
+                                onCopyPID: onCopyPID,
                                 onCopyProcessPath: onCopyProcessPath,
                                 onCopyCommandLine: onCopyCommandLine,
                                 onCopyRedactedCommandLine: onCopyRedactedCommandLine,
@@ -375,7 +376,6 @@ private struct PortMenu: View {
     let isLoading: Bool
     let onOpenLocalhost: (PortEntry) -> Void
     let onCopyURL: (PortEntry) -> Void
-    let onCopyPID: (PortEntry) -> Void
     let onCopyLsofCommand: (PortEntry) -> Void
     let onKillPort: (PortEntry, PortKillMode) -> Void
 
@@ -400,12 +400,6 @@ private struct PortMenu: View {
                 } label: {
                     Label("复制 URL", systemImage: "link")
                 }
-            }
-
-            Button {
-                onCopyPID(port)
-            } label: {
-                Label("复制 PID", systemImage: "number")
             }
 
             Button {
@@ -440,63 +434,72 @@ private struct PortMenu: View {
 private struct PortProcessInfoMenuContent: View {
     let item: PortProcessInfoItem
     let isLoading: Bool
+    let onCopyPID: (Int) -> Void
     let onCopyProcessPath: (Int) -> Void
     let onCopyCommandLine: (Int) -> Void
     let onCopyRedactedCommandLine: (Int) -> Void
     let onRevealProcessPath: (Int) -> Void
 
     var body: some View {
-        Section(item.labels.source) {
-            if let memory = item.labels.memory {
-                Label(memory, systemImage: "memorychip")
-            }
+        Button {
+            onCopyPID(item.pid)
+        } label: {
+            Label(item.copyPIDTitle, systemImage: "number")
+        }
 
-            if let path = item.labels.path {
-                Button {
-                    onRevealProcessPath(item.pid)
-                } label: {
-                    Label {
-                        Text("在 Finder 中显示")
-                        Text(verbatim: path)
-                            .foregroundStyle(.secondary)
-                    } icon: {
-                        Image(systemName: "folder")
+        if item.labels.hasDetails {
+            Section(item.labels.source) {
+                if let memory = item.labels.memory {
+                    Label(memory, systemImage: "memorychip")
+                }
+
+                if let path = item.labels.path {
+                    Button {
+                        onRevealProcessPath(item.pid)
+                    } label: {
+                        Label {
+                            Text("在 Finder 中显示")
+                            Text(verbatim: path)
+                                .foregroundStyle(.secondary)
+                        } icon: {
+                            Image(systemName: "folder")
+                        }
+                    }
+                    .disabled(isLoading)
+
+                    Button {
+                        onCopyProcessPath(item.pid)
+                    } label: {
+                        Label {
+                            Text("复制路径")
+                            Text(verbatim: path)
+                                .foregroundStyle(.secondary)
+                        } icon: {
+                            Image(systemName: "doc.on.doc")
+                        }
                     }
                 }
-                .disabled(isLoading)
 
-                Button {
-                    onCopyProcessPath(item.pid)
-                } label: {
-                    Label {
-                        Text("复制路径")
-                        Text(verbatim: path)
-                            .foregroundStyle(.secondary)
-                    } icon: {
-                        Image(systemName: "doc.on.doc")
+                if let redactedCommandLineSummary = item.labels.redactedCommandLineSummary {
+                    Button {
+                        onCopyRedactedCommandLine(item.pid)
+                    } label: {
+                        Label {
+                            Text("复制脱敏启动命令")
+                            Text(verbatim: redactedCommandLineSummary)
+                                .foregroundStyle(.secondary)
+                        } icon: {
+                            Image(systemName: "lock.doc")
+                        }
                     }
                 }
-            }
 
-            if let redactedCommandLineSummary = item.labels.redactedCommandLineSummary {
-                Button {
-                    onCopyRedactedCommandLine(item.pid)
-                } label: {
-                    Label {
-                        Text("复制脱敏启动命令")
-                        Text(verbatim: redactedCommandLineSummary)
-                            .foregroundStyle(.secondary)
-                    } icon: {
-                        Image(systemName: "lock.doc")
+                if item.labels.commandLineSummary != nil {
+                    Button {
+                        onCopyCommandLine(item.pid)
+                    } label: {
+                        Label("复制启动命令", systemImage: "terminal")
                     }
-                }
-            }
-
-            if item.labels.commandLineSummary != nil {
-                Button {
-                    onCopyCommandLine(item.pid)
-                } label: {
-                    Label("复制启动命令", systemImage: "terminal")
                 }
             }
         }
@@ -518,14 +521,8 @@ struct PortProcessInfoItems: Equatable {
         var items: [PortProcessInfoItem] = []
 
         for port in group.ports where !seenPIDs.contains(port.pid) {
-            guard let metadata = metadataByPID[port.pid] else {
-                continue
-            }
-
+            let metadata = metadataByPID[port.pid]
             let labels = PortProcessInfoLabels(metadata: metadata)
-            guard labels.hasDetails else {
-                continue
-            }
 
             seenPIDs.insert(port.pid)
             items.append(
@@ -546,10 +543,10 @@ struct PortProcessInfoItems: Equatable {
 
     private static func title(
         for port: PortEntry,
-        metadata: PortProcessMetadata,
+        metadata: PortProcessMetadata?,
         group: PortProcessGroup
     ) -> String {
-        if let detailName = group.portProcessDetails[port.id] ?? metadata.processDetailName,
+        if let detailName = group.portProcessDetails[port.id] ?? metadata?.processDetailName,
            !detailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "\(detailName) · PID \(port.pid)"
         }
@@ -562,6 +559,14 @@ struct PortProcessInfoItem: Equatable, Identifiable {
     let pid: Int
     let title: String
     let labels: PortProcessInfoLabels
+
+    var copyPIDTitle: String {
+        String(
+            format: String(localized: "复制 PID (%@)", bundle: .main, comment: "复制 PID 菜单项，括号内显示实际进程 ID。"),
+            locale: Locale.current,
+            String(pid)
+        )
+    }
 
     var id: Int {
         pid
