@@ -112,7 +112,7 @@ final class PortProcessGroupingTests: XCTestCase {
         let helperPort = port(
             port: 61305,
             pid: 22749,
-            command: "GitHub Desktop Helper (Renderer)"
+            command: "GitHub Desktop Helper (Renderer"
         )
 
         let groups = PortProcessGroupingService.groups(
@@ -259,8 +259,8 @@ final class PortMenuLabelsTests: XCTestCase {
         let labels = PortMenuLabels(port: port, showsPID: false)
 
         XCTAssertFalse(PortMenuLabels.showsPID(for: [port]))
-        XCTAssertEqual(labels.title, "20017")
-        XCTAssertEqual(labels.subtitle, "TCP 127.0.0.1:20017 · 仅本机")
+        XCTAssertEqual(labels.title, "127.0.0.1:20017")
+        XCTAssertEqual(labels.subtitle, "TCP · 仅本机")
     }
 
     func testMultiplePIDGroupShowsPID() {
@@ -269,8 +269,8 @@ final class PortMenuLabelsTests: XCTestCase {
         let labels = PortMenuLabels(port: firstPort, showsPID: true)
 
         XCTAssertTrue(PortMenuLabels.showsPID(for: [firstPort, secondPort]))
-        XCTAssertEqual(labels.title, "20017")
-        XCTAssertEqual(labels.subtitle, "TCP 127.0.0.1:20017 · 仅本机 · PID 51487")
+        XCTAssertEqual(labels.title, "127.0.0.1:20017")
+        XCTAssertEqual(labels.subtitle, "TCP · 仅本机 · PID 51487")
     }
 
     func testPortAndPIDLabelsDoNotUseThousandsSeparators() {
@@ -285,17 +285,18 @@ final class PortMenuLabelsTests: XCTestCase {
         let port = self.port(
             port: 61305,
             pid: 22749,
-            command: "GitHub Desktop Helper (Renderer)"
+            command: "GitHub Desktop Helper (Renderer"
         )
         let labels = PortMenuLabels(
             port: port,
             showsPID: true,
-            processName: "GitHub Desktop Helper (Renderer)"
+            processName: "Helper (Renderer)"
         )
 
+        XCTAssertEqual(labels.title, "127.0.0.1:61305")
         XCTAssertEqual(
             labels.subtitle,
-            "TCP 127.0.0.1:61305 · 仅本机 · PID 22749 · GitHub Desktop Helper (Renderer)"
+            "TCP · 仅本机 · PID 22749 · Helper (Renderer)"
         )
     }
 
@@ -303,7 +304,8 @@ final class PortMenuLabelsTests: XCTestCase {
         let port = self.port(address: "0.0.0.0", port: 3000, pid: 51487)
         let labels = PortMenuLabels(port: port, showsPID: false)
 
-        XCTAssertEqual(labels.subtitle, "TCP 0.0.0.0:3000 · 所有网络接口")
+        XCTAssertEqual(labels.title, "0.0.0.0:3000")
+        XCTAssertEqual(labels.subtitle, "TCP · 所有网络接口")
         XCTAssertEqual(labels.localhostURLString, "http://localhost:3000")
         XCTAssertEqual(labels.lsofCommand, "/usr/sbin/lsof -nP -iTCP:3000 -sTCP:LISTEN")
     }
@@ -318,15 +320,18 @@ final class PortMenuLabelsTests: XCTestCase {
             showsPID: false
         )
 
-        XCTAssertEqual(loopbackLabels.subtitle, "TCP [::1]:9090 · 仅本机")
-        XCTAssertEqual(wildcardLabels.subtitle, "TCP [::]:9091 · 所有网络接口")
+        XCTAssertEqual(loopbackLabels.title, "[::1]:9090")
+        XCTAssertEqual(loopbackLabels.subtitle, "TCP · 仅本机")
+        XCTAssertEqual(wildcardLabels.title, "[::]:9091")
+        XCTAssertEqual(wildcardLabels.subtitle, "TCP · 所有网络接口")
     }
 
     func testLabelsClassifySpecificInterfaceAndHideLocalhostURL() {
         let port = self.port(address: "192.168.1.5", port: 8080, pid: 51487)
         let labels = PortMenuLabels(port: port, showsPID: false)
 
-        XCTAssertEqual(labels.subtitle, "TCP 192.168.1.5:8080 · 指定网络接口")
+        XCTAssertEqual(labels.title, "192.168.1.5:8080")
+        XCTAssertEqual(labels.subtitle, "TCP · 指定网络接口")
         XCTAssertNil(labels.localhostURLString)
     }
 
@@ -339,7 +344,8 @@ final class PortMenuLabelsTests: XCTestCase {
         )
         let labels = PortMenuLabels(port: port, showsPID: false)
 
-        XCTAssertEqual(labels.subtitle, "UDP *:5353 · 所有网络接口")
+        XCTAssertEqual(labels.title, "*:5353")
+        XCTAssertEqual(labels.subtitle, "UDP · 所有网络接口")
         XCTAssertNil(labels.localhostURLString)
         XCTAssertEqual(labels.lsofCommand, "/usr/sbin/lsof -nP -iUDP:5353")
     }
