@@ -38,6 +38,122 @@ final class AppFeatureTests: XCTestCase {
         }
     }
 
+    func testMenuPresentedLoadsPortsAndUpdatesTimestamp() async {
+        let now = Date(timeIntervalSince1970: 2_000)
+        let ports = [
+            PortEntry(
+                networkProtocol: .tcp,
+                address: "127.0.0.1",
+                port: 8080,
+                pid: 456,
+                command: "miniserve",
+                user: "501"
+            )
+        ]
+        let snapshot = makeSnapshot(ports)
+
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+        store.dependencies.portScanner.scan = { ports }
+
+        await store.send(.menuPresented) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+        }
+        await store.receive(.response(.portsLoaded(.success(snapshot)))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.lastUpdated = now
+            $0.metadataByPID = snapshot.metadataByPID
+            $0.ports = ports
+            $0.processGroups = snapshot.processGroups
+        }
+    }
+
+    func testMenuPresentedFailureKeepsExistingPortsAndStoresError() async {
+        let oldPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 5037,
+            pid: 63759,
+            command: "adb",
+            user: "501"
+        )
+        var initialState = AppFeature.State()
+        initialState.ports = [oldPort]
+        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.portScanner.scan = {
+            throw PortScannerFailure(message: "lsof failed")
+        }
+
+        await store.send(.menuPresented) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+        }
+        await store.receive(.response(.portsLoaded(.failure(.init(message: "lsof failed"))))) {
+            $0.isLoading = false
+            $0.errorMessage = "lsof failed"
+        }
+
+        XCTAssertEqual(store.state.ports, [oldPort])
+        XCTAssertEqual(store.state.processGroups, initialState.processGroups)
+    }
+
+    func testMenuPresentedDuringRefreshQueuesSingleFollowUp() async {
+        let firstPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501"
+        )
+        let secondPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 8080,
+            pid: 202,
+            command: "miniserve",
+            user: "501"
+        )
+        let firstSnapshot = makeSnapshot([firstPort])
+        let secondSnapshot = makeSnapshot([secondPort])
+        var initialState = AppFeature.State()
+        initialState.isLoading = true
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 3_000))
+        store.dependencies.portScanner.scan = { [secondPort] }
+
+        await store.send(.menuPresented) {
+            $0.refreshPending = true
+        }
+        await store.send(.menuPresented)
+        await store.send(.response(.portsLoaded(.success(firstSnapshot)))) {
+            $0.isLoading = true
+            $0.lastUpdated = Date(timeIntervalSince1970: 3_000)
+            $0.ports = [firstPort]
+            $0.processGroups = firstSnapshot.processGroups
+            $0.refreshPending = false
+        }
+        await store.receive(.response(.portsLoaded(.success(secondSnapshot)))) {
+            $0.isLoading = false
+            $0.lastUpdated = Date(timeIntervalSince1970: 3_000)
+            $0.ports = [secondPort]
+            $0.processGroups = secondSnapshot.processGroups
+        }
+    }
+
     func testScanFailureKeepsExistingPortsAndStoresError() async {
         let oldPort = PortEntry(
             networkProtocol: .tcp,
