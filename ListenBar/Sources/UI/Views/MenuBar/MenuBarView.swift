@@ -314,14 +314,14 @@ private struct PortProcessGroupMenu: View {
                 Button(role: PortKillMode.quit.isDestructive ? .destructive : nil) {
                     onKillGroup(group, .quit)
                 } label: {
-                    Label("终止此应用的全部监听进程 (SIGTERM)", systemImage: "xmark.circle")
+                    Label(PortKillMode.quit.groupMenuTitle, systemImage: "xmark.circle")
                 }
                 .disabled(isLoading)
 
                 Button(role: PortKillMode.force.isDestructive ? .destructive : nil) {
                     onKillGroup(group, .force)
                 } label: {
-                    Label("强制终止此应用的全部监听进程 (SIGKILL)", systemImage: "exclamationmark.octagon")
+                    Label(PortKillMode.force.groupMenuTitle, systemImage: "exclamationmark.octagon")
                 }
                 .disabled(isLoading)
             }
@@ -419,14 +419,14 @@ private struct PortMenu: View {
             Button(role: PortKillMode.quit.isDestructive ? .destructive : nil) {
                 onKillPort(port, .quit)
             } label: {
-                Label(PortKillMode.quit.title, systemImage: "xmark.circle")
+                Label(PortKillMode.quit.menuTitle, systemImage: "xmark.circle")
             }
             .disabled(isLoading)
 
             Button(role: PortKillMode.force.isDestructive ? .destructive : nil) {
                 onKillPort(port, .force)
             } label: {
-                Label(PortKillMode.force.title, systemImage: "exclamationmark.octagon")
+                Label(PortKillMode.force.menuTitle, systemImage: "exclamationmark.octagon")
             }
             .disabled(isLoading)
         } label: {

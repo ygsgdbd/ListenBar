@@ -1402,34 +1402,66 @@
         }
       }
     },
-    "终止此应用的全部监听进程 (SIGTERM)" : {
+    "终止全部监听进程…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quit All Listening Processes for This App (SIGTERM)"
+            "value" : "Terminate All Listening Processes…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "终止此应用的全部监听进程 (SIGTERM)"
+            "value" : "终止全部监听进程…"
           }
         }
       }
     },
-    "强制终止此应用的全部监听进程 (SIGKILL)" : {
+    "终止进程" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Force Kill All Listening Processes for This App (SIGKILL)"
+            "value" : "Terminate Process"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "强制终止此应用的全部监听进程 (SIGKILL)"
+            "value" : "终止进程"
+          }
+        }
+      }
+    },
+    "强制终止全部监听进程…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Terminate All Listening Processes…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制终止全部监听进程…"
+          }
+        }
+      }
+    },
+    "强制终止进程…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Terminate Process…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制终止进程…"
           }
         }
       }

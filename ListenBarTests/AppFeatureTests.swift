@@ -239,6 +239,13 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertTrue(PortKillMode.force.isDestructive)
     }
 
+    func testPortKillMenuTitlesAreConcise() {
+        XCTAssertEqual(PortKillMode.quit.menuTitle, "终止进程")
+        XCTAssertEqual(PortKillMode.force.menuTitle, "强制终止进程…")
+        XCTAssertEqual(PortKillMode.quit.groupMenuTitle, "终止全部监听进程…")
+        XCTAssertEqual(PortKillMode.force.groupMenuTitle, "强制终止全部监听进程…")
+    }
+
     func testConfirmationsOnlyMarkForceKillAsDestructive() throws {
         let port = PortEntry(
             networkProtocol: .tcp,
