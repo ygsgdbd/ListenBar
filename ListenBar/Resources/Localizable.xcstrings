@@ -463,19 +463,19 @@
         }
       }
     },
-    "复制 PID" : {
+    "复制 PID (%@)" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copy PID"
+            "value" : "Copy PID (%@)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "复制 PID"
+            "value" : "复制 PID (%@)"
           }
         }
       }
