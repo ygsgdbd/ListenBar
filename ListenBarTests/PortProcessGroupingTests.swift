@@ -553,6 +553,37 @@ final class PortMenuLabelsTests: XCTestCase {
         XCTAssertEqual(items.singleItem?.labels.memory, "常驻内存：不可用")
     }
 
+    func testProcessInfoItemsIncludePIDWithoutMetadata() throws {
+        let firstPort = self.port(port: 3000, pid: 10)
+        let secondPort = self.port(port: 3001, pid: 10)
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(
+                for: [firstPort, secondPort],
+                metadataByPID: [:]
+            ).first
+        )
+
+        let items = PortProcessInfoItems(
+            group: group,
+            metadataByPID: [:]
+        )
+
+        XCTAssertEqual(items.items.map(\.pid), [10])
+        XCTAssertEqual(items.singleItem?.title, "PID 10")
+        XCTAssertEqual(items.singleItem?.labels, PortProcessInfoLabels(metadata: nil))
+    }
+
+    func testProcessInfoItemCopyPIDTitleShowsPlainPID() {
+        let item = PortProcessInfoItem(
+            pid: 51_487,
+            title: "PID 51487",
+            labels: PortProcessInfoLabels(metadata: nil)
+        )
+
+        XCTAssertEqual(item.copyPIDTitle, "复制 PID (51487)")
+        XCTAssertFalse(item.copyPIDTitle.contains(","))
+    }
+
     func testProcessInfoLabelsHideMissingMetadata() {
         let labels = PortProcessInfoLabels(metadata: nil)
 
