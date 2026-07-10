@@ -13,6 +13,10 @@ struct PortKillerClient {
     var terminate: @Sendable (Int, PortKillMode) async throws -> Void
 }
 
+struct ApplicationQuitClient {
+    var request: @Sendable (ApplicationQuitRequest) async -> ApplicationQuitAttempt
+}
+
 struct PortKillConfirmationClient {
     var confirm: @Sendable (PortKillConfirmation) async -> Bool
 }
@@ -57,6 +61,23 @@ extension PortKillerClient: DependencyKey {
     )
 }
 
+extension ApplicationQuitClient: DependencyKey {
+    static let liveValue = Self(
+        request: { request in
+            await ApplicationQuitService.request(request)
+        }
+    )
+
+    static let testValue = Self(
+        request: { _ in
+            ApplicationQuitAttempt(
+                matchedInstanceCount: 0,
+                acceptedInstanceCount: 0
+            )
+        }
+    )
+}
+
 extension PortKillConfirmationClient: DependencyKey {
     static let liveValue = Self(
         confirm: { confirmation in
@@ -82,6 +103,11 @@ extension PortKillNotificationClient: DependencyKey {
 }
 
 extension DependencyValues {
+    var applicationQuitter: ApplicationQuitClient {
+        get { self[ApplicationQuitClient.self] }
+        set { self[ApplicationQuitClient.self] = newValue }
+    }
+
     var portScanner: PortScannerClient {
         get { self[PortScannerClient.self] }
         set { self[PortScannerClient.self] = newValue }

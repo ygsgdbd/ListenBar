@@ -239,6 +239,13 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertTrue(PortKillMode.force.isDestructive)
     }
 
+    func testPortKillMenuTitlesAreConcise() {
+        XCTAssertEqual(PortKillMode.quit.menuTitle, "终止进程")
+        XCTAssertEqual(PortKillMode.force.menuTitle, "强制终止进程…")
+        XCTAssertEqual(PortKillMode.quit.groupMenuTitle, "终止全部监听进程…")
+        XCTAssertEqual(PortKillMode.force.groupMenuTitle, "强制终止全部监听进程…")
+    }
+
     func testConfirmationsOnlyMarkForceKillAsDestructive() throws {
         let port = PortEntry(
             networkProtocol: .tcp,
@@ -1200,6 +1207,299 @@ final class AppFeatureTests: XCTestCase {
         let notifications = await notificationRecorder.values()
         XCTAssertEqual(notifications, [])
     }
+
+    func testNormalApplicationQuitDoesNotConfirmAndRefreshesPorts() async throws {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example Helper",
+            user: "501"
+        )
+        let metadata = appMetadata(for: [101])
+        let snapshot = makeSnapshot([port], metadata: metadata)
+        var initialState = AppFeature.State()
+        initialState.metadataByPID = metadata
+        initialState.ports = snapshot.ports
+        initialState.processGroups = snapshot.processGroups
+        let group = try XCTUnwrap(initialState.processGroups.first)
+        let request = try XCTUnwrap(
+            ApplicationQuitRequest(
+                group: group,
+                mode: .normal,
+                metadataByPID: metadata
+            )
+        )
+        let attempt = ApplicationQuitAttempt(
+            matchedInstanceCount: 1,
+            acceptedInstanceCount: 1
+        )
+        let result = ApplicationQuitResult(request: request, attempt: attempt)
+        let now = Date(timeIntervalSince1970: 8_000)
+        let quitRecorder = ApplicationQuitRecorder(attempt: attempt)
+        let confirmationRecorder = ConfirmationRecorder(result: true)
+        let notificationRecorder = NotificationRecorder()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+        store.dependencies.applicationQuitter.request = { request in
+            await quitRecorder.request(request)
+        }
+        store.dependencies.portKillConfirmation.confirm = { confirmation in
+            await confirmationRecorder.confirm(confirmation)
+        }
+        store.dependencies.portKillNotification.send = { notification in
+            await notificationRecorder.record(notification)
+        }
+        store.dependencies.portScanner.scan = { [] }
+
+        await store.send(.view(.quitApplicationTapped(group, .normal))) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+        }
+        await store.receive(.response(.applicationQuitFinished(result)))
+        await store.receive(.response(.portsLoaded(.success(makeSnapshot([]))))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+            $0.lastUpdated = now
+            $0.metadataByPID = [:]
+            $0.ports = []
+            $0.processGroups = []
+        }
+
+        let requests = await quitRecorder.values()
+        let confirmations = await confirmationRecorder.values()
+        let notifications = await notificationRecorder.values()
+        XCTAssertEqual(requests, [request])
+        XCTAssertEqual(confirmations, [])
+        XCTAssertEqual(notifications, [result.notification])
+    }
+
+    func testForceApplicationQuitRequiresConfirmationAndCancellationStopsRequest() async throws {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example Helper",
+            user: "501"
+        )
+        let metadata = appMetadata(for: [101])
+        let snapshot = makeSnapshot([port], metadata: metadata)
+        var initialState = AppFeature.State()
+        initialState.metadataByPID = metadata
+        initialState.ports = snapshot.ports
+        initialState.processGroups = snapshot.processGroups
+        let group = try XCTUnwrap(initialState.processGroups.first)
+        let request = try XCTUnwrap(
+            ApplicationQuitRequest(
+                group: group,
+                mode: .force,
+                metadataByPID: metadata
+            )
+        )
+        let quitRecorder = ApplicationQuitRecorder(
+            attempt: .init(matchedInstanceCount: 1, acceptedInstanceCount: 1)
+        )
+        let confirmationRecorder = ConfirmationRecorder(result: false)
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.applicationQuitter.request = { request in
+            await quitRecorder.request(request)
+        }
+        store.dependencies.portKillConfirmation.confirm = { confirmation in
+            await confirmationRecorder.confirm(confirmation)
+        }
+
+        await store.send(.view(.quitApplicationTapped(group, .force)))
+        await store.receive(.applicationQuitConfirmationResponse(request, confirmed: false))
+
+        let requests = await quitRecorder.values()
+        let confirmations = await confirmationRecorder.values()
+        XCTAssertEqual(requests, [])
+        XCTAssertEqual(confirmations, [request.confirmation])
+    }
+
+    func testConfirmedForceApplicationQuitReportsPartialFailureAndRefreshesPorts() async throws {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example Helper",
+            user: "501"
+        )
+        let metadata = appMetadata(for: [101])
+        let snapshot = makeSnapshot([port], metadata: metadata)
+        var initialState = AppFeature.State()
+        initialState.metadataByPID = metadata
+        initialState.ports = snapshot.ports
+        initialState.processGroups = snapshot.processGroups
+        let group = try XCTUnwrap(initialState.processGroups.first)
+        let request = try XCTUnwrap(
+            ApplicationQuitRequest(
+                group: group,
+                mode: .force,
+                metadataByPID: metadata
+            )
+        )
+        let attempt = ApplicationQuitAttempt(
+            matchedInstanceCount: 2,
+            acceptedInstanceCount: 1
+        )
+        let result = ApplicationQuitResult(request: request, attempt: attempt)
+        let now = Date(timeIntervalSince1970: 9_000)
+        let quitRecorder = ApplicationQuitRecorder(attempt: attempt)
+        let confirmationRecorder = ConfirmationRecorder(result: true)
+        let notificationRecorder = NotificationRecorder()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+        store.dependencies.applicationQuitter.request = { request in
+            await quitRecorder.request(request)
+        }
+        store.dependencies.portKillConfirmation.confirm = { confirmation in
+            await confirmationRecorder.confirm(confirmation)
+        }
+        store.dependencies.portKillNotification.send = { notification in
+            await notificationRecorder.record(notification)
+        }
+        store.dependencies.portScanner.scan = { [] }
+
+        await store.send(.view(.quitApplicationTapped(group, .force)))
+        await store.receive(.applicationQuitConfirmationResponse(request, confirmed: true)) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+        }
+        await store.receive(.response(.applicationQuitFinished(result))) {
+            $0.postRefreshErrorMessage = result.failureMessage
+        }
+        await store.receive(.response(.portsLoaded(.success(makeSnapshot([]))))) {
+            $0.isLoading = false
+            $0.errorMessage = result.failureMessage
+            $0.postRefreshErrorMessage = nil
+            $0.lastUpdated = now
+            $0.metadataByPID = [:]
+            $0.ports = []
+            $0.processGroups = []
+        }
+
+        let requests = await quitRecorder.values()
+        let confirmations = await confirmationRecorder.values()
+        let notifications = await notificationRecorder.values()
+        XCTAssertEqual(requests, [request])
+        XCTAssertEqual(confirmations, [request.confirmation])
+        XCTAssertEqual(notifications, [result.notification])
+    }
+
+    func testApplicationQuitResultReportsMissingRejectedAndPartialRequests() throws {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example Helper",
+            user: "501"
+        )
+        let metadata = appMetadata(for: [101])
+        let group = try XCTUnwrap(makeSnapshot([port], metadata: metadata).processGroups.first)
+        let request = try XCTUnwrap(
+            ApplicationQuitRequest(
+                group: group,
+                mode: .force,
+                metadataByPID: metadata
+            )
+        )
+
+        let missing = ApplicationQuitResult(
+            request: request,
+            attempt: .init(matchedInstanceCount: 0, acceptedInstanceCount: 0)
+        )
+        let rejected = ApplicationQuitResult(
+            request: request,
+            attempt: .init(matchedInstanceCount: 2, acceptedInstanceCount: 0)
+        )
+        let partial = ApplicationQuitResult(
+            request: request,
+            attempt: .init(matchedInstanceCount: 2, acceptedInstanceCount: 1)
+        )
+
+        XCTAssertNotNil(missing.failureMessage)
+        XCTAssertNotNil(rejected.failureMessage)
+        XCTAssertNotNil(partial.failureMessage)
+        XCTAssertTrue(missing.notification.title.contains("失败"))
+        XCTAssertTrue(rejected.notification.title.contains("失败"))
+        XCTAssertTrue(partial.notification.title.contains("部分"))
+        XCTAssertTrue(partial.notification.body.contains("1/2"))
+    }
+
+    func testApplicationQuitRequestRejectsProcessGroupsAndCollectsMatchingBundlePaths() throws {
+        let firstPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example Helper",
+            user: "501"
+        )
+        let secondPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3001,
+            pid: 202,
+            command: "Example Helper",
+            user: "501"
+        )
+        let metadata = [
+            101: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: "/Applications/Example.app"
+            ),
+            202: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: "/Users/example/Applications/Example.app"
+            )
+        ]
+        let appGroup = try XCTUnwrap(
+            makeSnapshot([firstPort, secondPort], metadata: metadata).processGroups.first
+        )
+        let request = try XCTUnwrap(
+            ApplicationQuitRequest(
+                group: appGroup,
+                mode: .normal,
+                metadataByPID: metadata
+            )
+        )
+        let processGroup = try XCTUnwrap(makeSnapshot([firstPort]).processGroups.first)
+
+        XCTAssertEqual(request.bundleIdentifier, "com.example.App")
+        XCTAssertEqual(
+            request.bundlePaths,
+            [
+                "/Applications/Example.app",
+                "/Users/example/Applications/Example.app"
+            ]
+        )
+        XCTAssertNil(
+            ApplicationQuitRequest(
+                group: processGroup,
+                mode: .normal,
+                metadataByPID: [:]
+            )
+        )
+    }
 }
 
 private func makeSnapshot(
@@ -1290,5 +1590,23 @@ private actor PortScanSequence {
             return []
         }
         return values.removeFirst()
+    }
+}
+
+private actor ApplicationQuitRecorder {
+    private let attempt: ApplicationQuitAttempt
+    private var requests: [ApplicationQuitRequest] = []
+
+    init(attempt: ApplicationQuitAttempt) {
+        self.attempt = attempt
+    }
+
+    func request(_ request: ApplicationQuitRequest) -> ApplicationQuitAttempt {
+        requests.append(request)
+        return attempt
+    }
+
+    func values() -> [ApplicationQuitRequest] {
+        requests
     }
 }

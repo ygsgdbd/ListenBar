@@ -2,6 +2,30 @@ import XCTest
 @testable import ListenBar
 
 final class PortProcessGroupingTests: XCTestCase {
+    func testApplicationGroupExposesBundleIdentifier() throws {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example",
+            user: "501"
+        )
+        let metadata = [
+            101: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: "/Applications/Example.app"
+            )
+        ]
+
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(for: [port], metadataByPID: metadata).first
+        )
+
+        XCTAssertEqual(group.applicationBundleIdentifier, "com.example.App")
+    }
+
     func testGroupsPortsByAppMetadataWhenAvailable() {
         let firstPort = port(port: 3001, pid: 10, command: "Example Helper")
         let secondPort = port(port: 3000, pid: 11, command: "Example Helper")

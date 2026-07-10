@@ -152,6 +152,9 @@ struct MenuBarView: View {
                     },
                     onKillGroup: { group, mode in
                         store.send(.view(.killGroupTapped(group, mode)))
+                    },
+                    onQuitApplication: { group, mode in
+                        store.send(.view(.quitApplicationTapped(group, mode)))
                     }
                 )
             }
@@ -237,6 +240,7 @@ private struct PortProcessGroupMenu: View {
     let onRevealProcessPath: (Int) -> Void
     let onKillPort: (PortEntry, PortKillMode) -> Void
     let onKillGroup: (PortProcessGroup, PortKillMode) -> Void
+    let onQuitApplication: (PortProcessGroup, ApplicationQuitMode) -> Void
 
     var body: some View {
         let showsPIDInPortMenus = PortMenuLabels.showsPID(for: group.ports)
@@ -277,17 +281,47 @@ private struct PortProcessGroupMenu: View {
             if group.id.hasPrefix("app:") {
                 Divider()
 
+                Button {
+                    onQuitApplication(group, .normal)
+                } label: {
+                    Label(
+                        String(
+                            format: String(localized: "退出 %@", bundle: .main, comment: "正常退出应用菜单项。"),
+                            locale: Locale.current,
+                            group.displayName
+                        ),
+                        systemImage: "rectangle.portrait.and.arrow.right"
+                    )
+                }
+                .disabled(isLoading)
+
+                Button(role: .destructive) {
+                    onQuitApplication(group, .force)
+                } label: {
+                    Label(
+                        String(
+                            format: String(localized: "强制退出 %@…", bundle: .main, comment: "强制退出应用菜单项。"),
+                            locale: Locale.current,
+                            group.displayName
+                        ),
+                        systemImage: "exclamationmark.octagon"
+                    )
+                }
+                .disabled(isLoading)
+
+                Divider()
+
                 Button(role: PortKillMode.quit.isDestructive ? .destructive : nil) {
                     onKillGroup(group, .quit)
                 } label: {
-                    Label("终止全部监听进程 (SIGTERM)", systemImage: "xmark.circle")
+                    Label(PortKillMode.quit.groupMenuTitle, systemImage: "xmark.circle")
                 }
                 .disabled(isLoading)
 
                 Button(role: PortKillMode.force.isDestructive ? .destructive : nil) {
                     onKillGroup(group, .force)
                 } label: {
-                    Label("强制终止全部监听进程 (SIGKILL)", systemImage: "exclamationmark.octagon")
+                    Label(PortKillMode.force.groupMenuTitle, systemImage: "exclamationmark.octagon")
                 }
                 .disabled(isLoading)
             }
@@ -385,14 +419,14 @@ private struct PortMenu: View {
             Button(role: PortKillMode.quit.isDestructive ? .destructive : nil) {
                 onKillPort(port, .quit)
             } label: {
-                Label(PortKillMode.quit.title, systemImage: "xmark.circle")
+                Label(PortKillMode.quit.menuTitle, systemImage: "xmark.circle")
             }
             .disabled(isLoading)
 
             Button(role: PortKillMode.force.isDestructive ? .destructive : nil) {
                 onKillPort(port, .force)
             } label: {
-                Label(PortKillMode.force.title, systemImage: "exclamationmark.octagon")
+                Label(PortKillMode.force.menuTitle, systemImage: "exclamationmark.octagon")
             }
             .disabled(isLoading)
         } label: {
