@@ -250,7 +250,7 @@ private struct PortProcessGroupMenu: View {
                 PortMenu(
                     port: port,
                     showsPID: showsPIDInPortMenus,
-                    processName: group.portProcessDetails[port.id] == nil ? nil : port.command,
+                    processName: group.portProcessDetails[port.id],
                     isLoading: isLoading,
                     onOpenLocalhost: onOpenLocalhost,
                     onCopyURL: onCopyURL,
@@ -628,11 +628,11 @@ struct PortMenuLabels: Equatable {
         showsPID: Bool,
         processName: String? = nil
     ) {
-        self.title = String(port.port)
+        self.title = "\(port.address):\(port.port)"
         self.localhostURLString = port.localhostURL?.absoluteString
         self.lsofCommand = port.lsofCommand
 
-        var subtitle = "\(port.networkProtocol.rawValue) \(port.address):\(port.port) · \(port.addressExposure.label)"
+        var subtitle = "\(port.networkProtocol.rawValue) · \(port.addressExposure.label)"
         if showsPID {
             subtitle += " · PID \(port.pid)"
         }
