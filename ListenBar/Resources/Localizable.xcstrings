@@ -18,6 +18,23 @@
         }
       }
     },
+    "%@ · 已接受 %lld/%lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · accepted %lld/%lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · 已接受 %lld/%lld"
+          }
+        }
+      }
+    },
     "%@ · 成功 %lld/%lld · %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -82,6 +99,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 将发送到 %@ 的 %lld 个监听进程，端口为 %@。%@"
+          }
+        }
+      }
+    },
+    "%@ 的退出请求均未被接受。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All quit requests for %@ were rejected."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的退出请求均未被接受。"
+          }
+        }
+      }
+    },
+    "%@ 的部分退出请求未被接受：成功 %lld/%lld。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some quit requests for %@ were rejected: succeeded %lld/%lld."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的部分退出请求未被接受：成功 %lld/%lld。"
           }
         }
       }
@@ -409,6 +460,40 @@
         }
       }
     },
+    "发送强制退出请求失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to send force quit request"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送强制退出请求失败"
+          }
+        }
+      }
+    },
+    "发送退出请求失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to send quit request"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送退出请求失败"
+          }
+        }
+      }
+    },
     "取消" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -567,23 +652,6 @@
     "复制路径" : {
 
     },
-    "常驻内存：%@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resident memory: %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "常驻内存：%@"
-          }
-        }
-      }
-    },
     "复制进程信息" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -601,6 +669,23 @@
         }
       }
     },
+    "将强制退出 %@ 的所有运行实例。未保存的数据可能丢失。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will force quit all running instances of %@. Unsaved data may be lost."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将强制退出 %@ 的所有运行实例。未保存的数据可能丢失。"
+          }
+        }
+      }
+    },
     "已发送 %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -614,6 +699,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已发送 %@"
+          }
+        }
+      }
+    },
+    "已发送强制退出请求" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent force quit request"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送强制退出请求"
+          }
+        }
+      }
+    },
+    "已发送退出请求" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent quit request"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送退出请求"
+          }
+        }
+      }
+    },
+    "常驻内存：%@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resident memory: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常驻内存：%@"
           }
         }
       }
@@ -652,6 +788,23 @@
         }
       }
     },
+    "强制终止全部监听进程…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Terminate All Listening Processes…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制终止全部监听进程…"
+          }
+        }
+      }
+    },
     "强制终止无法被进程优雅处理。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -665,6 +818,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "强制终止无法被进程优雅处理。"
+          }
+        }
+      }
+    },
+    "强制终止进程…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Terminate Process…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制终止进程…"
+          }
+        }
+      }
+    },
+    "强制退出" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Quit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制退出"
+          }
+        }
+      }
+    },
+    "强制退出 %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Quit %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制退出 %@"
+          }
+        }
+      }
+    },
+    "强制退出 %@…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Quit %@…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制退出 %@…"
           }
         }
       }
@@ -801,6 +1022,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未发现监听端口"
+          }
+        }
+      }
+    },
+    "未找到 %@ 的运行实例。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No running instances of %@ were found."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到 %@ 的运行实例。"
           }
         }
       }
@@ -1009,6 +1247,40 @@
         }
       }
     },
+    "终止全部监听进程…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminate All Listening Processes…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终止全部监听进程…"
+          }
+        }
+      }
+    },
+    "终止进程" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminate Process"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终止进程"
+          }
+        }
+      }
+    },
     "终止进程 (SIGTERM)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1111,6 +1383,23 @@
         }
       }
     },
+    "退出 %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出 %@"
+          }
+        }
+      }
+    },
     "退出 ListenBar" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1124,6 +1413,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出 ListenBar"
+          }
+        }
+      }
+    },
+    "部分强制退出请求发送失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some force quit requests failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分强制退出请求发送失败"
           }
         }
       }
@@ -1162,183 +1468,8 @@
         }
       }
     },
-    "%@ · 已接受 %lld/%lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · accepted %lld/%lld"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · 已接受 %lld/%lld"
-          }
-        }
-      }
-    },
-    "%@ 的退出请求均未被接受。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All quit requests for %@ were rejected."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 的退出请求均未被接受。"
-          }
-        }
-      }
-    },
-    "%@ 的部分退出请求未被接受：成功 %lld/%lld。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Some quit requests for %@ were rejected: succeeded %lld/%lld."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 的部分退出请求未被接受：成功 %lld/%lld。"
-          }
-        }
-      }
-    },
-    "退出 %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quit %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "退出 %@"
-          }
-        }
-      }
-    },
-    "强制退出" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Force Quit"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "强制退出"
-          }
-        }
-      }
-    },
-    "强制退出 %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Force Quit %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "强制退出 %@"
-          }
-        }
-      }
-    },
-    "强制退出 %@…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Force Quit %@…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "强制退出 %@…"
-          }
-        }
-      }
-    },
-    "将强制退出 %@ 的所有运行实例。未保存的数据可能丢失。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will force quit all running instances of %@. Unsaved data may be lost."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将强制退出 %@ 的所有运行实例。未保存的数据可能丢失。"
-          }
-        }
-      }
-    },
-    "未找到 %@ 的运行实例。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No running instances of %@ were found."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未找到 %@ 的运行实例。"
-          }
-        }
-      }
-    },
-    "已发送退出请求" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sent quit request"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已发送退出请求"
-          }
-        }
-      }
-    },
-    "已发送强制退出请求" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sent force quit request"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已发送强制退出请求"
-          }
-        }
-      }
-    },
     "部分退出请求发送失败" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1350,118 +1481,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "部分退出请求发送失败"
-          }
-        }
-      }
-    },
-    "部分强制退出请求发送失败" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Some force quit requests failed"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "部分强制退出请求发送失败"
-          }
-        }
-      }
-    },
-    "发送退出请求失败" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to send quit request"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "发送退出请求失败"
-          }
-        }
-      }
-    },
-    "发送强制退出请求失败" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to send force quit request"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "发送强制退出请求失败"
-          }
-        }
-      }
-    },
-    "终止全部监听进程…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminate All Listening Processes…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "终止全部监听进程…"
-          }
-        }
-      }
-    },
-    "终止进程" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminate Process"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "终止进程"
-          }
-        }
-      }
-    },
-    "强制终止全部监听进程…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Force Terminate All Listening Processes…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "强制终止全部监听进程…"
-          }
-        }
-      }
-    },
-    "强制终止进程…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Force Terminate Process…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "强制终止进程…"
           }
         }
       }
