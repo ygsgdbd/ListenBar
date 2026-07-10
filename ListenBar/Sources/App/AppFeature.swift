@@ -4,6 +4,7 @@ import Foundation
 
 @Reducer
 struct AppFeature {
+    @Dependency(\.applicationQuitter) var applicationQuitter
     @Dependency(\.continuousClock) var clock
     @Dependency(\.date.now) var now
     @Dependency(\.portKillConfirmation) var portKillConfirmation
@@ -48,17 +49,20 @@ struct AppFeature {
         case killGroupTapped(PortProcessGroup, PortKillMode)
         case killPortTapped(PortEntry, PortKillMode)
         case openLocalhostTapped(PortEntry)
+        case quitApplicationTapped(PortProcessGroup, ApplicationQuitMode)
         case revealProcessPathTapped(pid: Int)
         case quitTapped
     }
 
     enum ResponseAction: Equatable, Sendable {
+        case applicationQuitFinished(ApplicationQuitResult)
         case portGroupKillFinished(PortGroupKillResult)
         case portKillFinished(PortKillResult)
         case portsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
     }
 
     enum Action: Equatable, Sendable {
+        case applicationQuitConfirmationResponse(ApplicationQuitRequest, confirmed: Bool)
         case autoRefreshTick
         case menuPresented
         case portGroupKillConfirmationResponse(PortGroupKillRequest, confirmed: Bool)
@@ -171,6 +175,22 @@ struct AppFeature {
                 guard let url = port.localhostURL else { return .none }
                 return openURLEffect(url)
 
+            case let .view(.quitApplicationTapped(group, mode)):
+                guard let request = ApplicationQuitRequest(
+                    group: group,
+                    mode: mode,
+                    metadataByPID: state.metadataByPID
+                ) else {
+                    return .none
+                }
+                guard mode == .normal else {
+                    return confirmApplicationQuitEffect(request)
+                }
+                state.isLoading = true
+                state.errorMessage = nil
+                state.postRefreshErrorMessage = nil
+                return quitApplicationEffect(request)
+
             case let .view(.revealProcessPathTapped(pid)):
                 guard let path = Self.processPath(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
                 return revealPathEffect(path)
@@ -181,6 +201,13 @@ struct AppFeature {
                         NSApplication.shared.terminate(nil)
                     }
                 }
+
+            case let .applicationQuitConfirmationResponse(request, confirmed):
+                guard confirmed else { return .none }
+                state.isLoading = true
+                state.errorMessage = nil
+                state.postRefreshErrorMessage = nil
+                return quitApplicationEffect(request)
 
             case let .portKillConfirmationResponse(request, confirmed):
                 guard confirmed else { return .none }
@@ -207,6 +234,13 @@ struct AppFeature {
                 state.errorMessage = failure.message
                 state.postRefreshErrorMessage = nil
                 return startPendingRefreshIfNeeded(&state)
+
+            case let .response(.applicationQuitFinished(result)):
+                state.postRefreshErrorMessage = result.failureMessage
+                return .merge(
+                    sendNotificationEffect(result.notification),
+                    loadPortsEffect()
+                )
 
             case let .response(.portGroupKillFinished(result)):
                 let notificationEffect = sendNotificationEffect(result.notification)
@@ -295,6 +329,15 @@ struct AppFeature {
         }
     }
 
+    private func confirmApplicationQuitEffect(
+        _ request: ApplicationQuitRequest
+    ) -> Effect<Action> {
+        .run { send in
+            let confirmed = await portKillConfirmation.confirm(request.confirmation)
+            await send(.applicationQuitConfirmationResponse(request, confirmed: confirmed))
+        }
+    }
+
     private func confirmGroupKillEffect(
         _ request: PortGroupKillRequest,
         warnings: [PortKillWarning]
@@ -342,6 +385,21 @@ struct AppFeature {
             } catch {
                 await send(.response(.portKillFinished(.failure(request: request, failure: .init(error)))))
             }
+        }
+    }
+
+    private func quitApplicationEffect(
+        _ request: ApplicationQuitRequest
+    ) -> Effect<Action> {
+        .run { send in
+            let attempt = await applicationQuitter.request(request)
+            await send(
+                .response(
+                    .applicationQuitFinished(
+                        ApplicationQuitResult(request: request, attempt: attempt)
+                    )
+                )
+            )
         }
     }
 
@@ -560,6 +618,150 @@ struct PortScanSnapshot: Equatable, Sendable {
     let ports: [PortEntry]
     let metadataByPID: [Int: PortProcessMetadata]
     let processGroups: [PortProcessGroup]
+}
+
+enum ApplicationQuitMode: Equatable, Sendable {
+    case normal
+    case force
+
+    var successNotificationTitle: String {
+        switch self {
+        case .normal:
+            return String(localized: "已发送退出请求", bundle: .main, comment: "正常退出应用请求成功通知标题。")
+        case .force:
+            return String(localized: "已发送强制退出请求", bundle: .main, comment: "强制退出应用请求成功通知标题。")
+        }
+    }
+
+    var partialFailureNotificationTitle: String {
+        switch self {
+        case .normal:
+            return String(localized: "部分退出请求发送失败", bundle: .main, comment: "正常退出应用请求部分失败通知标题。")
+        case .force:
+            return String(localized: "部分强制退出请求发送失败", bundle: .main, comment: "强制退出应用请求部分失败通知标题。")
+        }
+    }
+
+    var failureNotificationTitle: String {
+        switch self {
+        case .normal:
+            return String(localized: "发送退出请求失败", bundle: .main, comment: "正常退出应用请求失败通知标题。")
+        case .force:
+            return String(localized: "发送强制退出请求失败", bundle: .main, comment: "强制退出应用请求失败通知标题。")
+        }
+    }
+}
+
+struct ApplicationQuitRequest: Equatable, Sendable {
+    let bundleIdentifier: String
+    let applicationName: String
+    let bundlePaths: Set<String>
+    let mode: ApplicationQuitMode
+
+    init?(
+        group: PortProcessGroup,
+        mode: ApplicationQuitMode,
+        metadataByPID: [Int: PortProcessMetadata]
+    ) {
+        guard let bundleIdentifier = group.applicationBundleIdentifier else {
+            return nil
+        }
+
+        self.bundleIdentifier = bundleIdentifier
+        self.applicationName = group.displayName
+        self.bundlePaths = Set(
+            group.ports.compactMap { port in
+                guard let metadata = metadataByPID[port.pid] else {
+                    return nil
+                }
+                guard case let .application(metadataBundleIdentifier) = metadata.kind,
+                      metadataBundleIdentifier == bundleIdentifier else {
+                    return nil
+                }
+                return metadata.path
+            }
+        )
+        self.mode = mode
+    }
+
+    var confirmation: PortKillConfirmation {
+        PortKillConfirmation(
+            title: String(
+                format: String(localized: "强制退出 %@", bundle: .main, comment: "强制退出应用确认标题。"),
+                locale: Locale.current,
+                applicationName
+            ),
+            message: String(
+                format: String(localized: "将强制退出 %@ 的所有运行实例。未保存的数据可能丢失。", bundle: .main, comment: "强制退出应用确认说明。"),
+                locale: Locale.current,
+                applicationName
+            ),
+            confirmButtonTitle: String(localized: "强制退出", bundle: .main, comment: "强制退出应用确认按钮。"),
+            isDestructive: true
+        )
+    }
+}
+
+struct ApplicationQuitAttempt: Equatable, Sendable {
+    let matchedInstanceCount: Int
+    let acceptedInstanceCount: Int
+}
+
+struct ApplicationQuitResult: Equatable, Sendable {
+    let request: ApplicationQuitRequest
+    let attempt: ApplicationQuitAttempt
+
+    var failureMessage: String? {
+        if attempt.matchedInstanceCount == 0 {
+            return String(
+                format: String(localized: "未找到 %@ 的运行实例。", bundle: .main, comment: "退出应用时未找到匹配实例。"),
+                locale: Locale.current,
+                request.applicationName
+            )
+        }
+        if attempt.acceptedInstanceCount == 0 {
+            return String(
+                format: String(localized: "%@ 的退出请求均未被接受。", bundle: .main, comment: "退出应用请求全部失败。"),
+                locale: Locale.current,
+                request.applicationName
+            )
+        }
+        if attempt.acceptedInstanceCount < attempt.matchedInstanceCount {
+            return String(
+                format: String(localized: "%@ 的部分退出请求未被接受：成功 %lld/%lld。", bundle: .main, comment: "退出应用请求部分失败。"),
+                locale: Locale.current,
+                request.applicationName,
+                Int64(attempt.acceptedInstanceCount),
+                Int64(attempt.matchedInstanceCount)
+            )
+        }
+        return nil
+    }
+
+    var notification: PortKillNotification {
+        let body = String(
+            format: String(localized: "%@ · 已接受 %lld/%lld", bundle: .main, comment: "退出应用请求结果通知正文。"),
+            locale: Locale.current,
+            request.applicationName,
+            Int64(attempt.acceptedInstanceCount),
+            Int64(attempt.matchedInstanceCount)
+        )
+
+        if failureMessage == nil {
+            return PortKillNotification(
+                title: request.mode.successNotificationTitle,
+                body: body
+            )
+        }
+
+        let title = attempt.acceptedInstanceCount > 0
+            ? request.mode.partialFailureNotificationTitle
+            : request.mode.failureNotificationTitle
+        return PortKillNotification(
+            title: title,
+            body: failureMessage.map { "\(body) · \($0)" } ?? body
+        )
+    }
 }
 
 enum AutoRefreshInterval: CaseIterable, Equatable, Identifiable, Sendable {

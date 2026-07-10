@@ -279,6 +279,15 @@ struct PortProcessGroup: Equatable, Identifiable, Sendable {
     let ports: [PortEntry]
     let portProcessDetails: [String: String]
 
+    var applicationBundleIdentifier: String? {
+        let prefix = "app:"
+        guard id.hasPrefix(prefix) else {
+            return nil
+        }
+        let bundleIdentifier = String(id.dropFirst(prefix.count))
+        return bundleIdentifier.isEmpty ? nil : bundleIdentifier
+    }
+
     init(
         id: String,
         displayName: String,
