@@ -51,8 +51,8 @@ enum PortListFormatter {
             "command=\(shellToken(port.command))"
         ]
 
-        if let source = metadata?.source.label {
-            fields.append("source=\(shellToken(source))")
+        if let sources = metadata?.sources, !sources.isEmpty {
+            fields.append("source=\(shellToken(sourceLabels(sources)))")
         }
         if let url = port.localhostURL?.absoluteString {
             fields.append("url=\(url)")
@@ -67,12 +67,20 @@ enum PortListFormatter {
         group: PortProcessGroup,
         metadataByPID: [Int: PortProcessMetadata]
     ) -> String {
-        let sources = Set(group.ports.compactMap { metadataByPID[$0.pid]?.source.label })
-            .sorted()
+        var sources: [PortProcessSource] = []
+        for port in group.ports {
+            for source in metadataByPID[port.pid]?.sources ?? [] where !sources.contains(source) {
+                sources.append(source)
+            }
+        }
         guard !sources.isEmpty else {
             return shellToken(PortProcessSource.unknown.label)
         }
-        return shellToken(sources.joined(separator: ","))
+        return shellToken(sourceLabels(sources))
+    }
+
+    private static func sourceLabels(_ sources: [PortProcessSource]) -> String {
+        sources.map(\.label).joined(separator: " • ")
     }
 
     private static func shellToken(_ value: String) -> String {

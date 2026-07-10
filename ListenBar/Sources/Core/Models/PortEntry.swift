@@ -26,6 +26,10 @@ enum PortKillMode: Equatable, Sendable {
     case quit
     case force
 
+    var isDestructive: Bool {
+        self == .force
+    }
+
     var title: String {
         switch self {
         case .quit:
@@ -125,9 +129,11 @@ enum PortProcessClassification: Equatable, Sendable {
     }
 }
 
-enum PortProcessSource: Equatable, Sendable {
+enum PortProcessSource: Equatable, Hashable, Sendable {
     case application
     case homebrew
+    case macPorts
+    case nix
     case visualStudioCode
     case terminal
     case launchd
@@ -141,6 +147,10 @@ enum PortProcessSource: Equatable, Sendable {
             return String(localized: "App", bundle: .main, comment: "进程来源推断：普通 App。")
         case .homebrew:
             return String(localized: "Homebrew", bundle: .main, comment: "进程来源推断：Homebrew。")
+        case .macPorts:
+            return String(localized: "MacPorts", bundle: .main, comment: "进程来源推断：MacPorts。")
+        case .nix:
+            return String(localized: "Nix", bundle: .main, comment: "进程来源推断：Nix。")
         case .visualStudioCode:
             return String(localized: "VS Code", bundle: .main, comment: "进程来源推断：VS Code。")
         case .terminal:
@@ -167,7 +177,8 @@ struct PortProcessMetadata: Equatable, Sendable {
     let commandLineSummary: String?
     let redactedCommandLine: String?
     let redactedCommandLineSummary: String?
-    let source: PortProcessSource
+    let residentMemoryBytes: UInt64?
+    let sources: [PortProcessSource]
     let classification: PortProcessClassification
 
     init(
@@ -180,7 +191,8 @@ struct PortProcessMetadata: Equatable, Sendable {
         commandLineSummary: String? = nil,
         redactedCommandLine: String? = nil,
         redactedCommandLineSummary: String? = nil,
-        source: PortProcessSource = .application,
+        residentMemoryBytes: UInt64? = nil,
+        sources: [PortProcessSource] = [.application],
         classification: PortProcessClassification = .user
     ) {
         self.kind = .application(bundleIdentifier: bundleIdentifier)
@@ -192,7 +204,8 @@ struct PortProcessMetadata: Equatable, Sendable {
         self.commandLineSummary = commandLineSummary
         self.redactedCommandLine = redactedCommandLine
         self.redactedCommandLineSummary = redactedCommandLineSummary
-        self.source = source
+        self.residentMemoryBytes = residentMemoryBytes
+        self.sources = sources
         self.classification = classification
     }
 
@@ -206,7 +219,8 @@ struct PortProcessMetadata: Equatable, Sendable {
         commandLineSummary: String? = nil,
         redactedCommandLine: String? = nil,
         redactedCommandLineSummary: String? = nil,
-        source: PortProcessSource = .unknown,
+        residentMemoryBytes: UInt64? = nil,
+        sources: [PortProcessSource] = [.unknown],
         classification: PortProcessClassification = .user
     ) {
         self.kind = kind
@@ -218,18 +232,20 @@ struct PortProcessMetadata: Equatable, Sendable {
         self.commandLineSummary = commandLineSummary
         self.redactedCommandLine = redactedCommandLine
         self.redactedCommandLineSummary = redactedCommandLineSummary
-        self.source = source
+        self.residentMemoryBytes = residentMemoryBytes
+        self.sources = sources
         self.classification = classification
     }
 
     static func executable(
         name: String,
-        path: String,
+        path: String?,
         commandLine: String? = nil,
         commandLineSummary: String? = nil,
         redactedCommandLine: String? = nil,
         redactedCommandLineSummary: String? = nil,
-        source: PortProcessSource = .executable,
+        residentMemoryBytes: UInt64? = nil,
+        sources: [PortProcessSource] = [.executable],
         classification: PortProcessClassification = .user
     ) -> Self {
         Self(
@@ -241,7 +257,8 @@ struct PortProcessMetadata: Equatable, Sendable {
             commandLineSummary: commandLineSummary,
             redactedCommandLine: redactedCommandLine,
             redactedCommandLineSummary: redactedCommandLineSummary,
-            source: source,
+            residentMemoryBytes: residentMemoryBytes,
+            sources: sources,
             classification: classification
         )
     }

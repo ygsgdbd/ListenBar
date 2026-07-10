@@ -1,5 +1,6 @@
 import AppKit
 import ComposableArchitecture
+import IssueReporting
 import Sparkle
 import SwiftUI
 
@@ -18,7 +19,9 @@ struct ListenBarApp: App {
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
-        self.store.send(.task)
+        if !isTesting {
+            self.store.send(.task)
+        }
     }
 
     var body: some Scene {

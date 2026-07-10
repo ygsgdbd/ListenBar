@@ -6,7 +6,7 @@ struct PortScannerClient {
 }
 
 struct PortProcessMetadataClient {
-    var resolve: @Sendable (Set<Int>) async -> [Int: PortProcessMetadata]
+    var resolve: @Sendable ([PortEntry]) async -> [Int: PortProcessMetadata]
 }
 
 struct PortKillerClient {
@@ -35,8 +35,8 @@ extension PortScannerClient: DependencyKey {
 
 extension PortProcessMetadataClient: DependencyKey {
     static let liveValue = Self(
-        resolve: { pids in
-            await PortProcessMetadataService.resolveMetadata(for: pids)
+        resolve: { ports in
+            await PortProcessMetadataService.resolveMetadata(for: ports)
         }
     )
 

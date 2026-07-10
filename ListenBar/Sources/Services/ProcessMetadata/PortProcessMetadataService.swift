@@ -17,8 +17,10 @@ enum PortProcessMetadataService {
     private struct ProcessRuntimeInfo {
         let executablePath: String?
         let processSnapshot: ProcessSnapshot?
+        let processName: String?
         let commandLineArguments: [String]?
         let parentProcessNames: [String]
+        let residentMemoryBytes: UInt64?
     }
 
     private struct RunningApplicationSnapshot {
@@ -34,13 +36,20 @@ enum PortProcessMetadataService {
         let commandLineSummary: String?
         let redactedCommandLine: String?
         let redactedCommandLineSummary: String?
-        let source: PortProcessSource
+        let residentMemoryBytes: UInt64?
+        let sources: [PortProcessSource]
         let classification: PortProcessClassification
     }
 
     private static let kernProcArgs2 = 49
 
-    static func resolveMetadata(for pids: Set<Int>) async -> [Int: PortProcessMetadata] {
+    static func resolveMetadata(for ports: [PortEntry]) async -> [Int: PortProcessMetadata] {
+        let pids = Set(ports.map(\.pid))
+        let portsByPID = ports.reduce(into: [Int: PortEntry]()) { result, port in
+            if result[port.pid] == nil {
+                result[port.pid] = port
+            }
+        }
         let runtimeByPID = await Task.detached(priority: .userInitiated) {
             runtimeInfo(for: pids)
         }
@@ -51,7 +60,8 @@ enum PortProcessMetadataService {
             resolveMetadata(
                 for: pids,
                 runtimeByPID: runtimeByPID,
-                runningApplicationsByPID: runningApplicationsByPID
+                runningApplicationsByPID: runningApplicationsByPID,
+                portsByPID: portsByPID
             )
         }
         .value
@@ -60,7 +70,8 @@ enum PortProcessMetadataService {
     private static func resolveMetadata(
         for pids: Set<Int>,
         runtimeByPID: [Int: ProcessRuntimeInfo],
-        runningApplicationsByPID: [Int: RunningApplicationSnapshot]
+        runningApplicationsByPID: [Int: RunningApplicationSnapshot],
+        portsByPID: [Int: PortEntry]
     ) -> [Int: PortProcessMetadata] {
         var metadataByPID: [Int: PortProcessMetadata] = [:]
 
@@ -79,7 +90,8 @@ enum PortProcessMetadataService {
                 runningApplication: runningApplication,
                 processSnapshot: runtime?.processSnapshot,
                 commandLineArguments: runtime?.commandLineArguments,
-                parentProcessNames: runtime?.parentProcessNames ?? []
+                parentProcessNames: runtime?.parentProcessNames ?? [],
+                residentMemoryBytes: runtime?.residentMemoryBytes
                ) {
                 metadataByPID[pid] = metadata
                 continue
@@ -90,18 +102,30 @@ enum PortProcessMetadataService {
                 executablePath: executablePath,
                 processSnapshot: runtime?.processSnapshot,
                 commandLineArguments: runtime?.commandLineArguments,
-                parentProcessNames: runtime?.parentProcessNames ?? []
+                parentProcessNames: runtime?.parentProcessNames ?? [],
+                residentMemoryBytes: runtime?.residentMemoryBytes
             ) {
                 metadataByPID[pid] = metadata
                 continue
             }
 
-            guard let executablePath else { continue }
+            guard let executablePath else {
+                if let port = portsByPID[pid] {
+                    metadataByPID[pid] = fallbackMetadata(
+                        for: port,
+                        processName: runtime?.processName,
+                        uid: runtime?.processSnapshot?.uid,
+                        residentMemoryBytes: runtime?.residentMemoryBytes
+                    )
+                }
+                continue
+            }
             metadataByPID[pid] = executableMetadata(
                 for: executablePath,
                 processSnapshot: runtime?.processSnapshot,
                 commandLineArguments: runtime?.commandLineArguments,
-                parentProcessNames: runtime?.parentProcessNames ?? []
+                parentProcessNames: runtime?.parentProcessNames ?? [],
+                residentMemoryBytes: runtime?.residentMemoryBytes
             )
         }
 
@@ -203,35 +227,52 @@ enum PortProcessMetadataService {
         return String(commandLine[..<endIndex]) + "..."
     }
 
-    static func inferredSource(
+    static func inferredSources(
         executablePath: String?,
         applicationPath: String?,
         parentProcessNames: [String]
-    ) -> PortProcessSource {
+    ) -> [PortProcessSource] {
         let normalizedParentNames = parentProcessNames.map { $0.lowercased() }
+        let resolvedExecutablePath = executablePath.map(resolvedExecutablePath(for:))
+        let paths = [applicationPath, executablePath, resolvedExecutablePath].compactMap { $0 }
+        var sources: [PortProcessSource] = []
+
+        func append(_ source: PortProcessSource) {
+            if !sources.contains(source) {
+                sources.append(source)
+            }
+        }
 
         if isSystemPath(applicationPath) || isSystemPath(executablePath) {
-            return .system
+            append(.system)
+            return sources
+        } else if applicationPath != nil {
+            append(.application)
+        } else if executablePath != nil {
+            append(.executable)
+        } else {
+            append(.unknown)
+        }
+
+        if paths.contains(where: isHomebrewPath) {
+            append(.homebrew)
+        } else if paths.contains(where: isMacPortsPath) {
+            append(.macPorts)
+        } else if paths.contains(where: isNixPath) {
+            append(.nix)
+        }
+
+        guard applicationPath == nil else {
+            return sources
         }
         if normalizedParentNames.contains(where: isVisualStudioCodeProcessName) {
-            return .visualStudioCode
+            append(.visualStudioCode)
+        } else if normalizedParentNames.contains(where: isTerminalProcessName) {
+            append(.terminal)
+        } else if normalizedParentNames.contains("launchd") {
+            append(.launchd)
         }
-        if isHomebrewPath(executablePath) {
-            return .homebrew
-        }
-        if normalizedParentNames.contains(where: isTerminalProcessName) {
-            return .terminal
-        }
-        if applicationPath != nil {
-            return .application
-        }
-        if normalizedParentNames.contains("launchd") {
-            return .launchd
-        }
-        if executablePath != nil {
-            return .executable
-        }
-        return .unknown
+        return sources
     }
 
     static func processClassification(
@@ -274,7 +315,8 @@ enum PortProcessMetadataService {
         runningApplication: RunningApplicationSnapshot?,
         processSnapshot: ProcessSnapshot?,
         commandLineArguments: [String]?,
-        parentProcessNames: [String]
+        parentProcessNames: [String],
+        residentMemoryBytes: UInt64?
     ) -> PortProcessMetadata? {
         guard
             let resolution = applicationBundleResolution(forExecutablePath: path),
@@ -300,7 +342,8 @@ enum PortProcessMetadataService {
             applicationPath: resolution.ownerBundleURL.path,
             processSnapshot: processSnapshot,
             commandLineArguments: commandLineArguments,
-            parentProcessNames: parentProcessNames
+            parentProcessNames: parentProcessNames,
+            residentMemoryBytes: residentMemoryBytes
         )
 
         return PortProcessMetadata(
@@ -313,7 +356,8 @@ enum PortProcessMetadataService {
             commandLineSummary: details.commandLineSummary,
             redactedCommandLine: details.redactedCommandLine,
             redactedCommandLineSummary: details.redactedCommandLineSummary,
-            source: details.source,
+            residentMemoryBytes: details.residentMemoryBytes,
+            sources: details.sources,
             classification: details.classification
         )
     }
@@ -323,7 +367,8 @@ enum PortProcessMetadataService {
         executablePath: String?,
         processSnapshot: ProcessSnapshot?,
         commandLineArguments: [String]?,
-        parentProcessNames: [String]
+        parentProcessNames: [String],
+        residentMemoryBytes: UInt64?
     ) -> PortProcessMetadata? {
         guard
             let runningApplication,
@@ -344,7 +389,8 @@ enum PortProcessMetadataService {
             applicationPath: applicationPath,
             processSnapshot: processSnapshot,
             commandLineArguments: commandLineArguments,
-            parentProcessNames: parentProcessNames
+            parentProcessNames: parentProcessNames,
+            residentMemoryBytes: residentMemoryBytes
         )
 
         return PortProcessMetadata(
@@ -356,7 +402,8 @@ enum PortProcessMetadataService {
             commandLineSummary: details.commandLineSummary,
             redactedCommandLine: details.redactedCommandLine,
             redactedCommandLineSummary: details.redactedCommandLineSummary,
-            source: details.source,
+            residentMemoryBytes: details.residentMemoryBytes,
+            sources: details.sources,
             classification: details.classification
         )
     }
@@ -365,7 +412,8 @@ enum PortProcessMetadataService {
         for path: String,
         processSnapshot: ProcessSnapshot?,
         commandLineArguments: [String]?,
-        parentProcessNames: [String]
+        parentProcessNames: [String],
+        residentMemoryBytes: UInt64?
     ) -> PortProcessMetadata {
         let name = URL(fileURLWithPath: path).lastPathComponent
         let details = metadataDetails(
@@ -373,7 +421,8 @@ enum PortProcessMetadataService {
             applicationPath: nil,
             processSnapshot: processSnapshot,
             commandLineArguments: commandLineArguments,
-            parentProcessNames: parentProcessNames
+            parentProcessNames: parentProcessNames,
+            residentMemoryBytes: residentMemoryBytes
         )
         return .executable(
             name: name,
@@ -382,7 +431,8 @@ enum PortProcessMetadataService {
             commandLineSummary: details.commandLineSummary,
             redactedCommandLine: details.redactedCommandLine,
             redactedCommandLineSummary: details.redactedCommandLineSummary,
-            source: details.source,
+            residentMemoryBytes: details.residentMemoryBytes,
+            sources: details.sources,
             classification: details.classification
         )
     }
@@ -455,8 +505,10 @@ enum PortProcessMetadataService {
                     ProcessRuntimeInfo(
                         executablePath: resolver.executablePath(for: pid),
                         processSnapshot: snapshot,
+                        processName: resolver.processName(for: pid),
                         commandLineArguments: commandLineArguments(for: pid),
-                        parentProcessNames: resolver.parentProcessNames(startingAt: snapshot?.parentPID)
+                        parentProcessNames: resolver.parentProcessNames(startingAt: snapshot?.parentPID),
+                        residentMemoryBytes: residentMemoryBytes(for: pid)
                     )
                 )
             }
@@ -498,6 +550,63 @@ enum PortProcessMetadataService {
             parentPID: Int(info.pbi_ppid),
             uid: info.pbi_uid
         )
+    }
+
+    static func residentMemoryBytes(for pid: Int) -> UInt64? {
+        var taskInfo = proc_taskinfo()
+        let result = proc_pidinfo(
+            pid_t(pid),
+            PROC_PIDTASKINFO,
+            0,
+            &taskInfo,
+            Int32(MemoryLayout<proc_taskinfo>.size)
+        )
+        return residentMemoryBytes(from: taskInfo, result: result)
+    }
+
+    static func residentMemoryBytes(from taskInfo: proc_taskinfo, result: Int32) -> UInt64? {
+        guard result == Int32(MemoryLayout<proc_taskinfo>.size) else {
+            return nil
+        }
+        return taskInfo.pti_resident_size
+    }
+
+    static func fallbackMetadata(
+        for port: PortEntry,
+        processName: String?,
+        uid: uid_t?,
+        residentMemoryBytes: UInt64?
+    ) -> PortProcessMetadata {
+        .executable(
+            name: processName ?? port.command,
+            path: nil,
+            residentMemoryBytes: residentMemoryBytes,
+            sources: [.unknown],
+            classification: fallbackClassification(uid: uid, portUser: port.user)
+        )
+    }
+
+    private static func fallbackClassification(
+        uid: uid_t?,
+        portUser: String?
+    ) -> PortProcessClassification {
+        if let uid {
+            return processClassification(
+                uid: uid,
+                executablePath: nil,
+                applicationPath: nil
+            )
+        }
+        guard let portUser = portUser?.lowercased() else {
+            return .user
+        }
+        if portUser == "root" || portUser == "0" {
+            return .systemOrOtherUser
+        }
+        if let numericUID = uid_t(portUser), numericUID != getuid() {
+            return .systemOrOtherUser
+        }
+        return .user
     }
 
     private static func commandLineArguments(for pid: Int) -> [String]? {
@@ -691,7 +800,8 @@ enum PortProcessMetadataService {
         applicationPath: String?,
         processSnapshot: ProcessSnapshot?,
         commandLineArguments: [String]?,
-        parentProcessNames: [String]
+        parentProcessNames: [String],
+        residentMemoryBytes: UInt64?
     ) -> MetadataDetails {
         let commandLine = commandLineArguments.flatMap(commandLineString(arguments:))
         let redactedCommandLine = commandLineArguments.flatMap(redactedCommandLineString(arguments:))
@@ -701,7 +811,8 @@ enum PortProcessMetadataService {
             commandLineSummary: commandLine.map { commandLineSummary(for: $0) },
             redactedCommandLine: redactedCommandLine,
             redactedCommandLineSummary: redactedCommandLine.map { commandLineSummary(for: $0) },
-            source: inferredSource(
+            residentMemoryBytes: residentMemoryBytes,
+            sources: inferredSources(
                 executablePath: executablePath,
                 applicationPath: applicationPath,
                 parentProcessNames: parentProcessNames
@@ -764,9 +875,35 @@ enum PortProcessMetadataService {
             "/opt/homebrew/",
             "/usr/local/Homebrew/",
             "/usr/local/Cellar/",
-            "/usr/local/opt/",
-            "/usr/local/bin/"
+            "/usr/local/opt/"
         ].contains { path.hasPrefix($0) }
+    }
+
+    private static func isMacPortsPath(_ path: String) -> Bool {
+        path.hasPrefix("/opt/local/")
+    }
+
+    private static func isNixPath(_ path: String) -> Bool {
+        path.hasPrefix("/nix/store/")
+    }
+
+    private static func resolvedExecutablePath(for path: String) -> String {
+        let executableURL = URL(fileURLWithPath: path)
+        let resolvedPath = executableURL.resolvingSymlinksInPath().path
+        if resolvedPath != path {
+            return resolvedPath
+        }
+        guard let destination = try? FileManager.default.destinationOfSymbolicLink(atPath: path) else {
+            return path
+        }
+        if destination.hasPrefix("/") {
+            return URL(fileURLWithPath: destination).standardizedFileURL.path
+        }
+        return executableURL
+            .deletingLastPathComponent()
+            .appendingPathComponent(destination)
+            .standardizedFileURL
+            .path
     }
 
     private static func isSystemPath(_ path: String?) -> Bool {

@@ -6,6 +6,7 @@ struct PortKillConfirmation: Equatable, Sendable {
     let title: String
     let message: String
     let confirmButtonTitle: String
+    let isDestructive: Bool
 }
 
 struct PortKillNotification: Equatable, Sendable {
@@ -31,6 +32,7 @@ enum PortKillInteractionService {
         alert.messageText = confirmation.title
         alert.informativeText = confirmation.message
         alert.addButton(withTitle: confirmation.confirmButtonTitle)
+        alert.buttons.first?.hasDestructiveAction = confirmation.isDestructive
         alert.addButton(
             withTitle: String(localized: "取消", bundle: .main, comment: "取消按钮标题。")
         )

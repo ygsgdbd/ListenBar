@@ -273,14 +273,14 @@ private struct PortProcessGroupMenu: View {
             if group.id.hasPrefix("app:") {
                 Divider()
 
-                Button(role: .destructive) {
+                Button(role: PortKillMode.quit.isDestructive ? .destructive : nil) {
                     onKillGroup(group, .quit)
                 } label: {
                     Label("终止全部监听进程 (SIGTERM)", systemImage: "xmark.circle")
                 }
                 .disabled(isLoading)
 
-                Button(role: .destructive) {
+                Button(role: PortKillMode.force.isDestructive ? .destructive : nil) {
                     onKillGroup(group, .force)
                 } label: {
                     Label("强制终止全部监听进程 (SIGKILL)", systemImage: "exclamationmark.octagon")
@@ -378,14 +378,14 @@ private struct PortMenu: View {
 
             Divider()
 
-            Button(role: .destructive) {
+            Button(role: PortKillMode.quit.isDestructive ? .destructive : nil) {
                 onKillPort(port, .quit)
             } label: {
                 Label(PortKillMode.quit.title, systemImage: "xmark.circle")
             }
             .disabled(isLoading)
 
-            Button(role: .destructive) {
+            Button(role: PortKillMode.force.isDestructive ? .destructive : nil) {
                 onKillPort(port, .force)
             } label: {
                 Label(PortKillMode.force.title, systemImage: "exclamationmark.octagon")
@@ -409,6 +409,10 @@ private struct PortProcessInfoMenuContent: View {
 
     var body: some View {
         Section(item.labels.source) {
+            if let memory = item.labels.memory {
+                Label(memory, systemImage: "memorychip")
+            }
+
             if let path = item.labels.path {
                 Button {
                     onRevealProcessPath(item.pid)
@@ -528,17 +532,19 @@ struct PortProcessInfoItem: Equatable, Identifiable {
 
 struct PortProcessInfoLabels: Equatable {
     let source: String
+    let memory: String?
     let path: String?
     let commandLineSummary: String?
     let redactedCommandLineSummary: String?
 
     var hasDetails: Bool {
-        path != nil || commandLineSummary != nil || redactedCommandLineSummary != nil
+        memory != nil || path != nil || commandLineSummary != nil || redactedCommandLineSummary != nil
     }
 
     init(metadata: PortProcessMetadata?) {
         guard let metadata else {
             self.source = ""
+            self.memory = nil
             self.path = nil
             self.commandLineSummary = nil
             self.redactedCommandLineSummary = nil
@@ -548,11 +554,39 @@ struct PortProcessInfoLabels: Equatable {
         self.source = String(
             format: String(localized: "来源：%@", bundle: .main, comment: "进程来源推断标签。"),
             locale: Locale.current,
-            metadata.source.label
+            metadata.sources.map(\.label).joined(separator: " • ")
+        )
+        let memoryValue = metadata.residentMemoryBytes
+            .map { PortMemoryFormatter.string(bytes: $0) }
+            ?? String(localized: "不可用", bundle: .main, comment: "无法读取进程常驻内存。")
+        self.memory = String(
+            format: String(localized: "常驻内存：%@", bundle: .main, comment: "进程常驻内存。"),
+            locale: Locale.current,
+            memoryValue
         )
         self.path = metadata.executablePath ?? metadata.path
         self.commandLineSummary = metadata.commandLineSummary
         self.redactedCommandLineSummary = metadata.redactedCommandLineSummary
+    }
+}
+
+enum PortMemoryFormatter {
+    static func string(bytes: UInt64, locale: Locale = .current) -> String {
+        let kilobyte = 1_024.0
+        let megabyte = kilobyte * 1_024.0
+        let gigabyte = megabyte * 1_024.0
+        let value = Double(bytes)
+
+        if value >= gigabyte {
+            return String(format: "%.1f GB", locale: locale, value / gigabyte)
+        }
+        if value >= megabyte {
+            return String(format: "%.1f MB", locale: locale, value / megabyte)
+        }
+        if value >= kilobyte {
+            return String(format: "%.1f KB", locale: locale, value / kilobyte)
+        }
+        return "\(bytes) B"
     }
 }
 

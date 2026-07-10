@@ -1,3 +1,4 @@
+import Darwin
 import XCTest
 @testable import ListenBar
 
@@ -107,39 +108,156 @@ final class PortProcessMetadataServiceTests: XCTestCase {
         )
     }
 
-    func testInferredSourceUsesPathAndParentProcessNames() {
+    func testInferredSourcesCombineBasePackageManagerAndLauncher() {
         XCTAssertEqual(
-            PortProcessMetadataService.inferredSource(
+            PortProcessMetadataService.inferredSources(
                 executablePath: "/opt/homebrew/bin/node",
                 applicationPath: nil,
                 parentProcessNames: ["Terminal"]
             ),
-            .homebrew
+            [.executable, .homebrew, .terminal]
         )
         XCTAssertEqual(
-            PortProcessMetadataService.inferredSource(
+            PortProcessMetadataService.inferredSources(
                 executablePath: "/Users/example/.nvm/node",
                 applicationPath: nil,
                 parentProcessNames: ["Code Helper", "Visual Studio Code"]
             ),
-            .visualStudioCode
+            [.executable, .visualStudioCode]
         )
         XCTAssertEqual(
-            PortProcessMetadataService.inferredSource(
+            PortProcessMetadataService.inferredSources(
                 executablePath: "/usr/libexec/exampled",
                 applicationPath: nil,
-                parentProcessNames: []
+                parentProcessNames: ["launchd"]
             ),
-            .system
+            [.system]
         )
         XCTAssertEqual(
-            PortProcessMetadataService.inferredSource(
+            PortProcessMetadataService.inferredSources(
+                executablePath: "/Applications/Example.app/Contents/MacOS/Example",
+                applicationPath: "/Applications/Example.app",
+                parentProcessNames: ["launchd"]
+            ),
+            [.application]
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSources(
                 executablePath: nil,
                 applicationPath: nil,
                 parentProcessNames: []
             ),
-            .unknown
+            [.unknown]
         )
+    }
+
+    func testInferredSourcesRecognizePackageManagerPathsWithoutTreatingUsrLocalBinAsHomebrew() {
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSources(
+                executablePath: "/usr/local/Cellar/postgresql/17/bin/postgres",
+                applicationPath: nil,
+                parentProcessNames: []
+            ),
+            [.executable, .homebrew]
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSources(
+                executablePath: "/opt/local/bin/nginx",
+                applicationPath: nil,
+                parentProcessNames: []
+            ),
+            [.executable, .macPorts]
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSources(
+                executablePath: "/nix/store/example-node/bin/node",
+                applicationPath: nil,
+                parentProcessNames: []
+            ),
+            [.executable, .nix]
+        )
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSources(
+                executablePath: "/usr/local/bin/custom-tool",
+                applicationPath: nil,
+                parentProcessNames: []
+            ),
+            [.executable]
+        )
+    }
+
+    func testInferredSourcesResolvePackageManagerSymlinks() throws {
+        let temporaryDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: temporaryDirectory,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
+
+        let executableURL = temporaryDirectory.appendingPathComponent("node")
+        try FileManager.default.createSymbolicLink(
+            atPath: executableURL.path,
+            withDestinationPath: "/nix/store/example-node/bin/node"
+        )
+
+        XCTAssertEqual(
+            PortProcessMetadataService.inferredSources(
+                executablePath: executableURL.path,
+                applicationPath: nil,
+                parentProcessNames: []
+            ),
+            [.executable, .nix]
+        )
+    }
+
+    func testResidentMemoryBytesRequiresCompleteTaskInfo() {
+        var taskInfo = proc_taskinfo()
+        taskInfo.pti_resident_size = 5_452_595
+
+        XCTAssertEqual(
+            PortProcessMetadataService.residentMemoryBytes(
+                from: taskInfo,
+                result: Int32(MemoryLayout<proc_taskinfo>.size)
+            ),
+            5_452_595
+        )
+        XCTAssertNil(
+            PortProcessMetadataService.residentMemoryBytes(
+                from: taskInfo,
+                result: 0
+            )
+        )
+    }
+
+    func testResidentMemoryBytesReadsCurrentProcess() {
+        XCTAssertNotNil(
+            PortProcessMetadataService.residentMemoryBytes(for: Int(getpid()))
+        )
+    }
+
+    func testFallbackMetadataKeepsUnreadablePIDVisible() {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "*",
+            port: 80,
+            pid: 1,
+            command: "launchd",
+            user: "0"
+        )
+
+        let metadata = PortProcessMetadataService.fallbackMetadata(
+            for: port,
+            processName: nil,
+            uid: nil,
+            residentMemoryBytes: nil
+        )
+
+        XCTAssertEqual(metadata.name, "launchd")
+        XCTAssertNil(metadata.path)
+        XCTAssertNil(metadata.residentMemoryBytes)
+        XCTAssertEqual(metadata.sources, [.unknown])
+        XCTAssertEqual(metadata.classification, .systemOrOtherUser)
     }
 
     func testProcessClassificationUsesUIDAndSystemPaths() {
