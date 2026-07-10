@@ -101,6 +101,10 @@ struct MenuBarView: View {
             }
             .keyboardShortcut("q")
         }
+        .task {
+            await Task.yield()
+            store.send(.menuPresented)
+        }
     }
 
     private func processGroupsSection(

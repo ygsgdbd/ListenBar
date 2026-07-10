@@ -60,6 +60,7 @@ struct AppFeature {
 
     enum Action: Equatable, Sendable {
         case autoRefreshTick
+        case menuPresented
         case portGroupKillConfirmationResponse(PortGroupKillRequest, confirmed: Bool)
         case portKillConfirmationResponse(PortKillRequest, confirmed: Bool)
         case task
@@ -72,6 +73,13 @@ struct AppFeature {
             switch action {
             case .autoRefreshTick:
                 guard !state.isLoading else { return .none }
+                return startRefresh(&state)
+
+            case .menuPresented:
+                guard !state.isLoading else {
+                    state.refreshPending = true
+                    return .none
+                }
                 return startRefresh(&state)
 
             case .task:
