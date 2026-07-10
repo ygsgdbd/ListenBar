@@ -6,13 +6,14 @@ import Foundation
 struct AppFeature {
     @Dependency(\.continuousClock) var clock
     @Dependency(\.date.now) var now
+    @Dependency(\.portKillConfirmation) var portKillConfirmation
+    @Dependency(\.portKillNotification) var portKillNotification
     @Dependency(\.portKiller) var portKiller
     @Dependency(\.portProcessMetadata) var portProcessMetadata
     @Dependency(\.portScanner) var portScanner
 
     @ObservableState
     struct State: Equatable {
-        @Presents var confirmationDialog: ConfirmationDialogState<ConfirmationDialog>?
         var autoRefreshInterval: AutoRefreshInterval = .off
         var errorMessage: String?
         var isLoading = false
@@ -35,8 +36,10 @@ struct AppFeature {
 
     enum ViewAction: Equatable, Sendable {
         case autoRefreshIntervalTapped(AutoRefreshInterval)
-        case copyAllPortsTapped
+        case copyFullInformationTapped
+        case copyGroupPortsTapped(PortProcessGroup)
         case copyLsofCommandTapped(PortEntry)
+        case copyProcessInformationTapped(PortProcessGroup)
         case copyProcessPathTapped(pid: Int)
         case copyCommandLineTapped(pid: Int)
         case copyRedactedCommandLineTapped(pid: Int)
@@ -49,12 +52,6 @@ struct AppFeature {
         case quitTapped
     }
 
-    @CasePathable
-    enum ConfirmationDialog: Equatable, Sendable {
-        case confirmKill(PortKillRequest)
-        case confirmKillGroup(PortGroupKillRequest)
-    }
-
     enum ResponseAction: Equatable, Sendable {
         case portGroupKillFinished(PortGroupKillResult)
         case portKillFinished(PortKillResult)
@@ -63,7 +60,8 @@ struct AppFeature {
 
     enum Action: Equatable, Sendable {
         case autoRefreshTick
-        case confirmationDialog(PresentationAction<ConfirmationDialog>)
+        case portGroupKillConfirmationResponse(PortGroupKillRequest, confirmed: Bool)
+        case portKillConfirmationResponse(PortKillRequest, confirmed: Bool)
         case task
         case view(ViewAction)
         case response(ResponseAction)
@@ -91,7 +89,7 @@ struct AppFeature {
                 }
                 return .merge(startRefresh(&state), timer)
 
-            case .view(.copyAllPortsTapped):
+            case .view(.copyFullInformationTapped):
                 return copyTextEffect(
                     PortListFormatter.text(
                         groups: state.processGroups,
@@ -99,8 +97,19 @@ struct AppFeature {
                     )
                 )
 
+            case let .view(.copyGroupPortsTapped(group)):
+                return copyTextEffect(PortListFormatter.portsText(group: group))
+
             case let .view(.copyLsofCommandTapped(port)):
                 return copyTextEffect(port.lsofCommand)
+
+            case let .view(.copyProcessInformationTapped(group)):
+                return copyTextEffect(
+                    PortListFormatter.text(
+                        group: group,
+                        metadataByPID: state.metadataByPID
+                    )
+                )
 
             case let .view(.copyProcessPathTapped(pid)):
                 guard let path = Self.processPath(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
@@ -127,8 +136,10 @@ struct AppFeature {
                     mode: mode,
                     metadataByPID: state.metadataByPID
                 )
-                state.confirmationDialog = request.confirmationDialog(warnings: groupKillWarnings(for: request))
-                return .none
+                return confirmGroupKillEffect(
+                    request,
+                    warnings: groupKillWarnings(for: request)
+                )
 
             case let .view(.killPortTapped(port, mode)):
                 let request = PortKillRequest(
@@ -142,8 +153,7 @@ struct AppFeature {
                 )
                 let warnings = killWarnings(for: request, state: state)
                 guard warnings.isEmpty else {
-                    state.confirmationDialog = request.confirmationDialog(warnings: warnings)
-                    return .none
+                    return confirmPortKillEffect(request, warnings: warnings)
                 }
                 state.isLoading = true
                 state.errorMessage = nil
@@ -164,22 +174,19 @@ struct AppFeature {
                     }
                 }
 
-            case let .confirmationDialog(.presented(.confirmKill(request))):
-                state.confirmationDialog = nil
+            case let .portKillConfirmationResponse(request, confirmed):
+                guard confirmed else { return .none }
                 state.isLoading = true
                 state.errorMessage = nil
                 state.postRefreshErrorMessage = nil
                 return terminatePortEffect(request)
 
-            case let .confirmationDialog(.presented(.confirmKillGroup(request))):
-                state.confirmationDialog = nil
+            case let .portGroupKillConfirmationResponse(request, confirmed):
+                guard confirmed else { return .none }
                 state.isLoading = true
                 state.errorMessage = nil
                 state.postRefreshErrorMessage = nil
                 return terminateGroupEffect(request)
-
-            case .confirmationDialog:
-                return .none
 
             case let .response(.portsLoaded(.success(snapshot))):
                 let postRefreshErrorMessage = state.postRefreshErrorMessage
@@ -194,29 +201,39 @@ struct AppFeature {
                 return startPendingRefreshIfNeeded(&state)
 
             case let .response(.portGroupKillFinished(result)):
+                let notificationEffect = sendNotificationEffect(result.notification)
                 if let snapshot = result.refreshedSnapshot {
                     apply(snapshot, to: &state)
                     state.errorMessage = result.failureMessage
-                    return startPendingRefreshIfNeeded(&state)
+                    return .merge(
+                        notificationEffect,
+                        startPendingRefreshIfNeeded(&state)
+                    )
                 }
                 state.postRefreshErrorMessage = result.failureMessage
-                return loadPortsEffect()
+                return .merge(notificationEffect, loadPortsEffect())
 
             case let .response(.portKillFinished(result)):
+                let notificationEffect = sendNotificationEffect(result.notification)
                 if let snapshot = result.refreshedSnapshot {
                     apply(snapshot, to: &state)
                     state.errorMessage = result.failure?.message
-                    return startPendingRefreshIfNeeded(&state)
+                    return .merge(
+                        notificationEffect,
+                        startPendingRefreshIfNeeded(&state)
+                    )
                 }
                 if let failure = result.failure {
                     state.isLoading = false
                     state.errorMessage = failure.message
-                    return startPendingRefreshIfNeeded(&state)
+                    return .merge(
+                        notificationEffect,
+                        startPendingRefreshIfNeeded(&state)
+                    )
                 }
-                return loadPortsEffect()
+                return .merge(notificationEffect, loadPortsEffect())
             }
         }
-        .ifLet(\.$confirmationDialog, action: \.confirmationDialog)
     }
 
     private enum CancelID: Hashable {
@@ -257,6 +274,28 @@ struct AppFeature {
             }
         }
         .cancellable(id: CancelID.autoRefresh, cancelInFlight: true)
+    }
+
+    private func confirmPortKillEffect(
+        _ request: PortKillRequest,
+        warnings: [PortKillWarning]
+    ) -> Effect<Action> {
+        let confirmation = request.confirmation(warnings: warnings)
+        return .run { send in
+            let confirmed = await portKillConfirmation.confirm(confirmation)
+            await send(.portKillConfirmationResponse(request, confirmed: confirmed))
+        }
+    }
+
+    private func confirmGroupKillEffect(
+        _ request: PortGroupKillRequest,
+        warnings: [PortKillWarning]
+    ) -> Effect<Action> {
+        let confirmation = request.confirmation(warnings: warnings)
+        return .run { send in
+            let confirmed = await portKillConfirmation.confirm(confirmation)
+            await send(.portGroupKillConfirmationResponse(request, confirmed: confirmed))
+        }
     }
 
     private func scanSnapshot() async throws -> PortScanSnapshot {
@@ -362,6 +401,12 @@ struct AppFeature {
                 NSPasteboard.general.clearContents()
                 _ = NSPasteboard.general.setString(text, forType: .string)
             }
+        }
+    }
+
+    private func sendNotificationEffect(_ notification: PortKillNotification) -> Effect<Action> {
+        .run { _ in
+            await portKillNotification.send(notification)
         }
     }
 
@@ -557,21 +602,13 @@ struct PortKillRequest: Equatable, Sendable {
         self.expectedExecutablePath = expectedExecutablePath
     }
 
-    func confirmationDialog(
-        warnings: [PortKillWarning]
-    ) -> ConfirmationDialogState<AppFeature.ConfirmationDialog> {
-        ConfirmationDialogState {
-            TextState(mode.title)
-        } actions: {
-            ButtonState(role: .cancel) {
-                TextState(String(localized: "取消", bundle: .main, comment: "取消按钮标题。"))
-            }
-            ButtonState(role: mode.isDestructive ? .destructive : nil, action: .confirmKill(self)) {
-                TextState(mode.title)
-            }
-        } message: {
-            TextState(confirmationMessage(warnings: warnings))
-        }
+    func confirmation(warnings: [PortKillWarning]) -> PortKillConfirmation {
+        PortKillConfirmation(
+            title: mode.title,
+            message: confirmationMessage(warnings: warnings),
+            confirmButtonTitle: mode.title,
+            isDestructive: mode.isDestructive
+        )
     }
 
     private func confirmationMessage(warnings: [PortKillWarning]) -> String {
@@ -619,21 +656,13 @@ struct PortGroupKillRequest: Equatable, Sendable {
         )
     }
 
-    func confirmationDialog(
-        warnings: [PortKillWarning]
-    ) -> ConfirmationDialogState<AppFeature.ConfirmationDialog> {
-        ConfirmationDialogState {
-            TextState(mode.groupTitle)
-        } actions: {
-            ButtonState(role: .cancel) {
-                TextState(String(localized: "取消", bundle: .main, comment: "取消按钮标题。"))
-            }
-            ButtonState(role: mode.isDestructive ? .destructive : nil, action: .confirmKillGroup(self)) {
-                TextState(mode.groupTitle)
-            }
-        } message: {
-            TextState(confirmationMessage(warnings: warnings))
-        }
+    func confirmation(warnings: [PortKillWarning]) -> PortKillConfirmation {
+        PortKillConfirmation(
+            title: mode.groupTitle,
+            message: confirmationMessage(warnings: warnings),
+            confirmButtonTitle: mode.groupTitle,
+            isDestructive: mode.isDestructive
+        )
     }
 
     private func confirmationMessage(warnings: [PortKillWarning]) -> String {
@@ -679,6 +708,38 @@ struct PortKillResult: Equatable, Sendable {
     ) -> Self {
         Self(request: request, refreshedSnapshot: refreshedSnapshot, failure: failure)
     }
+
+    var notification: PortKillNotification {
+        let target = String(
+            format: String(localized: "%@ (PID %lld) · %@ %@:%lld", bundle: .main, comment: "单个进程终止结果通知的目标信息。"),
+            locale: Locale.current,
+            request.processName,
+            Int64(request.port.pid),
+            request.port.networkProtocol.rawValue,
+            request.port.address,
+            Int64(request.port.port)
+        )
+
+        if let failure {
+            return PortKillNotification(
+                title: String(
+                    format: String(localized: "发送 %@ 失败", bundle: .main, comment: "进程终止信号发送失败通知标题。"),
+                    locale: Locale.current,
+                    request.mode.signalName
+                ),
+                body: "\(target) · \(failure.message)"
+            )
+        }
+
+        return PortKillNotification(
+            title: String(
+                format: String(localized: "已发送 %@", bundle: .main, comment: "进程终止信号发送成功通知标题。"),
+                locale: Locale.current,
+                request.mode.signalName
+            ),
+            body: target
+        )
+    }
 }
 
 struct PortGroupKillResult: Equatable, Sendable {
@@ -701,6 +762,59 @@ struct PortGroupKillResult: Equatable, Sendable {
             format: String(localized: "部分进程未能终止：%@", bundle: .main, comment: "批量终止进程时部分 PID 失败的错误。"),
             locale: Locale.current,
             details
+        )
+    }
+
+    var notification: PortKillNotification {
+        let portsText = Set(request.ports.map(\.port))
+            .sorted()
+            .map(String.init)
+            .joined(separator: " ")
+        let target = String(
+            format: String(localized: "%@ · %lld 个进程 · 端口 %@", bundle: .main, comment: "批量进程终止结果通知的目标信息。"),
+            locale: Locale.current,
+            request.processName,
+            Int64(request.pids.count),
+            portsText
+        )
+
+        guard let failureMessage else {
+            return PortKillNotification(
+                title: String(
+                    format: String(localized: "已发送 %@", bundle: .main, comment: "进程终止信号发送成功通知标题。"),
+                    locale: Locale.current,
+                    request.mode.signalName
+                ),
+                body: target
+            )
+        }
+
+        let failedPIDCount = failures.filter { $0.pid > 0 }.count
+        let isPartialFailure = failedPIDCount > 0 && failedPIDCount < request.pids.count
+        let titleFormat = isPartialFailure
+            ? String(localized: "部分进程发送 %@ 失败", bundle: .main, comment: "部分进程终止信号发送失败通知标题。")
+            : String(localized: "发送 %@ 失败", bundle: .main, comment: "进程终止信号发送失败通知标题。")
+        let body: String
+        if isPartialFailure {
+            body = String(
+                format: String(localized: "%@ · 成功 %lld/%lld · %@", bundle: .main, comment: "批量进程终止部分失败通知正文。"),
+                locale: Locale.current,
+                target,
+                Int64(request.pids.count - failedPIDCount),
+                Int64(request.pids.count),
+                failureMessage
+            )
+        } else {
+            body = "\(target) · \(failureMessage)"
+        }
+
+        return PortKillNotification(
+            title: String(
+                format: titleFormat,
+                locale: Locale.current,
+                request.mode.signalName
+            ),
+            body: body
         )
     }
 }

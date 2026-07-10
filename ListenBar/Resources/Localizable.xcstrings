@@ -1,6 +1,57 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "%@ · %lld 个进程 · 端口 %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld processes · ports %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld 个进程 · 端口 %@"
+          }
+        }
+      }
+    },
+    "%@ · 成功 %lld/%lld · %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · succeeded %lld/%lld · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · 成功 %lld/%lld · %@"
+          }
+        }
+      }
+    },
+    "%@ (PID %lld) · %@ %@:%lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (PID %lld) · %@ %@:%lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (PID %lld) · %@ %@:%lld"
+          }
+        }
+      }
+    },
     "%@ 将发送到 %@ (PID %lld)，目标为 %@。%@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -341,6 +392,23 @@
         }
       }
     },
+    "发送 %@ 失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to send %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送 %@ 失败"
+          }
+        }
+      }
+    },
     "取消" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -463,6 +531,23 @@
         }
       }
     },
+    "复制完整信息" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Full Details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制完整信息"
+          }
+        }
+      }
+    },
     "复制脱敏启动命令" : {
       "localizations" : {
         "en" : {
@@ -495,6 +580,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "常驻内存：%@"
+          }
+        }
+      }
+    },
+    "复制进程信息" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Process Details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制进程信息"
+          }
+        }
+      }
+    },
+    "已发送 %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送 %@"
           }
         }
       }
@@ -1005,6 +1124,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出 ListenBar"
+          }
+        }
+      }
+    },
+    "部分进程发送 %@ 失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to send %@ to some processes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分进程发送 %@ 失败"
           }
         }
       }

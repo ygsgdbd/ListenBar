@@ -10,6 +10,7 @@ struct ListenBarApp: App {
     let updaterController: SPUStandardUpdaterController
 
     init() {
+        PortKillInteractionService.configureNotifications()
         self.store = Store(initialState: AppFeature.State()) {
             AppFeature()
         }

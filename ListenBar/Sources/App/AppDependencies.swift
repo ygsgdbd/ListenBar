@@ -13,6 +13,14 @@ struct PortKillerClient {
     var terminate: @Sendable (Int, PortKillMode) async throws -> Void
 }
 
+struct PortKillConfirmationClient {
+    var confirm: @Sendable (PortKillConfirmation) async -> Bool
+}
+
+struct PortKillNotificationClient {
+    var send: @Sendable (PortKillNotification) async -> Void
+}
+
 extension PortScannerClient: DependencyKey {
     static let liveValue = Self(
         scan: {
@@ -49,6 +57,30 @@ extension PortKillerClient: DependencyKey {
     )
 }
 
+extension PortKillConfirmationClient: DependencyKey {
+    static let liveValue = Self(
+        confirm: { confirmation in
+            await PortKillInteractionService.confirm(confirmation)
+        }
+    )
+
+    static let testValue = Self(
+        confirm: { _ in false }
+    )
+}
+
+extension PortKillNotificationClient: DependencyKey {
+    static let liveValue = Self(
+        send: { notification in
+            await PortKillInteractionService.send(notification)
+        }
+    )
+
+    static let testValue = Self(
+        send: { _ in }
+    )
+}
+
 extension DependencyValues {
     var portScanner: PortScannerClient {
         get { self[PortScannerClient.self] }
@@ -63,5 +95,15 @@ extension DependencyValues {
     var portKiller: PortKillerClient {
         get { self[PortKillerClient.self] }
         set { self[PortKillerClient.self] = newValue }
+    }
+
+    var portKillConfirmation: PortKillConfirmationClient {
+        get { self[PortKillConfirmationClient.self] }
+        set { self[PortKillConfirmationClient.self] = newValue }
+    }
+
+    var portKillNotification: PortKillNotificationClient {
+        get { self[PortKillNotificationClient.self] }
+        set { self[PortKillNotificationClient.self] = newValue }
     }
 }
