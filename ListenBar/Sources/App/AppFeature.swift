@@ -13,11 +13,19 @@ struct AppFeature {
     @Dependency(\.portProcessMetadata) var portProcessMetadata
     @Dependency(\.portScanner) var portScanner
 
+    enum DeferredMenuUpdate: Equatable, Sendable {
+        case portGroupKillFinished(PortGroupKillResult)
+        case portKillFinished(PortKillResult)
+        case portsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
+    }
+
     @ObservableState
     struct State: Equatable {
         var autoRefreshInterval: AutoRefreshInterval = .off
+        var deferredMenuUpdate: DeferredMenuUpdate?
         var errorMessage: String?
         var isLoading = false
+        var isMenuPresented = false
         var lastUpdated: Date?
         var metadataByPID: [Int: PortProcessMetadata] = [:]
         var postRefreshErrorMessage: String?
@@ -64,6 +72,7 @@ struct AppFeature {
     enum Action: Equatable, Sendable {
         case applicationQuitConfirmationResponse(ApplicationQuitRequest, confirmed: Bool)
         case autoRefreshTick
+        case menuDismissed
         case menuPresented
         case portGroupKillConfirmationResponse(PortGroupKillRequest, confirmed: Bool)
         case portKillConfirmationResponse(PortKillRequest, confirmed: Bool)
@@ -76,15 +85,29 @@ struct AppFeature {
         Reduce { state, action in
             switch action {
             case .autoRefreshTick:
+                guard !state.isMenuPresented else {
+                    state.refreshPending = true
+                    return .none
+                }
                 guard !state.isLoading else { return .none }
                 return startRefresh(&state)
 
             case .menuPresented:
+                state.isMenuPresented = true
                 guard !state.isLoading else {
-                    state.refreshPending = true
                     return .none
                 }
-                return startRefresh(&state)
+                state.refreshPending = true
+                return .none
+
+            case .menuDismissed:
+                state.isMenuPresented = false
+                if let update = state.deferredMenuUpdate {
+                    state.deferredMenuUpdate = nil
+                    return applyDeferredMenuUpdate(update, to: &state)
+                }
+                guard !state.isLoading else { return .none }
+                return startPendingRefreshIfNeeded(&state)
 
             case .task:
                 return startRefresh(&state)
@@ -95,6 +118,10 @@ struct AppFeature {
                     return .cancel(id: CancelID.autoRefresh)
                 }
                 let timer = autoRefreshEffect(interval)
+                guard !state.isMenuPresented else {
+                    state.refreshPending = true
+                    return timer
+                }
                 guard !state.isLoading else {
                     state.refreshPending = true
                     return timer
@@ -223,16 +250,12 @@ struct AppFeature {
                 state.postRefreshErrorMessage = nil
                 return terminateGroupEffect(request)
 
-            case let .response(.portsLoaded(.success(snapshot))):
-                let postRefreshErrorMessage = state.postRefreshErrorMessage
-                apply(snapshot, to: &state)
-                state.errorMessage = postRefreshErrorMessage
-                return startPendingRefreshIfNeeded(&state)
-
-            case let .response(.portsLoaded(.failure(failure))):
-                state.isLoading = false
-                state.errorMessage = failure.message
-                state.postRefreshErrorMessage = nil
+            case let .response(.portsLoaded(result)):
+                guard !state.isMenuPresented else {
+                    state.deferredMenuUpdate = .portsLoaded(result)
+                    return .none
+                }
+                applyPortsLoadResult(result, to: &state)
                 return startPendingRefreshIfNeeded(&state)
 
             case let .response(.applicationQuitFinished(result)):
@@ -244,36 +267,26 @@ struct AppFeature {
 
             case let .response(.portGroupKillFinished(result)):
                 let notificationEffect = sendNotificationEffect(result.notification)
-                if let snapshot = result.refreshedSnapshot {
-                    apply(snapshot, to: &state)
-                    state.errorMessage = result.failureMessage
-                    return .merge(
-                        notificationEffect,
-                        startPendingRefreshIfNeeded(&state)
-                    )
+                if state.isMenuPresented, result.refreshedSnapshot != nil {
+                    state.deferredMenuUpdate = .portGroupKillFinished(result)
+                    return notificationEffect
                 }
-                state.postRefreshErrorMessage = result.failureMessage
-                return .merge(notificationEffect, loadPortsEffect())
+                return .merge(
+                    notificationEffect,
+                    applyPortGroupKillResult(result, to: &state)
+                )
 
             case let .response(.portKillFinished(result)):
                 let notificationEffect = sendNotificationEffect(result.notification)
-                if let snapshot = result.refreshedSnapshot {
-                    apply(snapshot, to: &state)
-                    state.errorMessage = result.failure?.message
-                    return .merge(
-                        notificationEffect,
-                        startPendingRefreshIfNeeded(&state)
-                    )
+                if state.isMenuPresented,
+                   result.refreshedSnapshot != nil || result.failure != nil {
+                    state.deferredMenuUpdate = .portKillFinished(result)
+                    return notificationEffect
                 }
-                if let failure = result.failure {
-                    state.isLoading = false
-                    state.errorMessage = failure.message
-                    return .merge(
-                        notificationEffect,
-                        startPendingRefreshIfNeeded(&state)
-                    )
-                }
-                return .merge(notificationEffect, loadPortsEffect())
+                return .merge(
+                    notificationEffect,
+                    applyPortKillResult(result, to: &state)
+                )
             }
         }
     }
@@ -306,6 +319,70 @@ struct AppFeature {
         }
         state.refreshPending = false
         return startRefresh(&state)
+    }
+
+    private func applyPortsLoadResult(
+        _ result: Result<PortScanSnapshot, PortScannerFailure>,
+        to state: inout State
+    ) {
+        switch result {
+        case let .success(snapshot):
+            let postRefreshErrorMessage = state.postRefreshErrorMessage
+            apply(snapshot, to: &state)
+            state.errorMessage = postRefreshErrorMessage
+
+        case let .failure(failure):
+            state.isLoading = false
+            state.errorMessage = failure.message
+            state.postRefreshErrorMessage = nil
+        }
+    }
+
+    private func applyDeferredMenuUpdate(
+        _ update: DeferredMenuUpdate,
+        to state: inout State
+    ) -> Effect<Action> {
+        switch update {
+        case let .portGroupKillFinished(result):
+            return applyPortGroupKillResult(result, to: &state)
+
+        case let .portKillFinished(result):
+            return applyPortKillResult(result, to: &state)
+
+        case let .portsLoaded(result):
+            applyPortsLoadResult(result, to: &state)
+            return startPendingRefreshIfNeeded(&state)
+        }
+    }
+
+    private func applyPortGroupKillResult(
+        _ result: PortGroupKillResult,
+        to state: inout State
+    ) -> Effect<Action> {
+        if let snapshot = result.refreshedSnapshot {
+            apply(snapshot, to: &state)
+            state.errorMessage = result.failureMessage
+            return startPendingRefreshIfNeeded(&state)
+        }
+        state.postRefreshErrorMessage = result.failureMessage
+        return loadPortsEffect()
+    }
+
+    private func applyPortKillResult(
+        _ result: PortKillResult,
+        to state: inout State
+    ) -> Effect<Action> {
+        if let snapshot = result.refreshedSnapshot {
+            apply(snapshot, to: &state)
+            state.errorMessage = result.failure?.message
+            return startPendingRefreshIfNeeded(&state)
+        }
+        if let failure = result.failure {
+            state.isLoading = false
+            state.errorMessage = failure.message
+            return startPendingRefreshIfNeeded(&state)
+        }
+        return loadPortsEffect()
     }
 
     private func autoRefreshEffect(_ interval: AutoRefreshInterval) -> Effect<Action> {

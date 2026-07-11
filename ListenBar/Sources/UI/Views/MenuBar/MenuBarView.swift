@@ -101,10 +101,13 @@ struct MenuBarView: View {
             }
             .keyboardShortcut("q")
         }
-        .task {
-            await Task.yield()
-            store.send(.menuPresented)
+    }
+
+    static func isRootMenuTrackingNotification(_ notification: Notification) -> Bool {
+        guard let menu = notification.object as? NSMenu else {
+            return false
         }
+        return menu.supermenu == nil && menu !== NSApp.mainMenu
     }
 
     private func processGroupsSection(
