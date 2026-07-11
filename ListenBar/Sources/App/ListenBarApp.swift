@@ -28,7 +28,9 @@ struct ListenBarApp: App {
         MenuBarExtra {
             MenuBarView(store: store, updaterController: updaterController)
         } label: {
-            Image(systemName: "network")
+            Image("MenuBarIcon")
+                .renderingMode(.template)
+                .accessibilityLabel("ListenBar")
         }
         .menuBarExtraStyle(.menu)
     }
