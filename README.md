@@ -70,7 +70,7 @@ Only bypass Gatekeeper when you obtained the app from this repository's official
 
 ## 🧪 Development and tests
 
-The project currently contains **109 XCTest test methods** covering reducer behavior, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
+The project currently contains **121 XCTest test methods** covering reducer behavior, settings persistence, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
 
 Requirements: Xcode 26 and [Tuist](https://tuist.dev/).
 

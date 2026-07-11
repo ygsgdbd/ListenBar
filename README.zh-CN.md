@@ -70,7 +70,7 @@ Homebrew 要求显式信任来自第三方 tap 的软件包。使用上述完整
 
 ## 🧪 开发与测试
 
-项目当前包含 **109 个 XCTest 测试方法**，覆盖 reducer 行为、端口解析与分组、进程元数据、菜单呈现、截图 fixture 和 Sparkle 配置。
+项目当前包含 **121 个 XCTest 测试方法**，覆盖 reducer 行为、配置持久化、端口解析与分组、进程元数据、菜单呈现、截图 fixture 和 Sparkle 配置。
 
 环境要求：Xcode 26 和 [Tuist](https://tuist.dev/)。
 
