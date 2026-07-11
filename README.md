@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="Design/AppIcon/Previews/listenbar-icon-default.png" width="160" alt="ListenBar app icon">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Design/AppIcon/Previews/listenbar-icon-dark.png">
+    <img src="Design/AppIcon/Previews/listenbar-icon-default.png" width="160" alt="ListenBar app icon">
+  </picture>
 </p>
 
 <h1 align="center">ListenBar</h1>
@@ -36,7 +39,7 @@
 ## 🪶 Native and lightweight
 
 - 🍎 **Truly native.** ListenBar's app business code is 100% Swift, built with SwiftUI and The Composable Architecture (TCA). It uses `MenuBarExtra` and `LSUIElement` instead of an Electron runtime or embedded WebView.
-- 🪶 **Lightweight by design.** A focused menu bar utility does not need to ship an entire browser engine. ListenBar keeps its runtime and interface centered on the task of inspecting local listeners.
+- 🪶 **Lightweight by design.** At just over 5 MB to download, ListenBar stays focused on inspecting local listeners without shipping an entire browser engine.
 - 🎨 **At home on macOS.** The interface automatically follows Light and Dark Mode. Native SwiftUI menu controls adopt the system-provided Liquid Glass appearance where appropriate on macOS 26, while macOS 14 and macOS 15 retain their own native styling. ListenBar does not simulate Liquid Glass with custom visual effects. Releases are built with Xcode 26.2.
 
 ## 📦 Installation

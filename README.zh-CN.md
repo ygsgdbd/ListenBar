@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="Design/AppIcon/Previews/listenbar-icon-default.png" width="160" alt="ListenBar App 图标">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Design/AppIcon/Previews/listenbar-icon-dark.png">
+    <img src="Design/AppIcon/Previews/listenbar-icon-default.png" width="160" alt="ListenBar App 图标">
+  </picture>
 </p>
 
 <h1 align="center">ListenBar</h1>
@@ -36,7 +39,7 @@
 ## 🪶 原生与轻量
 
 - 🍎 **真正原生。** ListenBar 的 App 业务代码 100% 使用 Swift 编写，并采用 SwiftUI 和 The Composable Architecture（TCA）架构。它基于 `MenuBarExtra` 与 `LSUIElement` 构建，不包含 Electron 运行时，也没有嵌入 WebView。
-- 🪶 **为轻量而设计。** 一个专注的菜单栏工具无需附带完整的浏览器引擎。ListenBar 将运行时和界面集中在检查本机监听端口这一件事上。
+- 🪶 **为轻量而设计。** ListenBar 下载体积仅 5 MB 多，专注于检查本机监听端口，无需附带完整的浏览器引擎。
 - 🎨 **自然融入 macOS。** 界面会自动适配浅色与暗色模式。在 macOS 26 上，原生 SwiftUI 菜单控件会在适用位置呈现系统提供的 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。ListenBar 不使用自定义视觉效果模拟 Liquid Glass，发布版本使用 Xcode 26.2 构建。
 
 ## 📦 安装
