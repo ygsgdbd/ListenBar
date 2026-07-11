@@ -307,6 +307,23 @@
         }
       }
     },
+    "一般（5 秒）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal (5 Seconds)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一般（5 秒）"
+          }
+        }
+      }
+    },
     "不可用" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -839,6 +856,23 @@
         }
       }
     },
+    "打开时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On Open"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开时"
+          }
+        }
+      }
+    },
     "指定网络接口" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1178,74 +1212,6 @@
         }
       }
     },
-    "打开时" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On Open"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打开时"
-          }
-        }
-      }
-    },
-    "非常频繁（1 秒）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Very Often (1 Second)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "非常频繁（1 秒）"
-          }
-        }
-      }
-    },
-    "频繁（2 秒）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Often (2 Seconds)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "频繁（2 秒）"
-          }
-        }
-      }
-    },
-    "一般（5 秒）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Normal (5 Seconds)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "一般（5 秒）"
-          }
-        }
-      }
-    },
     "自动刷新：%@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1332,6 +1298,7 @@
       }
     },
     "进程详情" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1445,6 +1412,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "部分退出请求发送失败"
+          }
+        }
+      }
+    },
+    "非常频繁（1 秒）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Very Often (1 Second)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非常频繁（1 秒）"
+          }
+        }
+      }
+    },
+    "频繁（2 秒）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Often (2 Seconds)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "频繁（2 秒）"
           }
         }
       }
