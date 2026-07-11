@@ -18,6 +18,12 @@
 
 <p align="center"><a href="README.md">English</a></p>
 
+## 🖼️ 界面截图
+
+![ListenBar 浅色模式主菜单和进程操作](Documentation/Screenshots/zh-Hans-light.png#gh-light-mode-only)
+
+![ListenBar 暗色模式主菜单和进程操作](Documentation/Screenshots/zh-Hans-dark.png#gh-dark-mode-only)
+
 ## ✨ 功能亮点
 
 - 扫描 TCP `LISTEN` 端点，以及具有明确本地端口的 UDP socket。
@@ -36,16 +42,6 @@
 ListenBar 的 App 业务代码 100% 使用 Swift 编写，并采用 SwiftUI 和 The Composable Architecture（TCA）架构。它是基于 `MenuBarExtra` 与 `LSUIElement` 的真正原生菜单栏 App，不包含 Electron 运行时，也没有嵌入 WebView。它无需为一个小型系统工具附带浏览器引擎，因此能保持专注且资源占用轻量。
 
 界面会自动跟随系统，在浅色与暗色模式间适配。发布版本使用 Xcode 26.2 构建。在 macOS 26 上，原生 SwiftUI 菜单控件可由系统在适用位置呈现 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。ListenBar 不使用自定义视觉效果模拟 Liquid Glass。
-
-## 🖼️ 界面截图
-
-### 浅色模式
-
-![ListenBar 浅色模式主菜单和进程操作](Documentation/Screenshots/zh-Hans-light.png)
-
-### 暗色模式
-
-![ListenBar 暗色模式主菜单和进程操作](Documentation/Screenshots/zh-Hans-dark.png)
 
 ## 📦 安装
 
