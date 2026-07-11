@@ -1332,6 +1332,22 @@
         }
       }
     },
+    "进程详情" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Process Details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进程详情"
+          }
+        }
+      }
+    },
     "退出 %@" : {
       "extractionState" : "stale",
       "localizations" : {

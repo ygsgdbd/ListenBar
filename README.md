@@ -1,6 +1,18 @@
 # ListenBar
 
+[简体中文](README.zh-CN.md)
+
 ListenBar is a macOS menu bar utility for viewing local listening ports.
+
+## Screenshots
+
+### Light
+
+![ListenBar light appearance showing the main menu and process actions](Documentation/Screenshots/en-light.png)
+
+### Dark
+
+![ListenBar dark appearance showing the main menu and process actions](Documentation/Screenshots/en-dark.png)
 
 ## Features
 
@@ -27,6 +39,12 @@ rtk xcodebuild test \
   CODE_SIGN_IDENTITY='' \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO
+```
+
+To regenerate the deterministic, privacy-safe README screenshots, grant your terminal or Codex Screen Recording and Accessibility permissions, quit other running ListenBar instances, and run:
+
+```bash
+./script/generate_readme_screenshots.sh
 ```
 
 ## Installation

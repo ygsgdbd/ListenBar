@@ -16,4 +16,26 @@ final class SparkleConfigurationTests: XCTestCase {
             false
         )
     }
+
+    func testSwiftUIAppDoesNotDeclareMainStoryboard() {
+        XCTAssertNil(
+            Bundle.main.object(forInfoDictionaryKey: "NSMainStoryboardFile")
+        )
+    }
+
+    func testEnglishProcessDetailsLocalization() throws {
+        let localizationURL = try XCTUnwrap(
+            Bundle.main.url(forResource: "en", withExtension: "lproj")
+        )
+        let englishBundle = try XCTUnwrap(Bundle(url: localizationURL))
+
+        XCTAssertEqual(
+            englishBundle.localizedString(
+                forKey: "进程详情",
+                value: nil,
+                table: nil
+            ),
+            "Process Details"
+        )
+    }
 }

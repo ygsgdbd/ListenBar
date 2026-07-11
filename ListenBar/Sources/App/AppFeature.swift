@@ -28,6 +28,7 @@ struct AppFeature {
         var isLoading = false
         var isMenuOpenRefreshInFlight = false
         var isMenuPresented = false
+        var isReadmeDemo = false
         var lastUpdated: Date?
         var metadataByPID: [Int: PortProcessMetadata] = [:]
         var postRefreshErrorMessage: String?
@@ -97,6 +98,7 @@ struct AppFeature {
 
             case .menuPresented:
                 state.isMenuPresented = true
+                guard !state.isReadmeDemo else { return .none }
                 guard state.autoRefreshMode == .whenOpened else { return .none }
                 guard !state.isLoading, !state.isMenuOpenRefreshInFlight else { return .none }
                 state.isMenuOpenRefreshInFlight = true
@@ -112,7 +114,11 @@ struct AppFeature {
                 return startPendingRefreshIfNeeded(&state)
 
             case .task:
+                guard !state.isReadmeDemo else { return .none }
                 return startRefresh(&state)
+
+            case .view where state.isReadmeDemo:
+                return .none
 
             case let .view(.autoRefreshModeTapped(mode)):
                 state.autoRefreshMode = mode
