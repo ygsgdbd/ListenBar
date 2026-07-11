@@ -908,7 +908,6 @@
       }
     },
     "更新于 %@" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
