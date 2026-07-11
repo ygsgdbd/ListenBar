@@ -131,6 +131,14 @@ final class ReadmeScreenshotConfigurationTests: XCTestCase {
         let store = TestStore(initialState: state) {
             AppFeature()
         } withDependencies: {
+            $0.launchAtLoginClient.status = {
+                XCTFail("README demo mode must not read login item state")
+                return .disabled
+            }
+            $0.launchAtLoginClient.setEnabled = { _ in
+                XCTFail("README demo mode must not change login item state")
+                return .disabled
+            }
             $0.portScanner.scan = {
                 XCTFail("README demo mode must not scan live ports")
                 return []
@@ -144,6 +152,7 @@ final class ReadmeScreenshotConfigurationTests: XCTestCase {
         await store.send(.menuPresented) {
             $0.isMenuPresented = true
         }
+        await store.send(.view(.setLaunchAtLogin(true)))
         await store.send(.view(.killPortTapped(port, .quit)))
     }
 }

@@ -1068,6 +1068,23 @@
         }
       }
     },
+    "打开登录项设置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Login Items Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开登录项设置"
+          }
+        }
+      }
+    },
     "检查更新..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1081,6 +1098,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "检查更新..."
+          }
+        }
+      }
+    },
+    "开机启动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch at Login"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开机启动"
+          }
+        }
+      }
+    },
+    "请在系统设置 > 通用 > 登录项中批准 ListenBar。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve ListenBar in System Settings > General > Login Items."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在系统设置 > 通用 > 登录项中批准 ListenBar。"
           }
         }
       }

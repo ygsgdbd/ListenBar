@@ -9,6 +9,65 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(AppFeature.State().autoRefreshMode, .onMenuOpen)
     }
 
+    func testLaunchAtLoginLoadedUpdatesMenuState() async {
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+
+        await store.send(.response(.launchAtLoginLoaded(.requiresApproval))) {
+            $0.launchAtLoginStatus = .requiresApproval
+        }
+
+        XCTAssertTrue(store.state.launchAtLoginEnabled)
+        XCTAssertTrue(store.state.launchAtLoginRequiresApproval)
+    }
+
+    func testSetLaunchAtLoginOptimisticallyUpdatesThenReconcilesStatus() async {
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        store.dependencies.launchAtLoginClient.setEnabled = { enabled in
+            XCTAssertTrue(enabled)
+            return .requiresApproval
+        }
+
+        await store.send(.view(.setLaunchAtLogin(true))) {
+            $0.launchAtLoginStatus = .enabled
+        }
+        await store.receive(.response(.launchAtLoginLoaded(.requiresApproval))) {
+            $0.launchAtLoginStatus = .requiresApproval
+        }
+    }
+
+    func testTaskLoadsLaunchAtLoginStatusBeforePortScanFinishes() async {
+        let clock = TestClock()
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        store.dependencies.continuousClock = clock
+        store.dependencies.date = .constant(now)
+        store.dependencies.launchAtLoginClient.status = { .enabled }
+        store.dependencies.portScanner.scan = {
+            try await clock.sleep(for: .seconds(1))
+            return []
+        }
+
+        await store.send(.task) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+        }
+        await store.receive(.response(.launchAtLoginLoaded(.enabled))) {
+            $0.launchAtLoginStatus = .enabled
+        }
+        await clock.advance(by: .seconds(1))
+        await store.receive(.response(.portsLoaded(.success(makeSnapshot([]))))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.lastUpdated = now
+        }
+    }
+
     func testTaskLoadsPortsAndUpdatesTimestamp() async {
         let now = Date(timeIntervalSince1970: 1_000)
         let ports = [
@@ -33,6 +92,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = true
             $0.errorMessage = nil
         }
+        await store.receive(.response(.launchAtLoginLoaded(.disabled)))
         await store.receive(.response(.portsLoaded(.success(snapshot)))) {
             $0.isLoading = false
             $0.errorMessage = nil
@@ -539,6 +599,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = true
             $0.errorMessage = nil
         }
+        await store.receive(.response(.launchAtLoginLoaded(.disabled)))
         await store.receive(.response(.portsLoaded(.failure(.init(message: "lsof failed"))))) {
             $0.isLoading = false
             $0.errorMessage = "lsof failed"
@@ -1106,6 +1167,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = true
             $0.errorMessage = nil
         }
+        await store.receive(.response(.launchAtLoginLoaded(.disabled)))
         await store.receive(.response(.portsLoaded(.success(snapshot)))) {
             $0.isLoading = false
             $0.errorMessage = nil
