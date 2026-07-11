@@ -298,4 +298,62 @@ final class PortProcessMetadataServiceTests: XCTestCase {
             .systemOrOtherUser
         )
     }
+
+    func testProcessClassificationRecognizesProtectedMacOSContentRoots() {
+        let systemPaths = [
+            "/Library/Apple/System/Library/PrivateFrameworks/RemotePairing.framework/Versions/A/XPCServices/remotepairingd.xpc/Contents/MacOS/remotepairingd",
+            "/Library/Apple/usr/libexec/rpmuxd",
+            "/usr/bin/python3",
+            "/usr/libexec/rapportd",
+            "/usr/sbin/sshd",
+            "/bin/zsh",
+            "/sbin/mount",
+            "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app/Contents/MacOS/Safari"
+        ]
+
+        for path in systemPaths {
+            XCTAssertEqual(
+                PortProcessMetadataService.processClassification(
+                    uid: 501,
+                    executablePath: path,
+                    applicationPath: nil,
+                    currentUID: 501
+                ),
+                .systemOrOtherUser,
+                path
+            )
+        }
+    }
+
+    func testProcessClassificationExcludesUsrLocalFromProtectedUsrRoot() {
+        XCTAssertEqual(
+            PortProcessMetadataService.processClassification(
+                uid: 501,
+                executablePath: "/usr/local/bin/custom-tool",
+                applicationPath: nil,
+                currentUID: 501
+            ),
+            .user
+        )
+    }
+
+    func testInferredSourcesRecognizeAppleManagedContentRootsAsSystem() {
+        let systemPaths = [
+            "/Library/Apple/System/Library/PrivateFrameworks/RemotePairing.framework/Versions/A/XPCServices/remotepairingd.xpc/Contents/MacOS/remotepairingd",
+            "/Library/Apple/usr/libexec/rpmuxd",
+            "/usr/bin/python3"
+        ]
+
+        for path in systemPaths {
+            XCTAssertEqual(
+                PortProcessMetadataService.inferredSources(
+                    executablePath: path,
+                    applicationPath: nil,
+                    parentProcessNames: ["launchd"]
+                ),
+                [.system],
+                path
+            )
+        }
+    }
 }
