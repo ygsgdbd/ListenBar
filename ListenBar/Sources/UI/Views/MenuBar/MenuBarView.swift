@@ -65,14 +65,14 @@ struct MenuBarView: View {
             .disabled(store.processGroups.isEmpty)
 
             Menu {
-                ForEach(AutoRefreshInterval.allCases) { interval in
+                ForEach(AutoRefreshMode.allCases) { mode in
                     Button {
-                        store.send(.view(.autoRefreshIntervalTapped(interval)))
+                        store.send(.view(.autoRefreshModeTapped(mode)))
                     } label: {
-                        if store.autoRefreshInterval == interval {
-                            Label(interval.title, systemImage: "checkmark")
+                        if store.autoRefreshMode == mode {
+                            Label(mode.title, systemImage: "checkmark")
                         } else {
-                            Text(interval.title)
+                            Text(mode.title)
                         }
                     }
                 }
@@ -81,7 +81,7 @@ struct MenuBarView: View {
                     String(
                         format: String(localized: "自动刷新：%@", bundle: .main, comment: "自动刷新菜单标题。"),
                         locale: Locale.current,
-                        store.autoRefreshInterval.title
+                        store.autoRefreshMode.title
                     ),
                     systemImage: "clock.arrow.circlepath"
                 )

@@ -1026,40 +1026,6 @@
         }
       }
     },
-    "每 5 秒" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every 5 seconds"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每 5 秒"
-          }
-        }
-      }
-    },
-    "每 10 秒" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every 10 seconds"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每 10 秒"
-          }
-        }
-      }
-    },
     "用户进程" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1209,6 +1175,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "终止进程 (SIGTERM)"
+          }
+        }
+      }
+    },
+    "打开时" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On Open"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开时"
+          }
+        }
+      }
+    },
+    "非常频繁（1 秒）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Very Often (1 Second)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非常频繁（1 秒）"
+          }
+        }
+      }
+    },
+    "频繁（2 秒）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Often (2 Seconds)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "频繁（2 秒）"
+          }
+        }
+      }
+    },
+    "一般（5 秒）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal (5 Seconds)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一般（5 秒）"
           }
         }
       }

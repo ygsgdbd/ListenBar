@@ -14,6 +14,7 @@ struct AppFeature {
     @Dependency(\.portScanner) var portScanner
 
     enum DeferredMenuUpdate: Equatable, Sendable {
+        case menuOpenPortsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
         case portGroupKillFinished(PortGroupKillResult)
         case portKillFinished(PortKillResult)
         case portsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
@@ -21,10 +22,11 @@ struct AppFeature {
 
     @ObservableState
     struct State: Equatable {
-        var autoRefreshInterval: AutoRefreshInterval = .off
+        var autoRefreshMode: AutoRefreshMode = .whenOpened
         var deferredMenuUpdate: DeferredMenuUpdate?
         var errorMessage: String?
         var isLoading = false
+        var isMenuOpenRefreshInFlight = false
         var isMenuPresented = false
         var lastUpdated: Date?
         var metadataByPID: [Int: PortProcessMetadata] = [:]
@@ -44,7 +46,7 @@ struct AppFeature {
     }
 
     enum ViewAction: Equatable, Sendable {
-        case autoRefreshIntervalTapped(AutoRefreshInterval)
+        case autoRefreshModeTapped(AutoRefreshMode)
         case copyFullInformationTapped
         case copyGroupPortsTapped(PortProcessGroup)
         case copyLsofCommandTapped(PortEntry)
@@ -64,6 +66,7 @@ struct AppFeature {
 
     enum ResponseAction: Equatable, Sendable {
         case applicationQuitFinished(ApplicationQuitResult)
+        case menuOpenPortsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
         case portGroupKillFinished(PortGroupKillResult)
         case portKillFinished(PortKillResult)
         case portsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
@@ -89,16 +92,15 @@ struct AppFeature {
                     state.refreshPending = true
                     return .none
                 }
-                guard !state.isLoading else { return .none }
+                guard !state.isLoading, !state.isMenuOpenRefreshInFlight else { return .none }
                 return startRefresh(&state)
 
             case .menuPresented:
                 state.isMenuPresented = true
-                guard !state.isLoading else {
-                    return .none
-                }
-                state.refreshPending = true
-                return .none
+                guard state.autoRefreshMode == .whenOpened else { return .none }
+                guard !state.isLoading, !state.isMenuOpenRefreshInFlight else { return .none }
+                state.isMenuOpenRefreshInFlight = true
+                return loadMenuOpenPortsEffect()
 
             case .menuDismissed:
                 state.isMenuPresented = false
@@ -106,23 +108,33 @@ struct AppFeature {
                     state.deferredMenuUpdate = nil
                     return applyDeferredMenuUpdate(update, to: &state)
                 }
-                guard !state.isLoading else { return .none }
+                guard !state.isLoading, !state.isMenuOpenRefreshInFlight else { return .none }
                 return startPendingRefreshIfNeeded(&state)
 
             case .task:
                 return startRefresh(&state)
 
-            case let .view(.autoRefreshIntervalTapped(interval)):
-                state.autoRefreshInterval = interval
-                guard interval != .off else {
+            case let .view(.autoRefreshModeTapped(mode)):
+                state.autoRefreshMode = mode
+                guard let seconds = mode.seconds else {
+                    if mode == .whenOpened,
+                       state.isMenuPresented,
+                       !state.isLoading,
+                       !state.isMenuOpenRefreshInFlight {
+                        state.isMenuOpenRefreshInFlight = true
+                        return .merge(
+                            .cancel(id: CancelID.autoRefresh),
+                            loadMenuOpenPortsEffect()
+                        )
+                    }
                     return .cancel(id: CancelID.autoRefresh)
                 }
-                let timer = autoRefreshEffect(interval)
+                let timer = autoRefreshEffect(seconds: seconds)
                 guard !state.isMenuPresented else {
                     state.refreshPending = true
                     return timer
                 }
-                guard !state.isLoading else {
+                guard !state.isLoading, !state.isMenuOpenRefreshInFlight else {
                     state.refreshPending = true
                     return timer
                 }
@@ -258,6 +270,16 @@ struct AppFeature {
                 applyPortsLoadResult(result, to: &state)
                 return startPendingRefreshIfNeeded(&state)
 
+            case let .response(.menuOpenPortsLoaded(result)):
+                state.isMenuOpenRefreshInFlight = false
+                guard !state.isLoading else { return .none }
+                guard !state.isMenuPresented else {
+                    state.deferredMenuUpdate = .menuOpenPortsLoaded(result)
+                    return .none
+                }
+                applyPortsLoadResult(result, to: &state)
+                return startPendingRefreshIfNeeded(&state)
+
             case let .response(.applicationQuitFinished(result)):
                 state.postRefreshErrorMessage = result.failureMessage
                 return .merge(
@@ -306,6 +328,17 @@ struct AppFeature {
         }
     }
 
+    private func loadMenuOpenPortsEffect() -> Effect<Action> {
+        .run { send in
+            do {
+                let snapshot = try await scanSnapshot()
+                await send(.response(.menuOpenPortsLoaded(.success(snapshot))))
+            } catch {
+                await send(.response(.menuOpenPortsLoaded(.failure(.init(error)))))
+            }
+        }
+    }
+
     private func startRefresh(_ state: inout State) -> Effect<Action> {
         state.isLoading = true
         state.errorMessage = nil
@@ -314,7 +347,7 @@ struct AppFeature {
     }
 
     private func startPendingRefreshIfNeeded(_ state: inout State) -> Effect<Action> {
-        guard state.refreshPending else {
+        guard state.refreshPending, !state.isMenuOpenRefreshInFlight else {
             return .none
         }
         state.refreshPending = false
@@ -343,6 +376,11 @@ struct AppFeature {
         to state: inout State
     ) -> Effect<Action> {
         switch update {
+        case let .menuOpenPortsLoaded(result):
+            guard !state.isLoading else { return .none }
+            applyPortsLoadResult(result, to: &state)
+            return startPendingRefreshIfNeeded(&state)
+
         case let .portGroupKillFinished(result):
             return applyPortGroupKillResult(result, to: &state)
 
@@ -385,10 +423,10 @@ struct AppFeature {
         return loadPortsEffect()
     }
 
-    private func autoRefreshEffect(_ interval: AutoRefreshInterval) -> Effect<Action> {
+    private func autoRefreshEffect(seconds: Int) -> Effect<Action> {
         .run { send in
             while !Task.isCancelled {
-                try await clock.sleep(for: .seconds(interval.seconds))
+                try await clock.sleep(for: .seconds(seconds))
                 await send(.autoRefreshTick)
             }
         }
@@ -841,32 +879,40 @@ struct ApplicationQuitResult: Equatable, Sendable {
     }
 }
 
-enum AutoRefreshInterval: CaseIterable, Equatable, Identifiable, Sendable {
-    case off
+enum AutoRefreshMode: CaseIterable, Equatable, Identifiable, Sendable {
+    case whenOpened
+    case oneSecond
+    case twoSeconds
     case fiveSeconds
-    case tenSeconds
+    case off
 
     var id: Self { self }
 
-    var seconds: Int {
+    var seconds: Int? {
         switch self {
-        case .off:
-            return 0
+        case .whenOpened, .off:
+            return nil
+        case .oneSecond:
+            return 1
+        case .twoSeconds:
+            return 2
         case .fiveSeconds:
             return 5
-        case .tenSeconds:
-            return 10
         }
     }
 
     var title: String {
         switch self {
+        case .whenOpened:
+            return String(localized: "打开时", bundle: .main, comment: "每次打开菜单时自动刷新。")
+        case .oneSecond:
+            return String(localized: "非常频繁（1 秒）", bundle: .main, comment: "每 1 秒自动刷新。")
+        case .twoSeconds:
+            return String(localized: "频繁（2 秒）", bundle: .main, comment: "每 2 秒自动刷新。")
+        case .fiveSeconds:
+            return String(localized: "一般（5 秒）", bundle: .main, comment: "每 5 秒自动刷新。")
         case .off:
             return String(localized: "关闭", bundle: .main, comment: "自动刷新关闭。")
-        case .fiveSeconds:
-            return String(localized: "每 5 秒", bundle: .main, comment: "每 5 秒自动刷新。")
-        case .tenSeconds:
-            return String(localized: "每 10 秒", bundle: .main, comment: "每 10 秒自动刷新。")
         }
     }
 }

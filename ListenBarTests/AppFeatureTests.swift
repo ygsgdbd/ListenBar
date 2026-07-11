@@ -5,6 +5,10 @@ import XCTest
 
 @MainActor
 final class AppFeatureTests: XCTestCase {
+    func testDefaultAutoRefreshModeIsWhenOpened() {
+        XCTAssertEqual(AppFeature.State().autoRefreshMode, .whenOpened)
+    }
+
     func testTaskLoadsPortsAndUpdatesTimestamp() async {
         let now = Date(timeIntervalSince1970: 1_000)
         let ports = [
@@ -39,7 +43,7 @@ final class AppFeatureTests: XCTestCase {
         }
     }
 
-    func testMenuPresentedDefersRefreshUntilDismissed() async {
+    func testMenuPresentedStartsSilentRefreshAndDefersResultUntilDismissed() async {
         let now = Date(timeIntervalSince1970: 2_000)
         let ports = [
             PortEntry(
@@ -61,17 +65,16 @@ final class AppFeatureTests: XCTestCase {
 
         await store.send(.menuPresented) {
             $0.isMenuPresented = true
-            $0.refreshPending = true
+            $0.isMenuOpenRefreshInFlight = true
         }
-        await store.send(.menuPresented)
+        XCTAssertFalse(store.state.isLoading)
+        await store.receive(.response(.menuOpenPortsLoaded(.success(snapshot)))) {
+            $0.deferredMenuUpdate = .menuOpenPortsLoaded(.success(snapshot))
+            $0.isMenuOpenRefreshInFlight = false
+        }
         await store.send(.menuDismissed) {
+            $0.deferredMenuUpdate = nil
             $0.isMenuPresented = false
-            $0.refreshPending = false
-            $0.isLoading = true
-            $0.errorMessage = nil
-            $0.postRefreshErrorMessage = nil
-        }
-        await store.receive(.response(.portsLoaded(.success(snapshot)))) {
             $0.isLoading = false
             $0.errorMessage = nil
             $0.lastUpdated = now
@@ -79,6 +82,143 @@ final class AppFeatureTests: XCTestCase {
             $0.ports = ports
             $0.processGroups = snapshot.processGroups
         }
+    }
+
+    func testRepeatedMenuPresentationDoesNotStartConcurrentSilentRefresh() async {
+        let clock = TestClock()
+        let ports = [
+            PortEntry(
+                networkProtocol: .tcp,
+                address: "127.0.0.1",
+                port: 8080,
+                pid: 456,
+                command: "miniserve",
+                user: "501"
+            )
+        ]
+        let snapshot = makeSnapshot(ports)
+
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        store.dependencies.continuousClock = clock
+        store.dependencies.portScanner.scan = {
+            try await clock.sleep(for: .seconds(1))
+            return ports
+        }
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.isMenuOpenRefreshInFlight = true
+        }
+        await store.send(.menuPresented)
+
+        await clock.advance(by: .seconds(1))
+        await store.receive(.response(.menuOpenPortsLoaded(.success(snapshot)))) {
+            $0.deferredMenuUpdate = .menuOpenPortsLoaded(.success(snapshot))
+            $0.isMenuOpenRefreshInFlight = false
+        }
+    }
+
+    func testMenuOpenRefreshResultIsDiscardedWhileKillOperationIsLoading() async {
+        let oldPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501"
+        )
+        let refreshedPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 8080,
+            pid: 202,
+            command: "miniserve",
+            user: "501"
+        )
+        var initialState = AppFeature.State()
+        initialState.isLoading = true
+        initialState.isMenuOpenRefreshInFlight = true
+        initialState.ports = [oldPort]
+        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        let snapshot = makeSnapshot([refreshedPort])
+
+        await store.send(.response(.menuOpenPortsLoaded(.success(snapshot)))) {
+            $0.isMenuOpenRefreshInFlight = false
+        }
+
+        XCTAssertTrue(store.state.isLoading)
+        XCTAssertEqual(store.state.ports, [oldPort])
+        XCTAssertEqual(store.state.processGroups, initialState.processGroups)
+    }
+
+    func testDeferredMenuOpenRefreshIsDiscardedWhenMenuDismissesDuringKillOperation() async {
+        let oldPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501"
+        )
+        let refreshedPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 8080,
+            pid: 202,
+            command: "miniserve",
+            user: "501"
+        )
+        let snapshot = makeSnapshot([refreshedPort])
+        var initialState = AppFeature.State()
+        initialState.deferredMenuUpdate = .menuOpenPortsLoaded(.success(snapshot))
+        initialState.isLoading = true
+        initialState.isMenuPresented = true
+        initialState.ports = [oldPort]
+        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        await store.send(.menuDismissed) {
+            $0.deferredMenuUpdate = nil
+            $0.isMenuPresented = false
+        }
+
+        XCTAssertTrue(store.state.isLoading)
+        XCTAssertEqual(store.state.ports, [oldPort])
+        XCTAssertEqual(store.state.processGroups, initialState.processGroups)
+    }
+
+    func testMenuPresentedDoesNotRefreshWhenModeIsOff() async {
+        var initialState = AppFeature.State()
+        initialState.autoRefreshMode = .off
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+        }
+    }
+
+    func testAutoRefreshModeUsesMacStyleIntervals() {
+        XCTAssertEqual(
+            AutoRefreshMode.allCases.map(\.title),
+            ["打开时", "非常频繁（1 秒）", "频繁（2 秒）", "一般（5 秒）", "关闭"]
+        )
+        XCTAssertEqual(AutoRefreshMode.oneSecond.seconds, 1)
+        XCTAssertEqual(AutoRefreshMode.twoSeconds.seconds, 2)
+        XCTAssertEqual(AutoRefreshMode.fiveSeconds.seconds, 5)
+        XCTAssertNil(AutoRefreshMode.whenOpened.seconds)
+        XCTAssertNil(AutoRefreshMode.off.seconds)
     }
 
     func testAutoRefreshTickWhileMenuPresentedQueuesRefresh() async {
@@ -890,8 +1030,8 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.continuousClock = clock
         store.dependencies.portScanner.scan = { [port] }
 
-        await store.send(.view(.autoRefreshIntervalTapped(.fiveSeconds))) {
-            $0.autoRefreshInterval = .fiveSeconds
+        await store.send(.view(.autoRefreshModeTapped(.oneSecond))) {
+            $0.autoRefreshMode = .oneSecond
             $0.isLoading = true
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
@@ -905,7 +1045,7 @@ final class AppFeatureTests: XCTestCase {
             $0.ports = [port]
             $0.processGroups = snapshot.processGroups
         }
-        await clock.advance(by: .seconds(5))
+        await clock.advance(by: .seconds(1))
         await store.receive(.autoRefreshTick) {
             $0.isLoading = true
             $0.errorMessage = nil
@@ -920,12 +1060,12 @@ final class AppFeatureTests: XCTestCase {
             $0.ports = [port]
             $0.processGroups = snapshot.processGroups
         }
-        await store.send(.view(.autoRefreshIntervalTapped(.off))) {
-            $0.autoRefreshInterval = .off
+        await store.send(.view(.autoRefreshModeTapped(.off))) {
+            $0.autoRefreshMode = .off
         }
     }
 
-    func testAutoRefreshIntervalTappedWhileMenuPresentedDefersRefresh() async {
+    func testAutoRefreshModeTappedWhileMenuPresentedDefersRefresh() async {
         let clock = TestClock()
         let port = PortEntry(
             networkProtocol: .tcp,
@@ -946,11 +1086,11 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.date = .constant(Date(timeIntervalSince1970: 0))
         store.dependencies.portScanner.scan = { [port] }
 
-        await store.send(.view(.autoRefreshIntervalTapped(.fiveSeconds))) {
-            $0.autoRefreshInterval = .fiveSeconds
+        await store.send(.view(.autoRefreshModeTapped(.twoSeconds))) {
+            $0.autoRefreshMode = .twoSeconds
             $0.refreshPending = true
         }
-        await clock.advance(by: .seconds(5))
+        await clock.advance(by: .seconds(2))
         await store.receive(.autoRefreshTick)
         await store.send(.menuDismissed) {
             $0.isMenuPresented = false
@@ -968,8 +1108,8 @@ final class AppFeatureTests: XCTestCase {
             $0.ports = [port]
             $0.processGroups = snapshot.processGroups
         }
-        await store.send(.view(.autoRefreshIntervalTapped(.off))) {
-            $0.autoRefreshInterval = .off
+        await store.send(.view(.autoRefreshModeTapped(.off))) {
+            $0.autoRefreshMode = .off
         }
     }
 
