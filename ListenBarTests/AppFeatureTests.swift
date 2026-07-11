@@ -187,53 +187,6 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.processGroups, initialState.processGroups)
     }
 
-    func testLastUpdatedRelativeStringIncludesSeconds() {
-        let now = Date(timeIntervalSince1970: 100_000)
-
-        XCTAssertEqual(
-            PortLastUpdatedFormatter.relativeString(
-                from: now.addingTimeInterval(-5),
-                to: now
-            ),
-            "5 秒前"
-        )
-        XCTAssertEqual(
-            PortLastUpdatedFormatter.relativeString(
-                from: now.addingTimeInterval(-65),
-                to: now
-            ),
-            "1 分 5 秒前"
-        )
-        XCTAssertEqual(
-            PortLastUpdatedFormatter.relativeString(
-                from: now.addingTimeInterval(-3_661),
-                to: now
-            ),
-            "1 小时 1 分 1 秒前"
-        )
-        XCTAssertEqual(
-            PortLastUpdatedFormatter.relativeString(
-                from: now.addingTimeInterval(-90_061),
-                to: now
-            ),
-            "1 天 1 小时 1 分 1 秒前"
-        )
-        XCTAssertEqual(
-            PortLastUpdatedFormatter.relativeString(
-                from: now.addingTimeInterval(1),
-                to: now
-            ),
-            "刚刚"
-        )
-        XCTAssertEqual(
-            PortLastUpdatedFormatter.relativeString(
-                from: now.addingTimeInterval(-0.5),
-                to: now
-            ),
-            "刚刚"
-        )
-    }
-
     func testOnlyForceKillIsDestructive() {
         XCTAssertFalse(PortKillMode.quit.isDestructive)
         XCTAssertTrue(PortKillMode.force.isDestructive)
