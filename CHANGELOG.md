@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.3.0
+
+### 中文
+
+#### 功能
+
+- 新增登录后自动启动设置，可在菜单中直接启用或关闭。
+- 当 macOS 需要用户批准登录项时，可直接打开系统登录项设置。
+- 新增 GitHub 仓库入口，方便从菜单访问项目主页。
+
+#### 优化
+
+- 更新应用截图和下载体积说明。
+- 改进发布工作流，支持重试已有标签，并升级 macOS 与 Xcode 构建环境。
+
+### English
+
+#### Features
+
+- Added a launch-at-login setting that can be enabled or disabled directly from the menu.
+- Added a direct link to macOS Login Items settings when user approval is required.
+- Added a GitHub repository link for opening the project page from the menu.
+
+#### Improvements
+
+- Updated app screenshots and download size documentation.
+- Improved the release workflow with existing-tag retries and updated macOS and Xcode build environments.
+
 ## v0.2.0
 
 ### 中文
