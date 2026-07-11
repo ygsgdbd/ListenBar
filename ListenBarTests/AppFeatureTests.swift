@@ -5,8 +5,8 @@ import XCTest
 
 @MainActor
 final class AppFeatureTests: XCTestCase {
-    func testDefaultAutoRefreshModeIsWhenOpened() {
-        XCTAssertEqual(AppFeature.State().autoRefreshMode, .whenOpened)
+    func testDefaultAutoRefreshModeIsOnMenuOpen() {
+        XCTAssertEqual(AppFeature.State().autoRefreshMode, .onMenuOpen)
     }
 
     func testTaskLoadsPortsAndUpdatesTimestamp() async {
@@ -197,8 +197,10 @@ final class AppFeatureTests: XCTestCase {
     }
 
     func testMenuPresentedDoesNotRefreshWhenModeIsOff() async {
-        var initialState = AppFeature.State()
-        initialState.autoRefreshMode = .off
+        let initialState = AppFeature.State()
+        initialState.$settings.withLock {
+            $0.autoRefresh = .off
+        }
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -211,14 +213,30 @@ final class AppFeatureTests: XCTestCase {
 
     func testAutoRefreshModeUsesMacStyleIntervals() {
         XCTAssertEqual(
-            AutoRefreshMode.allCases.map(\.title),
+            AutoRefreshMode.presets.map(\.title),
             ["打开时", "非常频繁（1 秒）", "频繁（2 秒）", "一般（5 秒）", "关闭"]
         )
-        XCTAssertEqual(AutoRefreshMode.oneSecond.seconds, 1)
-        XCTAssertEqual(AutoRefreshMode.twoSeconds.seconds, 2)
-        XCTAssertEqual(AutoRefreshMode.fiveSeconds.seconds, 5)
-        XCTAssertNil(AutoRefreshMode.whenOpened.seconds)
+        XCTAssertEqual(AutoRefreshMode.fixed(seconds: 1).seconds, 1)
+        XCTAssertEqual(AutoRefreshMode.fixed(seconds: 2).seconds, 2)
+        XCTAssertEqual(AutoRefreshMode.fixed(seconds: 5).seconds, 5)
+        XCTAssertNil(AutoRefreshMode.onMenuOpen.seconds)
         XCTAssertNil(AutoRefreshMode.off.seconds)
+    }
+
+    func testNonPositiveFixedModeTappedFallsBackToOnMenuOpen() async {
+        let initialState = AppFeature.State()
+        initialState.$settings.withLock {
+            $0.autoRefresh = .off
+        }
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        await store.send(.view(.autoRefreshModeTapped(.fixed(seconds: 0)))) {
+            $0.$settings.withLock {
+                $0.autoRefresh = .onMenuOpen
+            }
+        }
     }
 
     func testAutoRefreshTickWhileMenuPresentedQueuesRefresh() async {
@@ -1030,8 +1048,10 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.continuousClock = clock
         store.dependencies.portScanner.scan = { [port] }
 
-        await store.send(.view(.autoRefreshModeTapped(.oneSecond))) {
-            $0.autoRefreshMode = .oneSecond
+        await store.send(.view(.autoRefreshModeTapped(.fixed(seconds: 1)))) {
+            $0.$settings.withLock {
+                $0.autoRefresh = .fixed(seconds: 1)
+            }
             $0.isLoading = true
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
@@ -1061,7 +1081,50 @@ final class AppFeatureTests: XCTestCase {
             $0.processGroups = snapshot.processGroups
         }
         await store.send(.view(.autoRefreshModeTapped(.off))) {
-            $0.autoRefreshMode = .off
+            $0.$settings.withLock {
+                $0.autoRefresh = .off
+            }
+        }
+    }
+
+    func testTaskRestoresFixedAutoRefreshTimer() async {
+        let clock = TestClock()
+        let snapshot = makeSnapshot([])
+        let initialState = AppFeature.State()
+        initialState.$settings.withLock {
+            $0.autoRefresh = .fixed(seconds: 2)
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.continuousClock = clock
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 0))
+        store.dependencies.portScanner.scan = { [] }
+
+        await store.send(.task) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+        }
+        await store.receive(.response(.portsLoaded(.success(snapshot)))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.lastUpdated = Date(timeIntervalSince1970: 0)
+        }
+        await clock.advance(by: .seconds(2))
+        await store.receive(.autoRefreshTick) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+        }
+        await store.receive(.response(.portsLoaded(.success(snapshot)))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.lastUpdated = Date(timeIntervalSince1970: 0)
+        }
+        await store.send(.view(.autoRefreshModeTapped(.off))) {
+            $0.$settings.withLock {
+                $0.autoRefresh = .off
+            }
         }
     }
 
@@ -1086,8 +1149,10 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.date = .constant(Date(timeIntervalSince1970: 0))
         store.dependencies.portScanner.scan = { [port] }
 
-        await store.send(.view(.autoRefreshModeTapped(.twoSeconds))) {
-            $0.autoRefreshMode = .twoSeconds
+        await store.send(.view(.autoRefreshModeTapped(.fixed(seconds: 2)))) {
+            $0.$settings.withLock {
+                $0.autoRefresh = .fixed(seconds: 2)
+            }
             $0.refreshPending = true
         }
         await clock.advance(by: .seconds(2))
@@ -1109,7 +1174,9 @@ final class AppFeatureTests: XCTestCase {
             $0.processGroups = snapshot.processGroups
         }
         await store.send(.view(.autoRefreshModeTapped(.off))) {
-            $0.autoRefreshMode = .off
+            $0.$settings.withLock {
+                $0.autoRefresh = .off
+            }
         }
     }
 

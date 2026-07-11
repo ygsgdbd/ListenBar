@@ -65,7 +65,7 @@ struct MenuBarView: View {
             .disabled(store.processGroups.isEmpty)
 
             Menu {
-                ForEach(AutoRefreshMode.allCases) { mode in
+                ForEach(AutoRefreshMode.presets) { mode in
                     Button {
                         store.send(.view(.autoRefreshModeTapped(mode)))
                     } label: {

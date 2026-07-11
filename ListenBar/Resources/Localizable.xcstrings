@@ -899,6 +899,23 @@
         }
       }
     },
+    "每 %lld 秒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every %lld Seconds"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每 %lld 秒"
+          }
+        }
+      }
+    },
     "指定网络接口" : {
       "extractionState" : "stale",
       "localizations" : {

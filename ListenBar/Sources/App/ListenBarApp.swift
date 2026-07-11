@@ -1,6 +1,7 @@
 import AppKit
 import ComposableArchitecture
 import IssueReporting
+import Sharing
 import Sparkle
 import SwiftUI
 
@@ -18,6 +19,11 @@ struct ListenBarApp: App {
         let readmeConfiguration = ReadmeScreenshotConfiguration(
             arguments: ProcessInfo.processInfo.arguments
         )
+        if readmeConfiguration != nil {
+            prepareDependencies {
+                $0.defaultFileStorage = .inMemory
+            }
+        }
         readmeConfiguration?.applyAppearance()
         let readmeMenuAppearance = readmeConfiguration?.appAppearance
         self.readmeBackdropWindow = readmeConfiguration?.makeBackdropWindow()

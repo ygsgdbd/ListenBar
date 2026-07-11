@@ -1,6 +1,7 @@
 import AppKit
 import ComposableArchitecture
 import Foundation
+import Sharing
 
 @Reducer
 struct AppFeature {
@@ -22,7 +23,7 @@ struct AppFeature {
 
     @ObservableState
     struct State: Equatable {
-        var autoRefreshMode: AutoRefreshMode = .whenOpened
+        @Shared(.appSettings) var settings = AppSettings()
         var deferredMenuUpdate: DeferredMenuUpdate?
         var errorMessage: String?
         var isLoading = false
@@ -35,6 +36,10 @@ struct AppFeature {
         var ports: [PortEntry] = []
         var processGroups: [PortProcessGroup] = []
         var refreshPending = false
+
+        var autoRefreshMode: AutoRefreshMode {
+            settings.autoRefresh
+        }
 
         var title: String {
             String(
@@ -99,7 +104,7 @@ struct AppFeature {
             case .menuPresented:
                 state.isMenuPresented = true
                 guard !state.isReadmeDemo else { return .none }
-                guard state.autoRefreshMode == .whenOpened else { return .none }
+                guard state.autoRefreshMode == .onMenuOpen else { return .none }
                 guard !state.isLoading, !state.isMenuOpenRefreshInFlight else { return .none }
                 state.isMenuOpenRefreshInFlight = true
                 return loadMenuOpenPortsEffect()
@@ -115,15 +120,20 @@ struct AppFeature {
 
             case .task:
                 guard !state.isReadmeDemo else { return .none }
-                return startRefresh(&state)
+                let refresh = startRefresh(&state)
+                guard let seconds = state.autoRefreshMode.seconds else { return refresh }
+                return .merge(refresh, autoRefreshEffect(seconds: seconds))
 
             case .view where state.isReadmeDemo:
                 return .none
 
             case let .view(.autoRefreshModeTapped(mode)):
-                state.autoRefreshMode = mode
+                let mode = mode.normalized
+                state.$settings.withLock {
+                    $0.autoRefresh = mode
+                }
                 guard let seconds = mode.seconds else {
-                    if mode == .whenOpened,
+                    if mode == .onMenuOpen,
                        state.isMenuPresented,
                        !state.isLoading,
                        !state.isMenuOpenRefreshInFlight {
@@ -885,40 +895,109 @@ struct ApplicationQuitResult: Equatable, Sendable {
     }
 }
 
-enum AutoRefreshMode: CaseIterable, Equatable, Identifiable, Sendable {
-    case whenOpened
-    case oneSecond
-    case twoSeconds
-    case fiveSeconds
+enum AutoRefreshMode: Codable, Equatable, Identifiable, Sendable {
+    case onMenuOpen
+    case fixed(seconds: Int)
     case off
 
-    var id: Self { self }
+    static let presets: [Self] = [
+        .onMenuOpen,
+        .fixed(seconds: 1),
+        .fixed(seconds: 2),
+        .fixed(seconds: 5),
+        .off,
+    ]
+
+    var normalized: Self {
+        guard case let .fixed(seconds) = self, seconds <= 0 else { return self }
+        return .onMenuOpen
+    }
+
+    var id: String {
+        switch self {
+        case .onMenuOpen:
+            return "onMenuOpen"
+        case let .fixed(seconds):
+            return "fixed:\(seconds)"
+        case .off:
+            return "off"
+        }
+    }
 
     var seconds: Int? {
         switch self {
-        case .whenOpened, .off:
+        case .onMenuOpen, .off:
             return nil
-        case .oneSecond:
-            return 1
-        case .twoSeconds:
-            return 2
-        case .fiveSeconds:
-            return 5
+        case let .fixed(seconds) where seconds > 0:
+            return seconds
+        case .fixed:
+            return nil
         }
     }
 
     var title: String {
         switch self {
-        case .whenOpened:
+        case .onMenuOpen:
             return String(localized: "打开时", bundle: .main, comment: "每次打开菜单时自动刷新。")
-        case .oneSecond:
+        case .fixed(seconds: 1):
             return String(localized: "非常频繁（1 秒）", bundle: .main, comment: "每 1 秒自动刷新。")
-        case .twoSeconds:
+        case .fixed(seconds: 2):
             return String(localized: "频繁（2 秒）", bundle: .main, comment: "每 2 秒自动刷新。")
-        case .fiveSeconds:
+        case .fixed(seconds: 5):
             return String(localized: "一般（5 秒）", bundle: .main, comment: "每 5 秒自动刷新。")
+        case let .fixed(seconds):
+            return String(
+                format: String(localized: "每 %lld 秒", bundle: .main, comment: "自定义自动刷新间隔。"),
+                locale: Locale.current,
+                Int64(seconds)
+            )
         case .off:
             return String(localized: "关闭", bundle: .main, comment: "自动刷新关闭。")
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case seconds
+        case type
+    }
+
+    private enum ModeType: String, Codable {
+        case fixed
+        case off
+        case onMenuOpen
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        guard let type = try? container.decode(ModeType.self, forKey: .type) else {
+            self = .onMenuOpen
+            return
+        }
+
+        switch type {
+        case .onMenuOpen:
+            self = .onMenuOpen
+        case .fixed:
+            guard let seconds = try? container.decode(Int.self, forKey: .seconds), seconds > 0 else {
+                self = .onMenuOpen
+                return
+            }
+            self = .fixed(seconds: seconds)
+        case .off:
+            self = .off
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch normalized {
+        case .onMenuOpen:
+            try container.encode(ModeType.onMenuOpen, forKey: .type)
+        case let .fixed(seconds):
+            try container.encode(seconds, forKey: .seconds)
+            try container.encode(ModeType.fixed, forKey: .type)
+        case .off:
+            try container.encode(ModeType.off, forKey: .type)
         }
     }
 }
