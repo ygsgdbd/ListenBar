@@ -13,6 +13,7 @@ struct MenuBarView: View {
                 if let lastUpdated = store.lastUpdated {
                     Text("更新于 \(lastUpdated, style: .relative)")
                         .font(.caption)
+                        .monospacedDigit()
                 }
             } header: {
                 Text(store.title)
@@ -298,6 +299,7 @@ private struct PortProcessGroupMenu: View {
                             )
                         } label: {
                             Text(verbatim: item.title)
+                                .monospacedDigit()
                         }
                     }
                 } label: {
@@ -309,6 +311,7 @@ private struct PortProcessGroupMenu: View {
             Text(group.displayName)
             Text(group.subtitle)
                 .foregroundStyle(.secondary)
+                .monospacedDigit()
         }
     }
 }
@@ -369,6 +372,7 @@ private struct PortMenu: View {
             .disabled(isLoading)
         } label: {
             Text(verbatim: labels.title)
+                .font(.system(.body, design: .monospaced))
             Text(verbatim: labels.subtitle)
                 .foregroundStyle(.secondary)
         }
@@ -389,12 +393,14 @@ private struct PortProcessInfoMenuContent: View {
             onCopyPID(item.pid)
         } label: {
             Label(item.copyPIDTitle, systemImage: "number")
+                .monospacedDigit()
         }
 
         if item.labels.hasDetails {
             Section(item.labels.source) {
                 if let memory = item.labels.memory {
                     Label(memory, systemImage: "memorychip")
+                        .monospacedDigit()
                 }
 
                 if let path = item.labels.path {
@@ -404,6 +410,7 @@ private struct PortProcessInfoMenuContent: View {
                         Label {
                             Text("在 Finder 中显示")
                             Text(verbatim: path)
+                                .fontDesign(.monospaced)
                                 .foregroundStyle(.secondary)
                         } icon: {
                             Image(systemName: "folder")
@@ -417,6 +424,7 @@ private struct PortProcessInfoMenuContent: View {
                         Label {
                             Text("复制路径")
                             Text(verbatim: path)
+                                .fontDesign(.monospaced)
                                 .foregroundStyle(.secondary)
                         } icon: {
                             Image(systemName: "doc.on.doc")
@@ -431,6 +439,7 @@ private struct PortProcessInfoMenuContent: View {
                         Label {
                             Text("复制脱敏启动命令")
                             Text(verbatim: redactedCommandLineSummary)
+                                .fontDesign(.monospaced)
                                 .foregroundStyle(.secondary)
                         } icon: {
                             Image(systemName: "lock.doc")
