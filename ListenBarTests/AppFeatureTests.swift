@@ -1,3 +1,4 @@
+import AppKit
 import ComposableArchitecture
 import XCTest
 @testable import ListenBar
@@ -38,7 +39,7 @@ final class AppFeatureTests: XCTestCase {
         }
     }
 
-    func testMenuPresentedLoadsPortsAndUpdatesTimestamp() async {
+    func testMenuPresentedDefersRefreshUntilDismissed() async {
         let now = Date(timeIntervalSince1970: 2_000)
         let ports = [
             PortEntry(
@@ -59,6 +60,13 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.portScanner.scan = { ports }
 
         await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.refreshPending = true
+        }
+        await store.send(.menuPresented)
+        await store.send(.menuDismissed) {
+            $0.isMenuPresented = false
+            $0.refreshPending = false
             $0.isLoading = true
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
@@ -73,7 +81,55 @@ final class AppFeatureTests: XCTestCase {
         }
     }
 
-    func testMenuPresentedFailureKeepsExistingPortsAndStoresError() async {
+    func testAutoRefreshTickWhileMenuPresentedQueuesRefresh() async {
+        var initialState = AppFeature.State()
+        initialState.isMenuPresented = true
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        await store.send(.autoRefreshTick) {
+            $0.refreshPending = true
+        }
+        await store.send(.autoRefreshTick)
+    }
+
+    func testPortsLoadedSuccessWhileMenuPresentedIsDeferredUntilDismissed() async {
+        let now = Date(timeIntervalSince1970: 2_500)
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 8080,
+            pid: 456,
+            command: "miniserve",
+            user: "501"
+        )
+        let snapshot = makeSnapshot([port])
+        var initialState = AppFeature.State()
+        initialState.isLoading = true
+        initialState.isMenuPresented = true
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+
+        await store.send(.response(.portsLoaded(.success(snapshot)))) {
+            $0.deferredMenuUpdate = .portsLoaded(.success(snapshot))
+        }
+        await store.send(.menuDismissed) {
+            $0.deferredMenuUpdate = nil
+            $0.isLoading = false
+            $0.isMenuPresented = false
+            $0.lastUpdated = now
+            $0.metadataByPID = snapshot.metadataByPID
+            $0.ports = [port]
+            $0.processGroups = snapshot.processGroups
+        }
+    }
+
+    func testPortsLoadedFailureWhileMenuPresentedIsDeferredUntilDismissed() async {
         let oldPort = PortEntry(
             networkProtocol: .tcp,
             address: "127.0.0.1",
@@ -83,23 +139,23 @@ final class AppFeatureTests: XCTestCase {
             user: "501"
         )
         var initialState = AppFeature.State()
+        initialState.isLoading = true
+        initialState.isMenuPresented = true
         initialState.ports = [oldPort]
         initialState.processGroups = makeSnapshot([oldPort]).processGroups
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
-        store.dependencies.portScanner.scan = {
-            throw PortScannerFailure(message: "lsof failed")
-        }
+        let failure = PortScannerFailure(message: "lsof failed")
 
-        await store.send(.menuPresented) {
-            $0.isLoading = true
-            $0.errorMessage = nil
-            $0.postRefreshErrorMessage = nil
+        await store.send(.response(.portsLoaded(.failure(failure)))) {
+            $0.deferredMenuUpdate = .portsLoaded(.failure(failure))
         }
-        await store.receive(.response(.portsLoaded(.failure(.init(message: "lsof failed"))))) {
+        await store.send(.menuDismissed) {
+            $0.deferredMenuUpdate = nil
             $0.isLoading = false
+            $0.isMenuPresented = false
             $0.errorMessage = "lsof failed"
         }
 
@@ -107,7 +163,151 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.processGroups, initialState.processGroups)
     }
 
-    func testMenuPresentedDuringRefreshQueuesSingleFollowUp() async {
+    func testPortKillFailureWhileMenuPresentedIsDeferredUntilDismissed() async {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 5037,
+            pid: 63759,
+            command: "adb",
+            user: "501"
+        )
+        var initialState = AppFeature.State()
+        initialState.isLoading = true
+        initialState.isMenuPresented = true
+        initialState.ports = [port]
+        initialState.processGroups = makeSnapshot([port]).processGroups
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        let failure = PortKillerFailure(message: "permission denied")
+        let result = PortKillResult.failure(
+            request: PortKillRequest(port: port, mode: .quit),
+            failure: failure
+        )
+
+        await store.send(.response(.portKillFinished(result))) {
+            $0.deferredMenuUpdate = .portKillFinished(result)
+        }
+
+        await store.send(.menuDismissed) {
+            $0.deferredMenuUpdate = nil
+            $0.isLoading = false
+            $0.isMenuPresented = false
+            $0.errorMessage = failure.message
+        }
+    }
+
+    func testPortKillSnapshotWhileMenuPresentedIsDeferredUntilDismissed() async {
+        let oldPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501"
+        )
+        let refreshedPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 8080,
+            pid: 202,
+            command: "miniserve",
+            user: "501"
+        )
+        let refreshedSnapshot = makeSnapshot([refreshedPort])
+        var initialState = AppFeature.State()
+        initialState.isLoading = true
+        initialState.isMenuPresented = true
+        initialState.ports = [oldPort]
+        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        let now = Date(timeIntervalSince1970: 4_000)
+        store.dependencies.date = .constant(now)
+        let result = PortKillResult.aborted(
+            request: PortKillRequest(port: oldPort, mode: .quit),
+            refreshedSnapshot: refreshedSnapshot,
+            failure: .staleTarget
+        )
+
+        await store.send(.response(.portKillFinished(result))) {
+            $0.deferredMenuUpdate = .portKillFinished(result)
+        }
+
+        await store.send(.menuDismissed) {
+            $0.deferredMenuUpdate = nil
+            $0.isLoading = false
+            $0.isMenuPresented = false
+            $0.errorMessage = PortKillerFailure.staleTarget.message
+            $0.lastUpdated = now
+            $0.metadataByPID = refreshedSnapshot.metadataByPID
+            $0.ports = refreshedSnapshot.ports
+            $0.processGroups = refreshedSnapshot.processGroups
+        }
+    }
+
+    func testPortGroupKillSnapshotWhileMenuPresentedIsDeferredUntilDismissed() async throws {
+        let oldPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501"
+        )
+        let refreshedPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 8080,
+            pid: 202,
+            command: "miniserve",
+            user: "501"
+        )
+        let initialSnapshot = makeSnapshot([oldPort])
+        let refreshedSnapshot = makeSnapshot([refreshedPort])
+        var initialState = AppFeature.State()
+        initialState.isLoading = true
+        initialState.isMenuPresented = true
+        initialState.ports = initialSnapshot.ports
+        initialState.processGroups = initialSnapshot.processGroups
+        let group = try XCTUnwrap(initialState.processGroups.first)
+        let result = PortGroupKillResult(
+            request: PortGroupKillRequest(
+                group: group,
+                mode: .quit,
+                metadataByPID: initialState.metadataByPID
+            ),
+            failures: [.init(pid: 0, message: PortKillerFailure.staleTarget.message)],
+            refreshedSnapshot: refreshedSnapshot
+        )
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        let now = Date(timeIntervalSince1970: 5_000)
+        store.dependencies.date = .constant(now)
+
+        await store.send(.response(.portGroupKillFinished(result))) {
+            $0.deferredMenuUpdate = .portGroupKillFinished(result)
+        }
+
+        await store.send(.menuDismissed) {
+            $0.deferredMenuUpdate = nil
+            $0.isLoading = false
+            $0.isMenuPresented = false
+            $0.errorMessage = result.failureMessage
+            $0.lastUpdated = now
+            $0.metadataByPID = refreshedSnapshot.metadataByPID
+            $0.ports = refreshedSnapshot.ports
+            $0.processGroups = refreshedSnapshot.processGroups
+        }
+    }
+
+    func testMenuDismissedAppliesDeferredResultAndStartsSinglePendingRefresh() async {
         let firstPort = PortEntry(
             networkProtocol: .tcp,
             address: "127.0.0.1",
@@ -128,6 +328,8 @@ final class AppFeatureTests: XCTestCase {
         let secondSnapshot = makeSnapshot([secondPort])
         var initialState = AppFeature.State()
         initialState.isLoading = true
+        initialState.isMenuPresented = true
+        initialState.refreshPending = true
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -135,11 +337,12 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.date = .constant(Date(timeIntervalSince1970: 3_000))
         store.dependencies.portScanner.scan = { [secondPort] }
 
-        await store.send(.menuPresented) {
-            $0.refreshPending = true
-        }
-        await store.send(.menuPresented)
         await store.send(.response(.portsLoaded(.success(firstSnapshot)))) {
+            $0.deferredMenuUpdate = .portsLoaded(.success(firstSnapshot))
+        }
+        await store.send(.menuDismissed) {
+            $0.deferredMenuUpdate = nil
+            $0.isMenuPresented = false
             $0.isLoading = true
             $0.lastUpdated = Date(timeIntervalSince1970: 3_000)
             $0.ports = [firstPort]
@@ -185,6 +388,30 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertEqual(store.state.ports, [oldPort])
         XCTAssertEqual(store.state.processGroups, initialState.processGroups)
+    }
+
+    func testMenuTrackingNotificationOnlyAcceptsRootMenu() {
+        let rootMenu = NSMenu()
+        let submenu = NSMenu()
+        let submenuItem = NSMenuItem(title: "Submenu", action: nil, keyEquivalent: "")
+        rootMenu.addItem(submenuItem)
+        rootMenu.setSubmenu(submenu, for: submenuItem)
+
+        XCTAssertTrue(
+            MenuBarView.isRootMenuTrackingNotification(
+                Notification(name: NSMenu.didBeginTrackingNotification, object: rootMenu)
+            )
+        )
+        XCTAssertFalse(
+            MenuBarView.isRootMenuTrackingNotification(
+                Notification(name: NSMenu.didEndTrackingNotification, object: submenu)
+            )
+        )
+        XCTAssertFalse(
+            MenuBarView.isRootMenuTrackingNotification(
+                Notification(name: NSMenu.didEndTrackingNotification, object: NSObject())
+            )
+        )
     }
 
     func testOnlyForceKillIsDestructive() {
@@ -680,6 +907,54 @@ final class AppFeatureTests: XCTestCase {
         }
         await clock.advance(by: .seconds(5))
         await store.receive(.autoRefreshTick) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+        }
+        await store.receive(.response(.portsLoaded(.success(snapshot)))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+            $0.lastUpdated = Date(timeIntervalSince1970: 0)
+            $0.metadataByPID = [:]
+            $0.ports = [port]
+            $0.processGroups = snapshot.processGroups
+        }
+        await store.send(.view(.autoRefreshIntervalTapped(.off))) {
+            $0.autoRefreshInterval = .off
+        }
+    }
+
+    func testAutoRefreshIntervalTappedWhileMenuPresentedDefersRefresh() async {
+        let clock = TestClock()
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501"
+        )
+        let snapshot = makeSnapshot([port])
+        var initialState = AppFeature.State()
+        initialState.isMenuPresented = true
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.continuousClock = clock
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 0))
+        store.dependencies.portScanner.scan = { [port] }
+
+        await store.send(.view(.autoRefreshIntervalTapped(.fiveSeconds))) {
+            $0.autoRefreshInterval = .fiveSeconds
+            $0.refreshPending = true
+        }
+        await clock.advance(by: .seconds(5))
+        await store.receive(.autoRefreshTick)
+        await store.send(.menuDismissed) {
+            $0.isMenuPresented = false
+            $0.refreshPending = false
             $0.isLoading = true
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
