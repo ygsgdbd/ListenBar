@@ -18,6 +18,12 @@
 
 <p align="center"><a href="README.zh-CN.md">简体中文</a></p>
 
+## 🖼️ Screenshots
+
+![ListenBar light appearance showing the main menu and process actions](Documentation/Screenshots/en-light.png#gh-light-mode-only)
+
+![ListenBar dark appearance showing the main menu and process actions](Documentation/Screenshots/en-dark.png#gh-dark-mode-only)
+
 ## ✨ Highlights
 
 - Scans TCP `LISTEN` endpoints and UDP sockets that expose a concrete local port.
@@ -36,16 +42,6 @@
 ListenBar's app business code is 100% Swift, built with SwiftUI and The Composable Architecture (TCA). It is a real native menu bar app based on `MenuBarExtra` and `LSUIElement`—there is no Electron runtime and no embedded WebView. That keeps the app focused and avoids shipping a browser engine for a small system utility.
 
 The interface follows the system appearance automatically in both Light and Dark Mode. Releases are built with Xcode 26.2. On macOS 26, using native SwiftUI menu controls allows the system to apply its Liquid Glass appearance where appropriate; macOS 14 and macOS 15 retain their native system styling. ListenBar does not simulate Liquid Glass with custom visual effects.
-
-## 🖼️ Screenshots
-
-### Light
-
-![ListenBar light appearance showing the main menu and process actions](Documentation/Screenshots/en-light.png)
-
-### Dark
-
-![ListenBar dark appearance showing the main menu and process actions](Documentation/Screenshots/en-dark.png)
 
 ## 📦 Installation
 
