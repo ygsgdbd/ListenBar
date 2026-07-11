@@ -11,10 +11,9 @@ struct MenuBarView: View {
         Group {
             Section {
                 if let lastUpdated = store.lastUpdated {
-                    TimelineView(.periodic(from: Date(), by: 1)) { context in
-                        Text(updatedAtText(lastUpdated, now: context.date))
-                            .font(.caption)
-                    }
+                    Text("更新于 \(lastUpdated, style: .relative)")
+                        .font(.caption)
+                        .monospacedDigit()
                 }
             } header: {
                 Text(store.title)
@@ -171,60 +170,6 @@ struct MenuBarView: View {
         return String(localized: "未发现监听端口", bundle: .main, comment: "没有发现监听端口时的空状态。")
     }
 
-    private func updatedAtText(_ lastUpdated: Date, now: Date) -> String {
-        String(
-            format: String(localized: "更新于 %@", bundle: .main, comment: "最近一次端口扫描的更新时间。"),
-            locale: Locale.current,
-            PortLastUpdatedFormatter.relativeString(from: lastUpdated, to: now)
-        )
-    }
-}
-
-enum PortLastUpdatedFormatter {
-    static func relativeString(from lastUpdated: Date, to now: Date) -> String {
-        let seconds = max(0, Int(now.timeIntervalSince(lastUpdated)))
-        guard seconds > 0 else {
-            return String(localized: "刚刚", bundle: .main, comment: "相对更新时间：刚刚。")
-        }
-
-        let days = seconds / 86_400
-        let hours = seconds % 86_400 / 3_600
-        let minutes = seconds % 3_600 / 60
-        let remainingSeconds = seconds % 60
-
-        if days > 0 {
-            return String(
-                format: String(localized: "%lld 天 %lld 小时 %lld 分 %lld 秒前", bundle: .main, comment: "相对更新时间：天、小时、分钟、秒。"),
-                locale: Locale.current,
-                Int64(days),
-                Int64(hours),
-                Int64(minutes),
-                Int64(remainingSeconds)
-            )
-        }
-        if hours > 0 {
-            return String(
-                format: String(localized: "%lld 小时 %lld 分 %lld 秒前", bundle: .main, comment: "相对更新时间：小时、分钟、秒。"),
-                locale: Locale.current,
-                Int64(hours),
-                Int64(minutes),
-                Int64(remainingSeconds)
-            )
-        }
-        if minutes > 0 {
-            return String(
-                format: String(localized: "%lld 分 %lld 秒前", bundle: .main, comment: "相对更新时间：分钟、秒。"),
-                locale: Locale.current,
-                Int64(minutes),
-                Int64(remainingSeconds)
-            )
-        }
-        return String(
-            format: String(localized: "%lld 秒前", bundle: .main, comment: "相对更新时间：秒。"),
-            locale: Locale.current,
-            Int64(remainingSeconds)
-        )
-    }
 }
 
 private struct PortProcessGroupMenu: View {
@@ -357,6 +302,7 @@ private struct PortProcessGroupMenu: View {
                             )
                         } label: {
                             Text(verbatim: item.title)
+                                .monospacedDigit()
                         }
                     }
                 } label: {
@@ -368,6 +314,7 @@ private struct PortProcessGroupMenu: View {
             Text(group.displayName)
             Text(group.subtitle)
                 .foregroundStyle(.secondary)
+                .monospacedDigit()
         }
     }
 }
@@ -428,6 +375,7 @@ private struct PortMenu: View {
             .disabled(isLoading)
         } label: {
             Text(verbatim: labels.title)
+                .font(.system(.body, design: .monospaced))
             Text(verbatim: labels.subtitle)
                 .foregroundStyle(.secondary)
         }
@@ -448,12 +396,14 @@ private struct PortProcessInfoMenuContent: View {
             onCopyPID(item.pid)
         } label: {
             Label(item.copyPIDTitle, systemImage: "number")
+                .monospacedDigit()
         }
 
         if item.labels.hasDetails {
             Section(item.labels.source) {
                 if let memory = item.labels.memory {
                     Label(memory, systemImage: "memorychip")
+                        .monospacedDigit()
                 }
 
                 if let path = item.labels.path {
@@ -463,6 +413,7 @@ private struct PortProcessInfoMenuContent: View {
                         Label {
                             Text("在 Finder 中显示")
                             Text(verbatim: path)
+                                .fontDesign(.monospaced)
                                 .foregroundStyle(.secondary)
                         } icon: {
                             Image(systemName: "folder")
@@ -476,6 +427,7 @@ private struct PortProcessInfoMenuContent: View {
                         Label {
                             Text("复制路径")
                             Text(verbatim: path)
+                                .fontDesign(.monospaced)
                                 .foregroundStyle(.secondary)
                         } icon: {
                             Image(systemName: "doc.on.doc")
@@ -490,6 +442,7 @@ private struct PortProcessInfoMenuContent: View {
                         Label {
                             Text("复制脱敏启动命令")
                             Text(verbatim: redactedCommandLineSummary)
+                                .fontDesign(.monospaced)
                                 .foregroundStyle(.secondary)
                         } icon: {
                             Image(systemName: "lock.doc")

@@ -910,10 +910,13 @@ enum PortProcessMetadataService {
         guard let path else {
             return false
         }
+        if path.hasPrefix("/usr/local/") {
+            return false
+        }
         return [
             "/System/",
-            "/usr/sbin/",
-            "/usr/libexec/",
+            "/Library/Apple/",
+            "/usr/",
             "/bin/",
             "/sbin/"
         ].contains { path.hasPrefix($0) }
