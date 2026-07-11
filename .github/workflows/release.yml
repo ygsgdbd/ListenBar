@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing vX.Y.Z tag to publish
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -21,14 +27,23 @@ jobs:
 
       - name: Validate release tag
         id: release_tag
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
         run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error title=Invalid release tag::Production releases must use vX.Y.Z, for example v0.1.0. Got ${GITHUB_REF_NAME}."
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error title=Invalid release tag::Production releases must use vX.Y.Z, for example v0.1.0. Got ${RELEASE_TAG}."
             exit 1
           fi
 
-          VERSION="${GITHUB_REF_NAME#v}"
+          if ! git rev-parse --verify --quiet "refs/tags/${RELEASE_TAG}" >/dev/null; then
+            echo "::error title=Missing release tag::Tag ${RELEASE_TAG} does not exist."
+            exit 1
+          fi
+
+          VERSION="${RELEASE_TAG#v}"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $RELEASE_TAG"
           echo "Release version: $VERSION"
 
       - name: Check publishing secrets
@@ -49,7 +64,7 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.2'
+          xcode-version: '26.3'
 
       - name: Install Tuist
         run: |
@@ -114,8 +129,10 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent ListenBar.app ../../ListenBar-macOS-universal.zip
 
       - name: Prepare release notes
+        env:
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
         run: |
-          if ! awk -v version="${GITHUB_REF_NAME}" '
+          if ! awk -v version="${RELEASE_TAG}" '
             $0 == "## " version {
               found = 1
               next
@@ -150,11 +167,11 @@ jobs:
               }
             }
           ' CHANGELOG.md > release-notes.md; then
-            echo "::error title=Missing release notes::CHANGELOG.md must contain a non-empty ## ${GITHUB_REF_NAME} section."
+            echo "::error title=Missing release notes::CHANGELOG.md must contain a non-empty ## ${RELEASE_TAG} section."
             exit 1
           fi
 
-          echo "Release notes for ${GITHUB_REF_NAME}:"
+          echo "Release notes for ${RELEASE_TAG}:"
           cat release-notes.md
 
       - name: Render Sparkle release notes HTML
@@ -181,7 +198,7 @@ jobs:
           echo '```' >> checksums.txt
 
           {
-            echo "## ListenBar ${{ github.ref_name }}"
+            echo "## ListenBar ${{ steps.release_tag.outputs.tag }}"
             echo ""
             cat release-notes.md
             echo ""
@@ -201,6 +218,7 @@ jobs:
 
       - name: Generate Sparkle appcast
         env:
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
           mkdir -p DerivedData/SparkleFeed
@@ -209,7 +227,7 @@ jobs:
 
           printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | ./sparkle-tools/bin/generate_appcast \
             --ed-key-file - \
-            --download-url-prefix "https://github.com/ygsgdbd/ListenBar/releases/download/${GITHUB_REF_NAME}/" \
+            --download-url-prefix "https://github.com/ygsgdbd/ListenBar/releases/download/${RELEASE_TAG}/" \
             --link "https://github.com/ygsgdbd/ListenBar" \
             --embed-release-notes \
             --maximum-versions 1 \
@@ -228,6 +246,7 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          tag_name: ${{ steps.release_tag.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -241,6 +260,7 @@ jobs:
       - name: Update Homebrew cask
         env:
           ASSET_NAME: ListenBar-macOS-universal.zip
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
           VERSION: ${{ steps.release_tag.outputs.version }}
         run: |
           SHA256=$(shasum -a 256 "$ASSET_NAME" | awk '{print $1}')
@@ -328,5 +348,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Update ListenBar cask to ${GITHUB_REF_NAME}"
+          git commit -m "Update ListenBar cask to ${RELEASE_TAG}"
           git push
