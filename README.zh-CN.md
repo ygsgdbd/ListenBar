@@ -16,7 +16,7 @@
   <a href="https://github.com/ygsgdbd/ListenBar/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/ygsgdbd/ListenBar?display_name=tag&sort=semver&label=Latest%20Release"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a></p>
+<p align="center">🇨🇳 <strong>简体中文</strong> · 🇺🇸 <a href="README.md">English</a></p>
 
 ## 🖼️ 界面截图
 
@@ -26,22 +26,18 @@
 
 ## ✨ 功能亮点
 
-- 扫描 TCP `LISTEN` 端点，以及具有明确本地端口的 UDP socket。
-- 在可获取时展示地址暴露范围、协议、端口、PID、进程或 App 名称、可执行文件路径、启动命令、推断来源和常驻内存。
-- 将相关辅助进程归入其所属的 macOS App；命令行监听进程则按 PID 清晰区分。
-- 区分当前用户进程与系统或其他用户进程，便于更安全地检查。
-- 可用 `http://localhost:<port>` 打开符合条件的本机 TCP 服务，并可复制 URL、端口、PID、路径、`lsof` 命令、进程详情或完整监听报告。
-- 同时提供完整和脱敏启动命令复制操作，分享诊断信息时可省略敏感参数。
-- 可在 Finder 中显示可执行文件，并在可获取时展示原生 App 或可执行文件图标。
-- 支持正常退出 App、强制退出 App、对单个进程发送 `SIGTERM` 或 `SIGKILL`，并对破坏性或高风险目标显示确认提示。
-- 默认在打开菜单时刷新，也可选择每 1、2、5 秒刷新或关闭自动刷新。
-- 支持从菜单中通过 Sparkle 手动检查更新。
+- 🔎 **快速发现监听端口。** 扫描 TCP `LISTEN` 端点和具有明确本地端口的 UDP socket，并在可获取时展示地址暴露范围、协议、端口、PID、进程或 App 名称、可执行文件路径、启动命令、推断来源和常驻内存。
+- 🧩 **看懂端口归属于谁。** 将相关辅助进程归入其所属的 macOS App，命令行监听进程则按 PID 清晰区分；同时区分当前用户进程与系统或其他用户进程。
+- 🔗 **打开服务，复制所需信息。** 使用 `http://localhost:<port>` 打开符合条件的本机 TCP 服务，或复制 URL、端口、PID、路径、`lsof` 命令、进程详情和完整监听报告。
+- 🔒 **更安全地分享诊断信息。** 可选择复制完整或脱敏后的启动命令，在需要时省略敏感参数。
+- 🛠️ **检查并管理进程。** 可在 Finder 中显示可执行文件、查看原生 App 或可执行文件图标、正常或强制退出 App，以及对单个进程发送 `SIGTERM` 或 `SIGKILL`；破坏性或高风险操作会先请求确认。
+- 🔄 **让列表保持最新。** 默认在打开菜单时刷新，也可选择每 1、2、5 秒自动刷新、关闭自动刷新，或通过 Sparkle 手动检查更新。
 
 ## 🪶 原生与轻量
 
-ListenBar 的 App 业务代码 100% 使用 Swift 编写，并采用 SwiftUI 和 The Composable Architecture（TCA）架构。它是基于 `MenuBarExtra` 与 `LSUIElement` 的真正原生菜单栏 App，不包含 Electron 运行时，也没有嵌入 WebView。它无需为一个小型系统工具附带浏览器引擎，因此能保持专注且资源占用轻量。
-
-界面会自动跟随系统，在浅色与暗色模式间适配。发布版本使用 Xcode 26.2 构建。在 macOS 26 上，原生 SwiftUI 菜单控件可由系统在适用位置呈现 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。ListenBar 不使用自定义视觉效果模拟 Liquid Glass。
+- 🍎 **真正原生。** ListenBar 的 App 业务代码 100% 使用 Swift 编写，并采用 SwiftUI 和 The Composable Architecture（TCA）架构。它基于 `MenuBarExtra` 与 `LSUIElement` 构建，不包含 Electron 运行时，也没有嵌入 WebView。
+- 🪶 **为轻量而设计。** 一个专注的菜单栏工具无需附带完整的浏览器引擎。ListenBar 将运行时和界面集中在检查本机监听端口这一件事上。
+- 🎨 **自然融入 macOS。** 界面会自动适配浅色与暗色模式。在 macOS 26 上，原生 SwiftUI 菜单控件会在适用位置呈现系统提供的 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。ListenBar 不使用自定义视觉效果模拟 Liquid Glass，发布版本使用 Xcode 26.2 构建。
 
 ## 📦 安装
 
@@ -53,9 +49,10 @@ ListenBar 的 App 业务代码 100% 使用 Swift 编写，并采用 SwiftUI 和 
 ### Homebrew
 
 ```bash
-brew tap ygsgdbd/tap
-brew install --cask listenbar
+brew install --cask ygsgdbd/tap/listenbar
 ```
+
+Homebrew 要求显式信任来自第三方 tap 的软件包。使用上述完整 cask 名称只会信任 `listenbar`，而不会信任 `ygsgdbd/tap` 中当前及未来的全部软件包。
 
 ### GitHub Releases
 

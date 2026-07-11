@@ -16,7 +16,7 @@
   <a href="https://github.com/ygsgdbd/ListenBar/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/ygsgdbd/ListenBar?display_name=tag&sort=semver&label=Latest%20Release"></a>
 </p>
 
-<p align="center"><a href="README.zh-CN.md">简体中文</a></p>
+<p align="center">🇨🇳 <a href="README.zh-CN.md">简体中文</a> · 🇺🇸 <strong>English</strong></p>
 
 ## 🖼️ Screenshots
 
@@ -26,22 +26,18 @@
 
 ## ✨ Highlights
 
-- Scans TCP `LISTEN` endpoints and UDP sockets that expose a concrete local port.
-- Shows address exposure, protocol, port, PID, process or app name, executable path, command line, inferred source, and resident memory when available.
-- Groups related helper processes under their owning macOS app; command-line listeners remain clearly separated by PID.
-- Separates current-user processes from system or other-user processes for safer inspection.
-- Opens eligible loopback TCP services at `http://localhost:<port>` and copies URLs, ports, PIDs, paths, `lsof` commands, process details, or the complete listener report.
-- Provides both full and redacted command-line copy actions so sensitive arguments can be omitted when sharing diagnostics.
-- Reveals executables in Finder and displays native application or executable icons where available.
-- Supports normal app quit, force quit, per-process `SIGTERM`, and `SIGKILL`, with confirmations for destructive or higher-risk targets.
-- Refreshes when the menu opens by default, with optional 1-, 2-, or 5-second intervals or refresh disabled.
-- Checks for updates manually through Sparkle from the menu.
+- 🔎 **Find listeners at a glance.** Scan TCP `LISTEN` endpoints and UDP sockets with a concrete local port, then see their exposure, protocol, port, PID, process or app name, executable path, command line, inferred source, and resident memory when available.
+- 🧩 **Understand which process owns each port.** Related helper processes are grouped under their owning macOS app, while command-line listeners remain separated by PID. Current-user processes are also distinguished from system or other-user processes.
+- 🔗 **Open services and copy what you need.** Open eligible loopback TCP services at `http://localhost:<port>`, or copy URLs, ports, PIDs, paths, `lsof` commands, process details, and complete listener reports.
+- 🔒 **Share diagnostics more safely.** Choose between full and redacted command-line copy actions to omit sensitive arguments when needed.
+- 🛠️ **Inspect and manage processes.** Reveal executables in Finder, view native app or executable icons, quit or force-quit apps, and send `SIGTERM` or `SIGKILL` to individual processes, with confirmation for destructive or higher-risk actions.
+- 🔄 **Keep the list current.** Refresh whenever the menu opens, use an optional 1-, 2-, or 5-second interval, disable automatic refresh, or check for updates manually through Sparkle.
 
 ## 🪶 Native and lightweight
 
-ListenBar's app business code is 100% Swift, built with SwiftUI and The Composable Architecture (TCA). It is a real native menu bar app based on `MenuBarExtra` and `LSUIElement`—there is no Electron runtime and no embedded WebView. That keeps the app focused and avoids shipping a browser engine for a small system utility.
-
-The interface follows the system appearance automatically in both Light and Dark Mode. Releases are built with Xcode 26.2. On macOS 26, using native SwiftUI menu controls allows the system to apply its Liquid Glass appearance where appropriate; macOS 14 and macOS 15 retain their native system styling. ListenBar does not simulate Liquid Glass with custom visual effects.
+- 🍎 **Truly native.** ListenBar's app business code is 100% Swift, built with SwiftUI and The Composable Architecture (TCA). It uses `MenuBarExtra` and `LSUIElement` instead of an Electron runtime or embedded WebView.
+- 🪶 **Lightweight by design.** A focused menu bar utility does not need to ship an entire browser engine. ListenBar keeps its runtime and interface centered on the task of inspecting local listeners.
+- 🎨 **At home on macOS.** The interface automatically follows Light and Dark Mode. Native SwiftUI menu controls adopt the system-provided Liquid Glass appearance where appropriate on macOS 26, while macOS 14 and macOS 15 retain their own native styling. ListenBar does not simulate Liquid Glass with custom visual effects. Releases are built with Xcode 26.2.
 
 ## 📦 Installation
 
@@ -53,9 +49,10 @@ The interface follows the system appearance automatically in both Light and Dark
 ### Homebrew
 
 ```bash
-brew tap ygsgdbd/tap
-brew install --cask listenbar
+brew install --cask ygsgdbd/tap/listenbar
 ```
+
+Homebrew requires explicit trust for packages from third-party taps. Using the fully qualified cask name above trusts only `listenbar`, rather than every current and future package in `ygsgdbd/tap`.
 
 ### GitHub Releases
 
