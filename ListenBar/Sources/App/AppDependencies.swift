@@ -1,6 +1,22 @@
 import ComposableArchitecture
 import Foundation
 
+enum LaunchAtLoginStatus: Equatable, Sendable {
+    case disabled
+    case enabled
+    case requiresApproval
+    case unavailable
+
+    var isToggleOn: Bool {
+        switch self {
+        case .enabled, .requiresApproval:
+            return true
+        case .disabled, .unavailable:
+            return false
+        }
+    }
+}
+
 struct PortScannerClient {
     var scan: @Sendable () async throws -> [PortEntry]
 }
@@ -15,6 +31,11 @@ struct PortKillerClient {
 
 struct ApplicationQuitClient {
     var request: @Sendable (ApplicationQuitRequest) async -> ApplicationQuitAttempt
+}
+
+struct LaunchAtLoginClient {
+    var status: @Sendable () async -> LaunchAtLoginStatus
+    var setEnabled: @Sendable (Bool) async -> LaunchAtLoginStatus
 }
 
 struct PortKillConfirmationClient {
@@ -78,6 +99,20 @@ extension ApplicationQuitClient: DependencyKey {
     )
 }
 
+extension LaunchAtLoginClient: DependencyKey {
+    static let liveValue = Self(
+        status: { LaunchAtLoginService.status },
+        setEnabled: { enabled in
+            LaunchAtLoginService.setLaunchAtLogin(enabled)
+        }
+    )
+
+    static let testValue = Self(
+        status: { .disabled },
+        setEnabled: { $0 ? .enabled : .disabled }
+    )
+}
+
 extension PortKillConfirmationClient: DependencyKey {
     static let liveValue = Self(
         confirm: { confirmation in
@@ -106,6 +141,11 @@ extension DependencyValues {
     var applicationQuitter: ApplicationQuitClient {
         get { self[ApplicationQuitClient.self] }
         set { self[ApplicationQuitClient.self] = newValue }
+    }
+
+    var launchAtLoginClient: LaunchAtLoginClient {
+        get { self[LaunchAtLoginClient.self] }
+        set { self[LaunchAtLoginClient.self] = newValue }
     }
 
     var portScanner: PortScannerClient {

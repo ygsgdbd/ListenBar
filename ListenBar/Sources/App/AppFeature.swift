@@ -8,6 +8,7 @@ struct AppFeature {
     @Dependency(\.applicationQuitter) var applicationQuitter
     @Dependency(\.continuousClock) var clock
     @Dependency(\.date.now) var now
+    @Dependency(\.launchAtLoginClient) var launchAtLoginClient
     @Dependency(\.portKillConfirmation) var portKillConfirmation
     @Dependency(\.portKillNotification) var portKillNotification
     @Dependency(\.portKiller) var portKiller
@@ -31,6 +32,7 @@ struct AppFeature {
         var isMenuPresented = false
         var isReadmeDemo = false
         var lastUpdated: Date?
+        var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
         var metadataByPID: [Int: PortProcessMetadata] = [:]
         var postRefreshErrorMessage: String?
         var ports: [PortEntry] = []
@@ -39,6 +41,14 @@ struct AppFeature {
 
         var autoRefreshMode: AutoRefreshMode {
             settings.autoRefresh
+        }
+
+        var launchAtLoginEnabled: Bool {
+            launchAtLoginStatus.isToggleOn
+        }
+
+        var launchAtLoginRequiresApproval: Bool {
+            launchAtLoginStatus == .requiresApproval
         }
 
         var title: String {
@@ -67,11 +77,13 @@ struct AppFeature {
         case openLocalhostTapped(PortEntry)
         case quitApplicationTapped(PortProcessGroup, ApplicationQuitMode)
         case revealProcessPathTapped(pid: Int)
+        case setLaunchAtLogin(Bool)
         case quitTapped
     }
 
     enum ResponseAction: Equatable, Sendable {
         case applicationQuitFinished(ApplicationQuitResult)
+        case launchAtLoginLoaded(LaunchAtLoginStatus)
         case menuOpenPortsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
         case portGroupKillFinished(PortGroupKillResult)
         case portKillFinished(PortKillResult)
@@ -121,8 +133,15 @@ struct AppFeature {
             case .task:
                 guard !state.isReadmeDemo else { return .none }
                 let refresh = startRefresh(&state)
-                guard let seconds = state.autoRefreshMode.seconds else { return refresh }
-                return .merge(refresh, autoRefreshEffect(seconds: seconds))
+                let launchAtLogin = loadLaunchAtLoginStatusEffect()
+                guard let seconds = state.autoRefreshMode.seconds else {
+                    return .merge(refresh, launchAtLogin)
+                }
+                return .merge(
+                    refresh,
+                    launchAtLogin,
+                    autoRefreshEffect(seconds: seconds)
+                )
 
             case .view where state.isReadmeDemo:
                 return .none
@@ -155,6 +174,18 @@ struct AppFeature {
                     return timer
                 }
                 return .merge(startRefresh(&state), timer)
+
+            case let .view(.setLaunchAtLogin(isEnabled)):
+                state.launchAtLoginStatus = isEnabled ? .enabled : .disabled
+                return .run { send in
+                    await send(
+                        .response(
+                            .launchAtLoginLoaded(
+                                await launchAtLoginClient.setEnabled(isEnabled)
+                            )
+                        )
+                    )
+                }
 
             case .view(.copyFullInformationTapped):
                 return copyTextEffect(
@@ -303,6 +334,10 @@ struct AppFeature {
                     loadPortsEffect()
                 )
 
+            case let .response(.launchAtLoginLoaded(status)):
+                state.launchAtLoginStatus = status
+                return .none
+
             case let .response(.portGroupKillFinished(result)):
                 let notificationEffect = sendNotificationEffect(result.notification)
                 if state.isMenuPresented, result.refreshedSnapshot != nil {
@@ -341,6 +376,12 @@ struct AppFeature {
             } catch {
                 await send(.response(.portsLoaded(.failure(.init(error)))))
             }
+        }
+    }
+
+    private func loadLaunchAtLoginStatusEffect() -> Effect<Action> {
+        .run { send in
+            await send(.response(.launchAtLoginLoaded(await launchAtLoginClient.status())))
         }
     }
 

@@ -87,6 +87,27 @@ struct MenuBarView: View {
                 )
             }
 
+            Toggle(
+                "开机启动",
+                isOn: Binding(
+                    get: { store.launchAtLoginEnabled },
+                    set: { store.send(.view(.setLaunchAtLogin($0))) }
+                )
+            )
+            .toggleStyle(.checkbox)
+
+            if store.launchAtLoginRequiresApproval {
+                Text("请在系统设置 > 通用 > 登录项中批准 ListenBar。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    LaunchAtLoginService.openSystemSettingsLoginItems()
+                } label: {
+                    Label("打开登录项设置", systemImage: "gear")
+                }
+            }
+
             Button {
                 updaterController.checkForUpdates(nil)
             } label: {

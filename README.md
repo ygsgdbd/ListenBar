@@ -35,6 +35,7 @@
 - 🔒 **Share diagnostics more safely.** Choose between full and redacted command-line copy actions to omit sensitive arguments when needed.
 - 🛠️ **Inspect and manage processes.** Reveal executables in Finder, view native app or executable icons, quit or force-quit apps, and send `SIGTERM` or `SIGKILL` to individual processes, with confirmation for destructive or higher-risk actions.
 - 🔄 **Keep the list current.** Refresh whenever the menu opens, use an optional 1-, 2-, or 5-second interval, disable automatic refresh, or check for updates manually through Sparkle.
+- 🚀 **Launch at login.** Start ListenBar automatically after signing in, with a direct link to macOS Login Items settings when approval is required.
 
 ## 🪶 Native and lightweight
 
@@ -73,7 +74,7 @@ Only bypass Gatekeeper when you obtained the app from this repository's official
 
 ## 🧪 Development and tests
 
-The project currently contains **121 XCTest test methods** covering reducer behavior, settings persistence, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
+The project currently contains **132 XCTest test methods** covering reducer behavior, settings persistence, login item management, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
 
 Requirements: Xcode 26 and [Tuist](https://tuist.dev/).
 
