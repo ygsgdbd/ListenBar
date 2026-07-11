@@ -114,6 +114,10 @@ struct MenuBarView: View {
                 Label("检查更新...", systemImage: "arrow.triangle.2.circlepath")
             }
 
+            Link(destination: URL(string: "https://github.com/ygsgdbd/ListenBar")!) {
+                Label("GitHub 仓库", systemImage: "chevron.left.forwardslash.chevron.right")
+            }
+
             Button {
                 store.send(.view(.quitTapped))
             } label: {

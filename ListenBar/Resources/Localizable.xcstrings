@@ -1102,6 +1102,23 @@
         }
       }
     },
+    "GitHub 仓库" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub Repository"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 仓库"
+          }
+        }
+      }
+    },
     "开机启动" : {
       "extractionState" : "manual",
       "localizations" : {
