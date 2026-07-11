@@ -461,7 +461,20 @@
       }
     },
     "在 Finder 中显示" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Finder 中显示"
+          }
+        }
+      }
     },
     "复制 lsof 命令" : {
       "extractionState" : "stale",
@@ -582,7 +595,20 @@
       }
     },
     "复制路径" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Path"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制路径"
+          }
+        }
+      }
     },
     "复制进程信息" : {
       "extractionState" : "stale",
