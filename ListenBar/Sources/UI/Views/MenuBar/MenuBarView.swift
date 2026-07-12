@@ -64,6 +64,8 @@ struct MenuBarView: View {
             }
             .disabled(store.processGroups.isEmpty)
 
+            Divider()
+
             Menu {
                 ForEach(AutoRefreshMode.presets) { mode in
                     Button {
@@ -88,7 +90,7 @@ struct MenuBarView: View {
             }
 
             Toggle(
-                "开机启动",
+                "登录时打开",
                 isOn: Binding(
                     get: { store.launchAtLoginEnabled },
                     set: { store.send(.view(.setLaunchAtLogin($0))) }
@@ -97,7 +99,7 @@ struct MenuBarView: View {
             .toggleStyle(.checkbox)
 
             if store.launchAtLoginRequiresApproval {
-                Text("请在系统设置 > 通用 > 登录项中批准 ListenBar。")
+                Text("请前往“系统设置”>“通用”>“登录项”允许 ListenBar。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
@@ -108,15 +110,19 @@ struct MenuBarView: View {
                 }
             }
 
+            Divider()
+
             Button {
                 updaterController.checkForUpdates(nil)
             } label: {
-                Label("检查更新...", systemImage: "arrow.triangle.2.circlepath")
+                Label("检查更新…", systemImage: "arrow.triangle.2.circlepath")
             }
 
             Link(destination: URL(string: "https://github.com/ygsgdbd/ListenBar")!) {
                 Label("GitHub 仓库", systemImage: "chevron.left.forwardslash.chevron.right")
             }
+
+            Divider()
 
             Button {
                 store.send(.view(.quitTapped))
@@ -624,11 +630,11 @@ struct PortProcessSectionLabels: Equatable {
         }).count
         let portCount = groups.reduce(0) { $0 + $1.ports.count }
         return String(
-            format: String(localized: "%@（%lld 进程 · %lld 端口）", bundle: .main, comment: "进程分区标题，包含进程数和端口数。"),
+            format: String(localized: "%@（%@ · %@）", bundle: .main, comment: "进程分区标题，包含进程数和端口数。"),
             locale: Locale.current,
             classification.sectionTitle,
-            Int64(processCount),
-            Int64(portCount)
+            MenuCountLabels.processes(processCount),
+            MenuCountLabels.ports(portCount)
         )
     }
 }

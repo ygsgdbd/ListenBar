@@ -9,6 +9,20 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(AppFeature.State().autoRefreshMode, .onMenuOpen)
     }
 
+    func testMenuTitleCountsListeningProcessesAndPorts() {
+        let ports = [
+            PortEntry(networkProtocol: .tcp, address: "127.0.0.1", port: 3000, pid: 101, command: "node", user: "501"),
+            PortEntry(networkProtocol: .tcp, address: "127.0.0.1", port: 3001, pid: 101, command: "node", user: "501"),
+            PortEntry(networkProtocol: .tcp, address: "127.0.0.1", port: 5432, pid: 202, command: "postgres", user: "501"),
+        ]
+        let snapshot = makeSnapshot(ports)
+        var state = AppFeature.State()
+        state.ports = snapshot.ports
+        state.processGroups = snapshot.processGroups
+
+        XCTAssertEqual(state.title, "2 个监听进程 · 3 个端口")
+    }
+
     func testLaunchAtLoginLoadedUpdatesMenuState() async {
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
@@ -274,7 +288,7 @@ final class AppFeatureTests: XCTestCase {
     func testAutoRefreshModeUsesMacStyleIntervals() {
         XCTAssertEqual(
             AutoRefreshMode.presets.map(\.title),
-            ["打开时", "非常频繁（1 秒）", "频繁（2 秒）", "一般（5 秒）", "关闭"]
+            ["打开菜单时", "每 1 秒", "每 2 秒", "每 5 秒", "关闭"]
         )
         XCTAssertEqual(AutoRefreshMode.fixed(seconds: 1).seconds, 1)
         XCTAssertEqual(AutoRefreshMode.fixed(seconds: 2).seconds, 2)

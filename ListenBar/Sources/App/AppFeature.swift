@@ -52,12 +52,7 @@ struct AppFeature {
         }
 
         var title: String {
-            String(
-                format: String(localized: "监听进程 %lld · 端口 %lld", bundle: .main, comment: "菜单标题，显示监听进程和端口数量。"),
-                locale: Locale.current,
-                Int64(processGroups.count),
-                Int64(ports.count)
-            )
+            "\(MenuCountLabels.listeningProcesses(processGroups.count)) · \(MenuCountLabels.ports(ports.count))"
         }
     }
 
@@ -936,6 +931,32 @@ struct ApplicationQuitResult: Equatable, Sendable {
     }
 }
 
+enum MenuCountLabels {
+    static func listeningProcesses(_ count: Int) -> String {
+        localizedCount("%lld 个监听进程", count: count, comment: "监听进程数量。")
+    }
+
+    static func processes(_ count: Int) -> String {
+        localizedCount("%lld 个进程", count: count, comment: "进程数量。")
+    }
+
+    static func ports(_ count: Int) -> String {
+        localizedCount("%lld 个端口", count: count, comment: "端口数量。")
+    }
+
+    private static func localizedCount(
+        _ key: String.LocalizationValue,
+        count: Int,
+        comment: StaticString
+    ) -> String {
+        String(
+            format: String(localized: key, bundle: .main, comment: comment),
+            locale: Locale.current,
+            Int64(count)
+        )
+    }
+}
+
 enum AutoRefreshMode: Codable, Equatable, Identifiable, Sendable {
     case onMenuOpen
     case fixed(seconds: Int)
@@ -979,16 +1000,10 @@ enum AutoRefreshMode: Codable, Equatable, Identifiable, Sendable {
     var title: String {
         switch self {
         case .onMenuOpen:
-            return String(localized: "打开时", bundle: .main, comment: "每次打开菜单时自动刷新。")
-        case .fixed(seconds: 1):
-            return String(localized: "非常频繁（1 秒）", bundle: .main, comment: "每 1 秒自动刷新。")
-        case .fixed(seconds: 2):
-            return String(localized: "频繁（2 秒）", bundle: .main, comment: "每 2 秒自动刷新。")
-        case .fixed(seconds: 5):
-            return String(localized: "一般（5 秒）", bundle: .main, comment: "每 5 秒自动刷新。")
+            return String(localized: "打开菜单时", bundle: .main, comment: "每次打开菜单时自动刷新。")
         case let .fixed(seconds):
             return String(
-                format: String(localized: "每 %lld 秒", bundle: .main, comment: "自定义自动刷新间隔。"),
+                format: String(localized: "每 %lld 秒", bundle: .main, comment: "自动刷新间隔。"),
                 locale: Locale.current,
                 Int64(seconds)
             )

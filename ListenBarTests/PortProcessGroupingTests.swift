@@ -391,7 +391,11 @@ final class PortMenuLabelsTests: XCTestCase {
 
         XCTAssertEqual(
             PortProcessSectionLabels.title(classification: .user, groups: groups),
-            "用户进程（2 进程 · 3 端口）"
+            "当前用户（2 个进程 · 3 个端口）"
+        )
+        XCTAssertEqual(
+            PortProcessSectionLabels.title(classification: .systemOrOtherUser, groups: groups),
+            "系统与其他用户（2 个进程 · 3 个端口）"
         )
     }
 
