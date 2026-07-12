@@ -140,9 +140,9 @@ enum PortProcessClassification: Equatable, Sendable {
     var sectionTitle: String {
         switch self {
         case .user:
-            return String(localized: "用户进程", bundle: .main, comment: "当前用户进程列表分区标题。")
+            return String(localized: "当前用户", bundle: .main, comment: "当前用户进程列表分区标题。")
         case .systemOrOtherUser:
-            return String(localized: "系统/其他用户进程", bundle: .main, comment: "系统或其他用户进程列表分区标题。")
+            return String(localized: "系统与其他用户", bundle: .main, comment: "系统或其他用户进程列表分区标题。")
         }
     }
 }

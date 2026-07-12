@@ -137,19 +137,19 @@
         }
       }
     },
-    "%@（%lld 进程 · %lld 端口）" : {
-      "extractionState" : "stale",
+    "%@（%@ · %@）" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ (%lld processes · %lld ports)"
+            "value" : "%@ (%@ · %@)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@（%lld 进程 · %lld 端口）"
+            "value" : "%@（%@ · %@）"
           }
         }
       }
@@ -303,23 +303,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "VS Code"
-          }
-        }
-      }
-    },
-    "一般（5 秒）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Normal (5 Seconds)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "一般（5 秒）"
           }
         }
       }
@@ -882,19 +865,19 @@
         }
       }
     },
-    "打开时" : {
+    "打开菜单时" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "On Open"
+            "value" : "When Menu Opens"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开时"
+            "value" : "打开菜单时"
           }
         }
       }
@@ -1085,19 +1068,19 @@
         }
       }
     },
-    "检查更新..." : {
-      "extractionState" : "stale",
+    "检查更新…" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Check for Updates..."
+            "value" : "Check for Updates…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "检查更新..."
+            "value" : "检查更新…"
           }
         }
       }
@@ -1119,36 +1102,36 @@
         }
       }
     },
-    "开机启动" : {
+    "登录时打开" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Launch at Login"
+            "value" : "Open at Login"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开机启动"
+            "value" : "登录时打开"
           }
         }
       }
     },
-    "请在系统设置 > 通用 > 登录项中批准 ListenBar。" : {
+    "请前往“系统设置”>“通用”>“登录项”允许 ListenBar。" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Approve ListenBar in System Settings > General > Login Items."
+            "value" : "Allow ListenBar in System Settings > General > Login Items."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请在系统设置 > 通用 > 登录项中批准 ListenBar。"
+            "value" : "请前往“系统设置”>“通用”>“登录项”允许 ListenBar。"
           }
         }
       }
@@ -1170,36 +1153,106 @@
         }
       }
     },
-    "用户进程" : {
-      "extractionState" : "stale",
+    "当前用户" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "User processes"
+            "value" : "Current User"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "用户进程"
+            "value" : "当前用户"
           }
         }
       }
     },
-    "监听进程 %lld · 端口 %lld" : {
-      "extractionState" : "stale",
+    "%lld 个监听进程" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Listening processes %lld · Ports %lld"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Listening Process"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Listening Processes"
+                }
+              }
+            }
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "监听进程 %lld · 端口 %lld"
+            "value" : "%lld 个监听进程"
+          }
+        }
+      }
+    },
+    "%lld 个进程" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld process"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld processes"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个进程"
+          }
+        }
+      }
+    },
+    "%lld 个端口" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld port"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ports"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个端口"
           }
         }
       }
@@ -1238,19 +1291,19 @@
         }
       }
     },
-    "系统/其他用户进程" : {
-      "extractionState" : "stale",
+    "系统与其他用户" : {
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System/other user processes"
+            "value" : "System and Other Users"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "系统/其他用户进程"
+            "value" : "系统与其他用户"
           }
         }
       }
@@ -1523,40 +1576,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "部分退出请求发送失败"
-          }
-        }
-      }
-    },
-    "非常频繁（1 秒）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Very Often (1 Second)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "非常频繁（1 秒）"
-          }
-        }
-      }
-    },
-    "频繁（2 秒）" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Often (2 Seconds)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "频繁（2 秒）"
           }
         }
       }
