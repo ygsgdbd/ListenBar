@@ -6,7 +6,7 @@ let buildVersion = Environment.buildVersion.getString(default: "0")
 let project = Project(
     name: "ListenBar",
     options: .options(
-        defaultKnownRegions: ["zh-Hans", "en"],
+        defaultKnownRegions: ["zh-Hans", "zh-Hant", "en"],
         developmentRegion: "zh-Hans"
     ),
     packages: [
@@ -71,7 +71,7 @@ let project = Project(
                 "CFBundleDevelopmentRegion": "zh-Hans",
                 "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
                 "CFBundleInfoDictionaryVersion": "6.0",
-                "CFBundleLocalizations": ["zh-Hans", "en"],
+                "CFBundleLocalizations": ["zh-Hans", "zh-Hant", "en"],
                 "CFBundleName": "$(PRODUCT_NAME)",
                 "CFBundlePackageType": "APPL",
                 "LSApplicationCategoryType": "public.app-category.utilities",

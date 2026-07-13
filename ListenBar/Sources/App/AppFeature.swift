@@ -1302,7 +1302,7 @@ enum PortKillWarning: Equatable, Sendable {
     var message: String {
         switch self {
         case .forceKill:
-            return String(localized: "强制终止无法被进程优雅处理。", bundle: .main, comment: "发送 SIGKILL 前显示的警告。")
+            return String(localized: "SIGKILL 无法由进程处理。", bundle: .main, comment: "发送 SIGKILL 前显示的警告。")
         case .systemProcess:
             return String(localized: "这看起来是系统进程。", bundle: .main, comment: "终止系统进程前显示的警告。")
         case .appMainProcess:
