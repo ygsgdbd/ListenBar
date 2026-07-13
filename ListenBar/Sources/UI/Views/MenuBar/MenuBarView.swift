@@ -196,7 +196,7 @@ struct MenuBarView: View {
 
     private var emptyStateText: String {
         if store.isLoading {
-            return String(localized: "正在扫描...", bundle: .main, comment: "扫描端口时的空状态。")
+            return String(localized: "正在扫描…", bundle: .main, comment: "扫描端口时的空状态。")
         }
         return String(localized: "未发现监听端口", bundle: .main, comment: "没有发现监听端口时的空状态。")
     }

@@ -15,6 +15,12 @@
             "state" : "translated",
             "value" : "%@ · %lld 个进程 · 端口 %@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld 個程序 · 連接埠 %@"
+          }
         }
       }
     },
@@ -24,10 +30,16 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ · accepted %lld/%lld"
+            "value" : "%@ · %lld/%lld accepted"
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · 已接受 %lld/%lld"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ · 已接受 %lld/%lld"
@@ -41,10 +53,16 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ · succeeded %lld/%lld · %@"
+            "value" : "%@ · %lld/%lld succeeded · %@"
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · 成功 %lld/%lld · %@"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ · 成功 %lld/%lld · %@"
@@ -66,6 +84,12 @@
             "state" : "translated",
             "value" : "%@ (PID %lld) · %@ %@:%lld"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (PID %lld) · %@ %@:%lld"
+          }
         }
       }
     },
@@ -82,6 +106,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 将发送到 %@ (PID %lld)，目标为 %@。%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將傳送 %@ 至 %@ (PID %lld)，目標為 %@。%@"
           }
         }
       }
@@ -100,6 +130,12 @@
             "state" : "translated",
             "value" : "%@ 将发送到 %@ 的 %lld 个监听进程，端口为 %@。%@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將傳送 %@ 至 %@ 的 %lld 個監聽程序，連接埠為 %@。%@"
+          }
         }
       }
     },
@@ -117,6 +153,12 @@
             "state" : "translated",
             "value" : "%@ 的退出请求均未被接受。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的所有結束要求均未被接受。"
+          }
         }
       }
     },
@@ -126,13 +168,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Some quit requests for %@ were rejected: succeeded %lld/%lld."
+            "value" : "For %@, only %lld of %lld quit requests were accepted."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 的部分退出请求未被接受：成功 %lld/%lld。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的部分結束要求未被接受：成功 %lld/%lld。"
           }
         }
       }
@@ -147,6 +195,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（%@ · %@）"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@（%@ · %@）"
@@ -168,6 +222,12 @@
             "state" : "translated",
             "value" : "%lld 个子进程 · %@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 個子程序 · %@"
+          }
         }
       }
     },
@@ -181,6 +241,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "App"
@@ -202,6 +268,12 @@
             "state" : "translated",
             "value" : "Homebrew"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew"
+          }
         }
       }
     },
@@ -215,6 +287,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "launchd"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "launchd"
@@ -236,6 +314,12 @@
             "state" : "translated",
             "value" : "lsof 退出状态码：%d。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "lsof 結束狀態碼：%d。"
+          }
         }
       }
     },
@@ -249,6 +333,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MacPorts"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "MacPorts"
@@ -270,6 +360,12 @@
             "state" : "translated",
             "value" : "Nix"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nix"
+          }
         }
       }
     },
@@ -283,6 +379,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminal"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Terminal"
@@ -304,6 +406,12 @@
             "state" : "translated",
             "value" : "VS Code"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VS Code"
+          }
         }
       }
     },
@@ -320,6 +428,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不可用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法取得"
           }
         }
       }
@@ -338,6 +452,12 @@
             "state" : "translated",
             "value" : "仅本机"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅限本機"
+          }
         }
       }
     },
@@ -354,6 +474,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉"
           }
         }
       }
@@ -372,6 +498,12 @@
             "state" : "translated",
             "value" : "发送 %@ 失败"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳送 %@ 失敗"
+          }
         }
       }
     },
@@ -388,6 +520,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "发送强制退出请求失败"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳送強制結束要求失敗"
           }
         }
       }
@@ -406,6 +544,12 @@
             "state" : "translated",
             "value" : "发送退出请求失败"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳送結束要求失敗"
+          }
         }
       }
     },
@@ -419,6 +563,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
@@ -440,6 +590,12 @@
             "state" : "translated",
             "value" : "可执行文件"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可執行檔"
+          }
         }
       }
     },
@@ -456,6 +612,12 @@
             "state" : "translated",
             "value" : "在 Finder 中显示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Finder 中顯示"
+          }
         }
       }
     },
@@ -465,13 +627,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copy lsof command"
+            "value" : "Copy lsof Command"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制 lsof 命令"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製 lsof 指令"
           }
         }
       }
@@ -490,6 +658,12 @@
             "state" : "translated",
             "value" : "复制 PID (%@)"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製 PID (%@)"
+          }
         }
       }
     },
@@ -507,6 +681,12 @@
             "state" : "translated",
             "value" : "复制 URL"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製 URL"
+          }
         }
       }
     },
@@ -516,13 +696,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copy all ports"
+            "value" : "Copy All Ports"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制全部端口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製所有連接埠"
           }
         }
       }
@@ -533,13 +719,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copy launch command"
+            "value" : "Copy Launch Command"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制启动命令"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製啟動指令"
           }
         }
       }
@@ -558,6 +750,12 @@
             "state" : "translated",
             "value" : "复制完整信息"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製完整資訊"
+          }
         }
       }
     },
@@ -566,13 +764,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copy redacted launch command"
+            "value" : "Copy Redacted Launch Command"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制脱敏启动命令"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製已隱藏敏感資訊的啟動指令"
           }
         }
       }
@@ -589,6 +793,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制路径"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製路徑"
           }
         }
       }
@@ -607,6 +817,12 @@
             "state" : "translated",
             "value" : "复制进程信息"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製程序資訊"
+          }
         }
       }
     },
@@ -623,6 +839,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将强制退出 %@ 的所有运行实例。未保存的数据可能丢失。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將強制結束 %@ 的所有執行中實例。未儲存的資料可能會遺失。"
           }
         }
       }
@@ -641,6 +863,12 @@
             "state" : "translated",
             "value" : "已发送 %@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已傳送 %@"
+          }
         }
       }
     },
@@ -657,6 +885,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已发送强制退出请求"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已傳送強制結束要求"
           }
         }
       }
@@ -675,6 +909,12 @@
             "state" : "translated",
             "value" : "已发送退出请求"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已傳送結束要求"
+          }
         }
       }
     },
@@ -691,6 +931,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "常驻内存：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常駐記憶體：%@"
           }
         }
       }
@@ -709,6 +955,12 @@
             "state" : "translated",
             "value" : "强制终止 (SIGKILL)"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強制終止 (SIGKILL)"
+          }
         }
       }
     },
@@ -726,6 +978,12 @@
             "state" : "translated",
             "value" : "强制终止全部监听进程 (SIGKILL)"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強制終止所有監聽程序 (SIGKILL)"
+          }
         }
       }
     },
@@ -735,7 +993,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Force Terminate All Listening Processes…"
+            "value" : "Force Kill All Listening Processes…"
           }
         },
         "zh-Hans" : {
@@ -743,22 +1001,11 @@
             "state" : "translated",
             "value" : "强制终止全部监听进程…"
           }
-        }
-      }
-    },
-    "强制终止无法被进程优雅处理。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Force kill cannot be handled gracefully."
-          }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "强制终止无法被进程优雅处理。"
+            "value" : "強制終止所有監聽程序…"
           }
         }
       }
@@ -769,13 +1016,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Force Terminate Process…"
+            "value" : "Force Kill Process…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "强制终止进程…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強制終止程序…"
           }
         }
       }
@@ -794,6 +1047,12 @@
             "state" : "translated",
             "value" : "强制退出"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強制結束"
+          }
         }
       }
     },
@@ -810,6 +1069,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "强制退出 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強制結束 %@"
           }
         }
       }
@@ -828,6 +1093,12 @@
             "state" : "translated",
             "value" : "强制退出 %@…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強制結束 %@…"
+          }
         }
       }
     },
@@ -844,6 +1115,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有网络接口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有網路介面"
           }
         }
       }
@@ -862,6 +1139,12 @@
             "state" : "translated",
             "value" : "打开 localhost"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 localhost"
+          }
         }
       }
     },
@@ -879,6 +1162,12 @@
             "state" : "translated",
             "value" : "打开菜单时"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟選單時"
+          }
         }
       }
     },
@@ -892,6 +1181,12 @@
           }
         },
         "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每 %lld 秒"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "每 %lld 秒"
@@ -913,6 +1208,12 @@
             "state" : "translated",
             "value" : "指定网络接口"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指定網路介面"
+          }
         }
       }
     },
@@ -929,6 +1230,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无效的 PID：%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無效的 PID：%lld"
           }
         }
       }
@@ -947,6 +1254,12 @@
             "state" : "translated",
             "value" : "无法终止 PID %lld：%@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法終止 PID %lld：%@"
+          }
         }
       }
     },
@@ -964,6 +1277,12 @@
             "state" : "translated",
             "value" : "无法读取 lsof 输出。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法讀取 lsof 輸出。"
+          }
         }
       }
     },
@@ -972,13 +1291,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Updated at %@"
+            "value" : "Updated %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新于 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新於 %@"
           }
         }
       }
@@ -997,6 +1322,12 @@
             "state" : "translated",
             "value" : "未发现监听端口"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未發現監聽中的連接埠"
+          }
         }
       }
     },
@@ -1013,6 +1344,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未找到 %@ 的运行实例。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到 %@ 的執行中實例。"
           }
         }
       }
@@ -1031,6 +1368,12 @@
             "state" : "translated",
             "value" : "未知来源"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知來源"
+          }
         }
       }
     },
@@ -1047,6 +1390,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "来源：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "來源：%@"
           }
         }
       }
@@ -1065,6 +1414,12 @@
             "state" : "translated",
             "value" : "打开登录项设置"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟登入項目設定"
+          }
         }
       }
     },
@@ -1081,6 +1436,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "检查更新…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "檢查更新…"
           }
         }
       }
@@ -1099,6 +1460,12 @@
             "state" : "translated",
             "value" : "GitHub 仓库"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 儲存庫"
+          }
         }
       }
     },
@@ -1115,6 +1482,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录时打开"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登入時開啟"
           }
         }
       }
@@ -1133,22 +1506,11 @@
             "state" : "translated",
             "value" : "请前往“系统设置”>“通用”>“登录项”允许 ListenBar。"
           }
-        }
-      }
-    },
-    "正在扫描..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scanning..."
-          }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在扫描..."
+            "value" : "請前往「系統設定」>「一般」>「登入項目」允許 ListenBar。"
           }
         }
       }
@@ -1166,6 +1528,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "当前用户"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前使用者"
           }
         }
       }
@@ -1196,6 +1564,12 @@
             "state" : "translated",
             "value" : "%lld 个监听进程"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 個監聽程序"
+          }
         }
       }
     },
@@ -1224,6 +1598,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 个进程"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 個程序"
           }
         }
       }
@@ -1254,6 +1634,12 @@
             "state" : "translated",
             "value" : "%lld 个端口"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 個連接埠"
+          }
         }
       }
     },
@@ -1270,6 +1656,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "端口占用已变化，请重新确认。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連接埠所屬程序已變更，請重新確認。"
           }
         }
       }
@@ -1288,6 +1680,12 @@
             "state" : "translated",
             "value" : "系统"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統"
+          }
         }
       }
     },
@@ -1305,6 +1703,12 @@
             "state" : "translated",
             "value" : "系统与其他用户"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統與其他使用者"
+          }
         }
       }
     },
@@ -1314,13 +1718,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quit All Listening Processes (SIGTERM)"
+            "value" : "Terminate All Listening Processes (SIGTERM)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "终止全部监听进程 (SIGTERM)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終止所有監聽程序 (SIGTERM)"
           }
         }
       }
@@ -1339,6 +1749,12 @@
             "state" : "translated",
             "value" : "终止全部监听进程…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終止所有監聽程序…"
+          }
         }
       }
     },
@@ -1356,6 +1772,12 @@
             "state" : "translated",
             "value" : "终止进程"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終止程序"
+          }
         }
       }
     },
@@ -1365,13 +1787,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quit Process (SIGTERM)"
+            "value" : "Terminate Process (SIGTERM)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "终止进程 (SIGTERM)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終止程序 (SIGTERM)"
           }
         }
       }
@@ -1382,13 +1810,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auto refresh: %@"
+            "value" : "Auto Refresh: %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "自动刷新：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動重新整理：%@"
           }
         }
       }
@@ -1407,6 +1841,12 @@
             "state" : "translated",
             "value" : "这会影响 %lld 个进程。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這會影響 %lld 個程序。"
+          }
         }
       }
     },
@@ -1423,6 +1863,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这看起来是主应用进程。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這似乎是主 App 程序。"
           }
         }
       }
@@ -1441,22 +1887,11 @@
             "state" : "translated",
             "value" : "这看起来是系统进程。"
           }
-        }
-      }
-    },
-    "进程" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Processes"
-          }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "进程"
+            "value" : "這似乎是系統程序。"
           }
         }
       }
@@ -1475,6 +1910,12 @@
             "state" : "translated",
             "value" : "进程详情"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "程序詳細資訊"
+          }
         }
       }
     },
@@ -1491,6 +1932,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結束 %@"
           }
         }
       }
@@ -1509,6 +1956,12 @@
             "state" : "translated",
             "value" : "退出 ListenBar"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結束 ListenBar"
+          }
         }
       }
     },
@@ -1525,6 +1978,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "部分强制退出请求发送失败"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分強制結束要求傳送失敗"
           }
         }
       }
@@ -1543,6 +2002,12 @@
             "state" : "translated",
             "value" : "部分进程发送 %@ 失败"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分程序傳送 %@ 失敗"
+          }
         }
       }
     },
@@ -1560,6 +2025,12 @@
             "state" : "translated",
             "value" : "部分进程未能终止：%@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分程序未能終止：%@"
+          }
         }
       }
     },
@@ -1576,6 +2047,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "部分退出请求发送失败"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分結束要求傳送失敗"
+          }
+        }
+      }
+    },
+    "正在扫描…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在扫描…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在掃描…"
+          }
+        }
+      }
+    },
+    "SIGKILL 无法由进程处理。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SIGKILL cannot be handled by the process."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SIGKILL 无法由进程处理。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SIGKILL 無法由程序處理。"
           }
         }
       }
