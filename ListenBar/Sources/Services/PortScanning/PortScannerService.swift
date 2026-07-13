@@ -11,7 +11,7 @@ enum PortScannerError: LocalizedError, Equatable {
                 return String(
                     format: String(localized: "lsof 退出状态码：%d。", bundle: .main, comment: "lsof 非零退出且没有 stderr 时的兜底错误。"),
                     locale: Locale.current,
-                    status
+                    status,
                 )
             }
             return message
@@ -32,7 +32,7 @@ enum PortScannerService {
         "-sTCP:LISTEN",
         "-iUDP",
         "-F",
-        "pcunP"
+        "pcunP",
     ]
 
     static func scanListeningPorts() async throws -> [PortEntry] {
@@ -62,7 +62,7 @@ enum PortScannerService {
                     .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 throw PortScannerError.lsofFailed(
                     status: process.terminationStatus,
-                    message: message
+                    message: message,
                 )
             }
 
@@ -130,7 +130,7 @@ enum PortScannerService {
             port: endpoint.port,
             pid: pid,
             command: command,
-            user: process.user
+            user: process.user,
         )
     }
 

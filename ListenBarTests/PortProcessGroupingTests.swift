@@ -1,5 +1,5 @@
-import XCTest
 @testable import ListenBar
+import XCTest
 
 final class PortProcessGroupingTests: XCTestCase {
     func testApplicationGroupExposesBundleIdentifier() throws {
@@ -9,18 +9,18 @@ final class PortProcessGroupingTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example",
-            user: "501"
+            user: "501",
         )
         let metadata = [
             101: PortProcessMetadata(
                 bundleIdentifier: "com.example.App",
                 name: "Example",
-                path: "/Applications/Example.app"
-            )
+                path: "/Applications/Example.app",
+            ),
         ]
 
         let group = try XCTUnwrap(
-            PortProcessGroupingService.groups(for: [port], metadataByPID: metadata).first
+            PortProcessGroupingService.groups(for: [port], metadataByPID: metadata).first,
         )
 
         XCTAssertEqual(group.applicationBundleIdentifier, "com.example.App")
@@ -36,14 +36,14 @@ final class PortProcessGroupingTests: XCTestCase {
                 10: PortProcessMetadata(
                     bundleIdentifier: "com.example.App",
                     name: "Example",
-                    path: "/Applications/Example.app"
+                    path: "/Applications/Example.app",
                 ),
                 11: PortProcessMetadata(
                     bundleIdentifier: "com.example.App",
                     name: "Example",
-                    path: "/Applications/Example.app"
-                )
-            ]
+                    path: "/Applications/Example.app",
+                ),
+            ],
         )
 
         XCTAssertEqual(
@@ -54,9 +54,9 @@ final class PortProcessGroupingTests: XCTestCase {
                     displayName: "Example",
                     subtitle: "3000, 3001",
                     icon: .application(path: "/Applications/Example.app"),
-                    ports: [secondPort, firstPort]
-                )
-            ]
+                    ports: [secondPort, firstPort],
+                ),
+            ],
         )
     }
 
@@ -66,7 +66,7 @@ final class PortProcessGroupingTests: XCTestCase {
 
         let groups = PortProcessGroupingService.groups(
             for: [secondPort, firstPort],
-            metadataByPID: [:]
+            metadataByPID: [:],
         )
 
         XCTAssertEqual(groups.map(\.id), ["process:10:node", "process:11:node"])
@@ -83,8 +83,8 @@ final class PortProcessGroupingTests: XCTestCase {
             for: [secondPort, firstPort],
             metadataByPID: [
                 10: .executable(name: "node", path: "/opt/homebrew/bin/node"),
-                11: .executable(name: "node", path: "/Users/example/.local/bin/node")
-            ]
+                11: .executable(name: "node", path: "/Users/example/.local/bin/node"),
+            ],
         )
 
         XCTAssertEqual(
@@ -95,16 +95,16 @@ final class PortProcessGroupingTests: XCTestCase {
                     displayName: "node (PID 10)",
                     subtitle: "3000",
                     icon: .executable(path: "/opt/homebrew/bin/node"),
-                    ports: [firstPort]
+                    ports: [firstPort],
                 ),
                 PortProcessGroup(
                     id: "process:11:node",
                     displayName: "node (PID 11)",
                     subtitle: "3001",
                     icon: .executable(path: "/Users/example/.local/bin/node"),
-                    ports: [secondPort]
-                )
-            ]
+                    ports: [secondPort],
+                ),
+            ],
         )
     }
 
@@ -112,7 +112,7 @@ final class PortProcessGroupingTests: XCTestCase {
         let helperPort = port(
             port: 61305,
             pid: 22749,
-            command: "GitHub Desktop Helper (Renderer"
+            command: "GitHub Desktop Helper (Renderer",
         )
 
         let groups = PortProcessGroupingService.groups(
@@ -122,9 +122,9 @@ final class PortProcessGroupingTests: XCTestCase {
                     bundleIdentifier: "com.github.GitHubClient",
                     name: "GitHub Desktop",
                     path: "/Applications/GitHub Desktop.app",
-                    processDetailName: "Helper (Renderer)"
-                )
-            ]
+                    processDetailName: "Helper (Renderer)",
+                ),
+            ],
         )
 
         XCTAssertEqual(
@@ -136,9 +136,9 @@ final class PortProcessGroupingTests: XCTestCase {
                     subtitle: "Helper (Renderer) · 61305",
                     icon: .application(path: "/Applications/GitHub Desktop.app"),
                     ports: [helperPort],
-                    portProcessDetails: [helperPort.id: "Helper (Renderer)"]
-                )
-            ]
+                    portProcessDetails: [helperPort.id: "Helper (Renderer)"],
+                ),
+            ],
         )
     }
 
@@ -146,12 +146,12 @@ final class PortProcessGroupingTests: XCTestCase {
         let rendererPort = port(
             port: 61305,
             pid: 20,
-            command: "GitHub Desktop Helper (Renderer)"
+            command: "GitHub Desktop Helper (Renderer)",
         )
         let gpuPort = port(
             port: 61306,
             pid: 21,
-            command: "GitHub Desktop Helper (GPU)"
+            command: "GitHub Desktop Helper (GPU)",
         )
 
         let groups = PortProcessGroupingService.groups(
@@ -161,15 +161,15 @@ final class PortProcessGroupingTests: XCTestCase {
                     bundleIdentifier: "com.github.GitHubClient",
                     name: "GitHub Desktop",
                     path: "/Applications/GitHub Desktop.app",
-                    processDetailName: "Helper (Renderer)"
+                    processDetailName: "Helper (Renderer)",
                 ),
                 21: PortProcessMetadata(
                     bundleIdentifier: "com.github.GitHubClient",
                     name: "GitHub Desktop",
                     path: "/Applications/GitHub Desktop.app",
-                    processDetailName: "Helper (GPU)"
-                )
-            ]
+                    processDetailName: "Helper (GPU)",
+                ),
+            ],
         )
 
         XCTAssertEqual(groups.count, 1)
@@ -181,8 +181,8 @@ final class PortProcessGroupingTests: XCTestCase {
             groups.first?.portProcessDetails,
             [
                 rendererPort.id: "Helper (Renderer)",
-                gpuPort.id: "Helper (GPU)"
-            ]
+                gpuPort.id: "Helper (GPU)",
+            ],
         )
     }
 
@@ -190,7 +190,7 @@ final class PortProcessGroupingTests: XCTestCase {
         let ports = [
             port(networkProtocol: .tcp, port: 3001, pid: 10, command: "node"),
             port(networkProtocol: .udp, port: 3000, pid: 10, command: "node"),
-            port(networkProtocol: .tcp, port: 3000, pid: 10, command: "node")
+            port(networkProtocol: .tcp, port: 3000, pid: 10, command: "node"),
         ]
 
         let groups = PortProcessGroupingService.groups(for: ports, metadataByPID: [:])
@@ -219,15 +219,15 @@ final class PortProcessGroupingTests: XCTestCase {
                     bundleIdentifier: "com.example.App",
                     name: "Example",
                     path: "/Applications/Example.app",
-                    classification: .user
+                    classification: .user,
                 ),
                 11: PortProcessMetadata(
                     bundleIdentifier: "com.example.App",
                     name: "Example",
                     path: "/Applications/Example.app",
-                    classification: .systemOrOtherUser
-                )
-            ]
+                    classification: .systemOrOtherUser,
+                ),
+            ],
         )
 
         XCTAssertEqual(groups.count, 1)
@@ -240,7 +240,7 @@ final class PortProcessGroupingTests: XCTestCase {
         port: Int,
         pid: Int,
         command: String,
-        user: String = "501"
+        user: String = "501",
     ) -> PortEntry {
         PortEntry(
             networkProtocol: networkProtocol,
@@ -248,7 +248,7 @@ final class PortProcessGroupingTests: XCTestCase {
             port: port,
             pid: pid,
             command: command,
-            user: user
+            user: user,
         )
     }
 }
@@ -285,18 +285,18 @@ final class PortMenuLabelsTests: XCTestCase {
         let port = self.port(
             port: 61305,
             pid: 22749,
-            command: "GitHub Desktop Helper (Renderer"
+            command: "GitHub Desktop Helper (Renderer",
         )
         let labels = PortMenuLabels(
             port: port,
             showsPID: true,
-            processName: "Helper (Renderer)"
+            processName: "Helper (Renderer)",
         )
 
         XCTAssertEqual(labels.title, "127.0.0.1:61305")
         XCTAssertEqual(
             labels.subtitle,
-            "TCP · 仅本机 · PID 22749 · Helper (Renderer)"
+            "TCP · 仅本机 · PID 22749 · Helper (Renderer)",
         )
     }
 
@@ -313,11 +313,11 @@ final class PortMenuLabelsTests: XCTestCase {
     func testLabelsClassifyIPv6LoopbackAndWildcard() {
         let loopbackLabels = PortMenuLabels(
             port: port(address: "[::1]", port: 9090, pid: 1),
-            showsPID: false
+            showsPID: false,
         )
         let wildcardLabels = PortMenuLabels(
             port: port(address: "[::]", port: 9091, pid: 2),
-            showsPID: false
+            showsPID: false,
         )
 
         XCTAssertEqual(loopbackLabels.title, "[::1]:9090")
@@ -340,7 +340,7 @@ final class PortMenuLabelsTests: XCTestCase {
             networkProtocol: .udp,
             address: "*",
             port: 5353,
-            pid: 51487
+            pid: 51487,
         )
         let labels = PortMenuLabels(port: port, showsPID: false)
 
@@ -360,8 +360,8 @@ final class PortMenuLabelsTests: XCTestCase {
                 redactedCommandLine: "/opt/homebrew/bin/node server.js",
                 redactedCommandLineSummary: "/opt/homebrew/bin/node server.js",
                 residentMemoryBytes: 5_452_595,
-                sources: [.executable, .homebrew, .visualStudioCode]
-            )
+                sources: [.executable, .homebrew, .visualStudioCode],
+            ),
         )
 
         XCTAssertTrue(labels.hasDetails)
@@ -386,16 +386,16 @@ final class PortMenuLabelsTests: XCTestCase {
         let third = self.port(port: 5432, pid: 202, command: "postgres")
         let groups = PortProcessGroupingService.groups(
             for: [first, second, third],
-            metadataByPID: [:]
+            metadataByPID: [:],
         )
 
         XCTAssertEqual(
             PortProcessSectionLabels.title(classification: .user, groups: groups),
-            "当前用户（2 个进程 · 3 个端口）"
+            "当前用户（2 个进程 · 3 个端口）",
         )
         XCTAssertEqual(
             PortProcessSectionLabels.title(classification: .systemOrOtherUser, groups: groups),
-            "系统与其他用户（2 个进程 · 3 个端口）"
+            "系统与其他用户（2 个进程 · 3 个端口）",
         )
     }
 
@@ -405,12 +405,12 @@ final class PortMenuLabelsTests: XCTestCase {
             101: PortProcessMetadata.executable(
                 name: "node",
                 path: "/opt/homebrew/bin/node",
-                sources: [.executable, .homebrew]
-            )
+                sources: [.executable, .homebrew],
+            ),
         ]
         let groups = PortProcessGroupingService.groups(
             for: [port],
-            metadataByPID: metadata
+            metadataByPID: metadata,
         )
 
         XCTAssertEqual(
@@ -418,7 +418,7 @@ final class PortMenuLabelsTests: XCTestCase {
             """
             group 'node (PID 101)' processes=1 ports=1 source='可执行文件 • Homebrew'
             TCP 127.0.0.1 3000 pid=101 command=node source='可执行文件 • Homebrew' url=http://localhost:3000 path=/opt/homebrew/bin/node
-            """
+            """,
         )
     }
 
@@ -427,7 +427,7 @@ final class PortMenuLabelsTests: XCTestCase {
         let postgresPort = self.port(port: 5432, pid: 202, command: "postgres")
         let groups = PortProcessGroupingService.groups(
             for: [postgresPort, nodePort],
-            metadataByPID: [:]
+            metadataByPID: [:],
         )
         let nodeGroup = try XCTUnwrap(groups.first { $0.ports.contains(nodePort) })
 
@@ -436,7 +436,7 @@ final class PortMenuLabelsTests: XCTestCase {
             """
             group 'node (PID 101)' processes=1 ports=1 source=未知来源
             TCP 127.0.0.1 3000 pid=101 command=node url=http://localhost:3000
-            """
+            """,
         )
     }
 
@@ -449,11 +449,11 @@ final class PortMenuLabelsTests: XCTestCase {
                 address: "*",
                 port: 5000,
                 pid: 101,
-                command: "node"
-            )
+                command: "node",
+            ),
         ]
         let group = try XCTUnwrap(
-            PortProcessGroupingService.groups(for: ports, metadataByPID: [:]).first
+            PortProcessGroupingService.groups(for: ports, metadataByPID: [:]).first,
         )
 
         XCTAssertEqual(PortListFormatter.portsText(group: group), "5000 7000")
@@ -466,7 +466,7 @@ final class PortMenuLabelsTests: XCTestCase {
             address: "*",
             port: 5353,
             pid: 63759,
-            command: "adb"
+            command: "adb",
         )
         let metadata = [
             63759: PortProcessMetadata.executable(
@@ -474,30 +474,30 @@ final class PortMenuLabelsTests: XCTestCase {
                 path: "/Users/rainbow/Library/Android/sdk/platform-tools/adb",
                 commandLine: "adb -L tcp:5037 fork-server server --reply-fd 4",
                 commandLineSummary: "adb -L tcp:5037 fork-server server --reply-fd 4",
-                sources: [.executable, .launchd]
-            )
+                sources: [.executable, .launchd],
+            ),
         ]
         let group = try XCTUnwrap(
             PortProcessGroupingService.groups(
                 for: [secondPort, firstPort],
-                metadataByPID: metadata
-            ).first
+                metadataByPID: metadata,
+            ).first,
         )
 
         let items = PortProcessInfoItems(
             group: group,
-            metadataByPID: metadata
+            metadataByPID: metadata,
         )
 
         XCTAssertEqual(items.items.map(\.pid), [63759])
         XCTAssertEqual(items.singleItem?.title, "PID 63759")
         XCTAssertEqual(
             items.singleItem?.labels.path,
-            "/Users/rainbow/Library/Android/sdk/platform-tools/adb"
+            "/Users/rainbow/Library/Android/sdk/platform-tools/adb",
         )
         XCTAssertEqual(
             items.singleItem?.labels.commandLineSummary,
-            "adb -L tcp:5037 fork-server server --reply-fd 4"
+            "adb -L tcp:5037 fork-server server --reply-fd 4",
         )
     }
 
@@ -505,12 +505,12 @@ final class PortMenuLabelsTests: XCTestCase {
         let rendererPort = self.port(
             port: 61305,
             pid: 20,
-            command: "GitHub Desktop Helper (Renderer)"
+            command: "GitHub Desktop Helper (Renderer)",
         )
         let gpuPort = self.port(
             port: 61306,
             pid: 21,
-            command: "GitHub Desktop Helper (GPU)"
+            command: "GitHub Desktop Helper (GPU)",
         )
         let metadata = [
             20: PortProcessMetadata(
@@ -520,7 +520,7 @@ final class PortMenuLabelsTests: XCTestCase {
                 processDetailName: "Helper (Renderer)",
                 executablePath: "/Applications/GitHub Desktop.app/Contents/Frameworks/GitHub Desktop Helper (Renderer).app/Contents/MacOS/GitHub Desktop Helper (Renderer)",
                 commandLine: "renderer --type=renderer",
-                commandLineSummary: "renderer --type=renderer"
+                commandLineSummary: "renderer --type=renderer",
             ),
             21: PortProcessMetadata(
                 bundleIdentifier: "com.github.GitHubClient",
@@ -529,19 +529,19 @@ final class PortMenuLabelsTests: XCTestCase {
                 processDetailName: "Helper (GPU)",
                 executablePath: "/Applications/GitHub Desktop.app/Contents/Frameworks/GitHub Desktop Helper (GPU).app/Contents/MacOS/GitHub Desktop Helper (GPU)",
                 commandLine: "gpu --type=gpu-process",
-                commandLineSummary: "gpu --type=gpu-process"
-            )
+                commandLineSummary: "gpu --type=gpu-process",
+            ),
         ]
         let group = try XCTUnwrap(
             PortProcessGroupingService.groups(
                 for: [gpuPort, rendererPort],
-                metadataByPID: metadata
-            ).first
+                metadataByPID: metadata,
+            ).first,
         )
 
         let items = PortProcessInfoItems(
             group: group,
-            metadataByPID: metadata
+            metadataByPID: metadata,
         )
 
         XCTAssertNil(items.singleItem)
@@ -550,15 +550,15 @@ final class PortMenuLabelsTests: XCTestCase {
             items.items.map(\.title),
             [
                 "Helper (Renderer) · PID 20",
-                "Helper (GPU) · PID 21"
-            ]
+                "Helper (GPU) · PID 21",
+            ],
         )
         XCTAssertEqual(
             items.items.map(\.labels.commandLineSummary),
             [
                 "renderer --type=renderer",
-                "gpu --type=gpu-process"
-            ]
+                "gpu --type=gpu-process",
+            ],
         )
     }
 
@@ -568,18 +568,18 @@ final class PortMenuLabelsTests: XCTestCase {
             for: port,
             processName: nil,
             uid: nil,
-            residentMemoryBytes: nil
+            residentMemoryBytes: nil,
         )
         let group = try XCTUnwrap(
             PortProcessGroupingService.groups(
                 for: [port],
-                metadataByPID: [port.pid: metadata]
-            ).first
+                metadataByPID: [port.pid: metadata],
+            ).first,
         )
 
         let items = PortProcessInfoItems(
             group: group,
-            metadataByPID: [port.pid: metadata]
+            metadataByPID: [port.pid: metadata],
         )
 
         XCTAssertEqual(items.items.map(\.pid), [port.pid])
@@ -593,13 +593,13 @@ final class PortMenuLabelsTests: XCTestCase {
         let group = try XCTUnwrap(
             PortProcessGroupingService.groups(
                 for: [firstPort, secondPort],
-                metadataByPID: [:]
-            ).first
+                metadataByPID: [:],
+            ).first,
         )
 
         let items = PortProcessInfoItems(
             group: group,
-            metadataByPID: [:]
+            metadataByPID: [:],
         )
 
         XCTAssertEqual(items.items.map(\.pid), [10])
@@ -611,7 +611,7 @@ final class PortMenuLabelsTests: XCTestCase {
         let item = PortProcessInfoItem(
             pid: 51_487,
             title: "PID 51487",
-            labels: PortProcessInfoLabels(metadata: nil)
+            labels: PortProcessInfoLabels(metadata: nil),
         )
 
         XCTAssertEqual(item.copyPIDTitle, "复制 PID (51487)")
@@ -633,8 +633,8 @@ final class PortMenuLabelsTests: XCTestCase {
             metadata: PortProcessMetadata(
                 bundleIdentifier: "com.example.App",
                 name: "Example",
-                path: nil
-            )
+                path: nil,
+            ),
         )
 
         XCTAssertTrue(labels.hasDetails)
@@ -649,7 +649,7 @@ final class PortMenuLabelsTests: XCTestCase {
         address: String = "127.0.0.1",
         port: Int,
         pid: Int,
-        command: String = "Example"
+        command: String = "Example",
     ) -> PortEntry {
         PortEntry(
             networkProtocol: networkProtocol,
@@ -657,7 +657,7 @@ final class PortMenuLabelsTests: XCTestCase {
             port: port,
             pid: pid,
             command: command,
-            user: "501"
+            user: "501",
         )
     }
 }

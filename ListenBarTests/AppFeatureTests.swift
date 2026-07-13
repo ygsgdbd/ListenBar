@@ -1,7 +1,7 @@
 import AppKit
 import ComposableArchitecture
-import XCTest
 @testable import ListenBar
+import XCTest
 
 @MainActor
 final class AppFeatureTests: XCTestCase {
@@ -91,8 +91,8 @@ final class AppFeatureTests: XCTestCase {
                 port: 8080,
                 pid: 123,
                 command: "node",
-                user: "501"
-            )
+                user: "501",
+            ),
         ]
         let snapshot = makeSnapshot(ports)
 
@@ -126,8 +126,8 @@ final class AppFeatureTests: XCTestCase {
                 port: 8080,
                 pid: 456,
                 command: "miniserve",
-                user: "501"
-            )
+                user: "501",
+            ),
         ]
         let snapshot = makeSnapshot(ports)
 
@@ -167,8 +167,8 @@ final class AppFeatureTests: XCTestCase {
                 port: 8080,
                 pid: 456,
                 command: "miniserve",
-                user: "501"
-            )
+                user: "501",
+            ),
         ]
         let snapshot = makeSnapshot(ports)
 
@@ -201,7 +201,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let refreshedPort = PortEntry(
             networkProtocol: .tcp,
@@ -209,7 +209,7 @@ final class AppFeatureTests: XCTestCase {
             port: 8080,
             pid: 202,
             command: "miniserve",
-            user: "501"
+            user: "501",
         )
         var initialState = AppFeature.State()
         initialState.isLoading = true
@@ -238,7 +238,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let refreshedPort = PortEntry(
             networkProtocol: .tcp,
@@ -246,7 +246,7 @@ final class AppFeatureTests: XCTestCase {
             port: 8080,
             pid: 202,
             command: "miniserve",
-            user: "501"
+            user: "501",
         )
         let snapshot = makeSnapshot([refreshedPort])
         var initialState = AppFeature.State()
@@ -288,7 +288,7 @@ final class AppFeatureTests: XCTestCase {
     func testAutoRefreshModeUsesMacStyleIntervals() {
         XCTAssertEqual(
             AutoRefreshMode.presets.map(\.title),
-            ["打开菜单时", "每 1 秒", "每 2 秒", "每 5 秒", "关闭"]
+            ["打开菜单时", "每 1 秒", "每 2 秒", "每 5 秒", "关闭"],
         )
         XCTAssertEqual(AutoRefreshMode.fixed(seconds: 1).seconds, 1)
         XCTAssertEqual(AutoRefreshMode.fixed(seconds: 2).seconds, 2)
@@ -335,7 +335,7 @@ final class AppFeatureTests: XCTestCase {
             port: 8080,
             pid: 456,
             command: "miniserve",
-            user: "501"
+            user: "501",
         )
         let snapshot = makeSnapshot([port])
         var initialState = AppFeature.State()
@@ -368,7 +368,7 @@ final class AppFeatureTests: XCTestCase {
             port: 5037,
             pid: 63759,
             command: "adb",
-            user: "501"
+            user: "501",
         )
         var initialState = AppFeature.State()
         initialState.isLoading = true
@@ -402,7 +402,7 @@ final class AppFeatureTests: XCTestCase {
             port: 5037,
             pid: 63759,
             command: "adb",
-            user: "501"
+            user: "501",
         )
         var initialState = AppFeature.State()
         initialState.isLoading = true
@@ -416,7 +416,7 @@ final class AppFeatureTests: XCTestCase {
         let failure = PortKillerFailure(message: "permission denied")
         let result = PortKillResult.failure(
             request: PortKillRequest(port: port, mode: .quit),
-            failure: failure
+            failure: failure,
         )
 
         await store.send(.response(.portKillFinished(result))) {
@@ -438,7 +438,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let refreshedPort = PortEntry(
             networkProtocol: .tcp,
@@ -446,7 +446,7 @@ final class AppFeatureTests: XCTestCase {
             port: 8080,
             pid: 202,
             command: "miniserve",
-            user: "501"
+            user: "501",
         )
         let refreshedSnapshot = makeSnapshot([refreshedPort])
         var initialState = AppFeature.State()
@@ -463,7 +463,7 @@ final class AppFeatureTests: XCTestCase {
         let result = PortKillResult.aborted(
             request: PortKillRequest(port: oldPort, mode: .quit),
             refreshedSnapshot: refreshedSnapshot,
-            failure: .staleTarget
+            failure: .staleTarget,
         )
 
         await store.send(.response(.portKillFinished(result))) {
@@ -489,7 +489,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let refreshedPort = PortEntry(
             networkProtocol: .tcp,
@@ -497,7 +497,7 @@ final class AppFeatureTests: XCTestCase {
             port: 8080,
             pid: 202,
             command: "miniserve",
-            user: "501"
+            user: "501",
         )
         let initialSnapshot = makeSnapshot([oldPort])
         let refreshedSnapshot = makeSnapshot([refreshedPort])
@@ -511,10 +511,10 @@ final class AppFeatureTests: XCTestCase {
             request: PortGroupKillRequest(
                 group: group,
                 mode: .quit,
-                metadataByPID: initialState.metadataByPID
+                metadataByPID: initialState.metadataByPID,
             ),
             failures: [.init(pid: 0, message: PortKillerFailure.staleTarget.message)],
-            refreshedSnapshot: refreshedSnapshot
+            refreshedSnapshot: refreshedSnapshot,
         )
 
         let store = TestStore(initialState: initialState) {
@@ -546,7 +546,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let secondPort = PortEntry(
             networkProtocol: .tcp,
@@ -554,7 +554,7 @@ final class AppFeatureTests: XCTestCase {
             port: 8080,
             pid: 202,
             command: "miniserve",
-            user: "501"
+            user: "501",
         )
         let firstSnapshot = makeSnapshot([firstPort])
         let secondSnapshot = makeSnapshot([secondPort])
@@ -596,7 +596,7 @@ final class AppFeatureTests: XCTestCase {
             port: 5037,
             pid: 63759,
             command: "adb",
-            user: "501"
+            user: "501",
         )
         var initialState = AppFeature.State()
         initialState.ports = [oldPort]
@@ -632,18 +632,18 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertTrue(
             MenuBarView.isRootMenuTrackingNotification(
-                Notification(name: NSMenu.didBeginTrackingNotification, object: rootMenu)
-            )
+                Notification(name: NSMenu.didBeginTrackingNotification, object: rootMenu),
+            ),
         )
         XCTAssertFalse(
             MenuBarView.isRootMenuTrackingNotification(
-                Notification(name: NSMenu.didEndTrackingNotification, object: submenu)
-            )
+                Notification(name: NSMenu.didEndTrackingNotification, object: submenu),
+            ),
         )
         XCTAssertFalse(
             MenuBarView.isRootMenuTrackingNotification(
-                Notification(name: NSMenu.didEndTrackingNotification, object: NSObject())
-            )
+                Notification(name: NSMenu.didEndTrackingNotification, object: NSObject()),
+            ),
         )
     }
 
@@ -666,29 +666,29 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let group = try XCTUnwrap(makeSnapshot([port]).processGroups.first)
 
         XCTAssertFalse(
             PortKillRequest(port: port, mode: .quit)
                 .confirmation(warnings: [.systemProcess])
-                .isDestructive
+                .isDestructive,
         )
         XCTAssertTrue(
             PortKillRequest(port: port, mode: .force)
                 .confirmation(warnings: [.forceKill])
-                .isDestructive
+                .isDestructive,
         )
         XCTAssertFalse(
             PortGroupKillRequest(group: group, mode: .quit)
                 .confirmation(warnings: [.multipleProcesses(1)])
-                .isDestructive
+                .isDestructive,
         )
         XCTAssertTrue(
             PortGroupKillRequest(group: group, mode: .force)
                 .confirmation(warnings: [.forceKill])
-                .isDestructive
+                .isDestructive,
         )
     }
 
@@ -699,7 +699,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let refreshedPort = PortEntry(
             networkProtocol: .tcp,
@@ -707,7 +707,7 @@ final class AppFeatureTests: XCTestCase {
             port: 4000,
             pid: 202,
             command: "server",
-            user: "501"
+            user: "501",
         )
         let now = Date(timeIntervalSince1970: 3_000)
         let recorder = KillRecorder()
@@ -760,7 +760,7 @@ final class AppFeatureTests: XCTestCase {
             port: 5037,
             pid: 63759,
             command: "adb",
-            user: "501"
+            user: "501",
         )
         var initialState = AppFeature.State()
         initialState.ports = [oldPort]
@@ -792,7 +792,7 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.processGroups, initialState.processGroups)
         let failureResult = PortKillResult.failure(
             request: PortKillRequest(port: oldPort, mode: .quit),
-            failure: .init(message: "permission denied")
+            failure: .init(message: "permission denied"),
         )
         let notifications = await notificationRecorder.values()
         XCTAssertEqual(notifications, [failureResult.notification])
@@ -805,7 +805,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let recorder = KillRecorder()
         let confirmationRecorder = ConfirmationRecorder(result: true)
@@ -859,13 +859,13 @@ final class AppFeatureTests: XCTestCase {
             port: 22,
             pid: 222,
             command: "sshd",
-            user: "0"
+            user: "0",
         )
         let metadata = [
             port.pid: PortProcessMetadata.executable(
                 name: "sshd",
-                path: "/usr/sbin/sshd"
-            )
+                path: "/usr/sbin/sshd",
+            ),
         ]
         var initialState = AppFeature.State()
         initialState.metadataByPID = metadata
@@ -884,7 +884,7 @@ final class AppFeatureTests: XCTestCase {
             port: port,
             mode: .quit,
             processName: "sshd",
-            expectedExecutablePath: "/usr/sbin/sshd"
+            expectedExecutablePath: "/usr/sbin/sshd",
         )
         await store.send(.view(.killPortTapped(port, .quit)))
         await store.receive(.portKillConfirmationResponse(request, confirmed: false))
@@ -899,14 +899,14 @@ final class AppFeatureTests: XCTestCase {
             port: 14013,
             pid: 333,
             command: "WeChat",
-            user: "501"
+            user: "501",
         )
         let metadata = [
             port.pid: PortProcessMetadata(
                 bundleIdentifier: "com.tencent.xinWeChat",
                 name: "WeChat",
-                path: "/Applications/WeChat.app"
-            )
+                path: "/Applications/WeChat.app",
+            ),
         ]
         var initialState = AppFeature.State()
         initialState.metadataByPID = metadata
@@ -925,7 +925,7 @@ final class AppFeatureTests: XCTestCase {
             port: port,
             mode: .quit,
             processName: "WeChat",
-            expectedExecutablePath: "/Applications/WeChat.app"
+            expectedExecutablePath: "/Applications/WeChat.app",
         )
         await store.send(.view(.killPortTapped(port, .quit)))
         await store.receive(.portKillConfirmationResponse(request, confirmed: false))
@@ -943,7 +943,7 @@ final class AppFeatureTests: XCTestCase {
                 commandLine: "Example --port 3000",
                 commandLineSummary: "Example --port 3000",
                 redactedCommandLine: "Example --port 3000",
-                redactedCommandLineSummary: "Example --port 3000"
+                redactedCommandLineSummary: "Example --port 3000",
             ),
             102: PortProcessMetadata.executable(
                 name: "node",
@@ -951,29 +951,29 @@ final class AppFeatureTests: XCTestCase {
                 commandLine: "node server.js",
                 commandLineSummary: "node server.js",
                 redactedCommandLine: "node server.js",
-                redactedCommandLineSummary: "node server.js"
-            )
+                redactedCommandLineSummary: "node server.js",
+            ),
         ]
 
         XCTAssertEqual(
             AppFeature.processPath(forPID: 101, metadataByPID: metadata),
-            "/Applications/Example.app/Contents/MacOS/Example"
+            "/Applications/Example.app/Contents/MacOS/Example",
         )
         XCTAssertEqual(
             AppFeature.commandLine(forPID: 101, metadataByPID: metadata),
-            "Example --port 3000"
+            "Example --port 3000",
         )
         XCTAssertEqual(
             AppFeature.processPath(forPID: 102, metadataByPID: metadata),
-            "/opt/homebrew/bin/node"
+            "/opt/homebrew/bin/node",
         )
         XCTAssertEqual(
             AppFeature.commandLine(forPID: 102, metadataByPID: metadata),
-            "node server.js"
+            "node server.js",
         )
         XCTAssertEqual(
             AppFeature.redactedCommandLine(forPID: 102, metadataByPID: metadata),
-            "node server.js"
+            "node server.js",
         )
         XCTAssertNil(AppFeature.processPath(forPID: 999, metadataByPID: metadata))
         XCTAssertNil(AppFeature.commandLine(forPID: 999, metadataByPID: metadata))
@@ -987,7 +987,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let newPort = PortEntry(
             networkProtocol: .tcp,
@@ -995,7 +995,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 202,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let refreshedSnapshot = makeSnapshot([newPort])
         let recorder = KillRecorder()
@@ -1040,9 +1040,9 @@ final class AppFeatureTests: XCTestCase {
                 PortKillResult.aborted(
                     request: request,
                     refreshedSnapshot: refreshedSnapshot,
-                    failure: .staleTarget
-                ).notification
-            ]
+                    failure: .staleTarget,
+                ).notification,
+            ],
         )
     }
 
@@ -1053,19 +1053,19 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let oldMetadata = [
             101: PortProcessMetadata.executable(
                 name: "node",
-                path: "/opt/homebrew/bin/node"
-            )
+                path: "/opt/homebrew/bin/node",
+            ),
         ]
         let newMetadata = [
             101: PortProcessMetadata.executable(
                 name: "node",
-                path: "/Users/example/bin/node"
-            )
+                path: "/Users/example/bin/node",
+            ),
         ]
         let refreshedSnapshot = makeSnapshot([port], metadata: newMetadata)
         var initialState = AppFeature.State()
@@ -1087,7 +1087,7 @@ final class AppFeatureTests: XCTestCase {
             port: port,
             mode: .quit,
             processName: "node",
-            expectedExecutablePath: "/opt/homebrew/bin/node"
+            expectedExecutablePath: "/opt/homebrew/bin/node",
         )
         await store.send(.view(.killPortTapped(port, .quit))) {
             $0.isLoading = true
@@ -1112,7 +1112,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let snapshot = makeSnapshot([port])
 
@@ -1212,7 +1212,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let snapshot = makeSnapshot([port])
         var initialState = AppFeature.State()
@@ -1263,7 +1263,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let secondPort = PortEntry(
             networkProtocol: .tcp,
@@ -1271,7 +1271,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3001,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let thirdPort = PortEntry(
             networkProtocol: .tcp,
@@ -1279,12 +1279,12 @@ final class AppFeatureTests: XCTestCase {
             port: 3002,
             pid: 202,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let metadata = appMetadata(for: [101, 202])
         let initialSnapshot = makeSnapshot(
             [firstPort, secondPort, thirdPort],
-            metadata: metadata
+            metadata: metadata,
         )
         var initialState = AppFeature.State()
         initialState.metadataByPID = metadata
@@ -1294,7 +1294,7 @@ final class AppFeatureTests: XCTestCase {
         let request = PortGroupKillRequest(
             group: group,
             mode: .force,
-            metadataByPID: metadata
+            metadataByPID: metadata,
         )
         let now = Date(timeIntervalSince1970: 6_000)
         let recorder = KillRecorder()
@@ -1345,18 +1345,18 @@ final class AppFeatureTests: XCTestCase {
             calls,
             [
                 .init(pid: 101, mode: .force),
-                .init(pid: 202, mode: .force)
-            ]
+                .init(pid: 202, mode: .force),
+            ],
         )
         let confirmations = await confirmationRecorder.values()
         XCTAssertEqual(
             confirmations,
-            [request.confirmation(warnings: [.forceKill, .multipleProcesses(2)])]
+            [request.confirmation(warnings: [.forceKill, .multipleProcesses(2)])],
         )
         let notifications = await notificationRecorder.values()
         XCTAssertEqual(
             notifications,
-            [PortGroupKillResult(request: request, failures: []).notification]
+            [PortGroupKillResult(request: request, failures: []).notification],
         )
     }
 
@@ -1367,7 +1367,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let metadata = appMetadata(for: [101])
         let initialSnapshot = makeSnapshot([port], metadata: metadata)
@@ -1379,7 +1379,7 @@ final class AppFeatureTests: XCTestCase {
         let request = PortGroupKillRequest(
             group: group,
             mode: .quit,
-            metadataByPID: metadata
+            metadataByPID: metadata,
         )
         let refreshedSnapshot = makeSnapshot([port], metadata: [:])
         let recorder = KillRecorder()
@@ -1414,10 +1414,10 @@ final class AppFeatureTests: XCTestCase {
                     PortGroupKillResult(
                         request: request,
                         failures: [.init(pid: 0, message: PortKillerFailure.staleTarget.message)],
-                        refreshedSnapshot: refreshedSnapshot
-                    )
-                )
-            )
+                        refreshedSnapshot: refreshedSnapshot,
+                    ),
+                ),
+            ),
         ) {
             $0.isLoading = false
             $0.errorMessage = PortKillerFailure.staleTarget.message
@@ -1437,9 +1437,9 @@ final class AppFeatureTests: XCTestCase {
                 PortGroupKillResult(
                     request: request,
                     failures: [.init(pid: 0, message: PortKillerFailure.staleTarget.message)],
-                    refreshedSnapshot: refreshedSnapshot
-                ).notification
-            ]
+                    refreshedSnapshot: refreshedSnapshot,
+                ).notification,
+            ],
         )
     }
 
@@ -1450,7 +1450,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example",
-            user: "501"
+            user: "501",
         )
         let metadata = appMetadata(for: [101])
         let snapshot = makeSnapshot([port], metadata: metadata)
@@ -1462,12 +1462,12 @@ final class AppFeatureTests: XCTestCase {
         let request = PortGroupKillRequest(
             group: group,
             mode: .quit,
-            metadataByPID: metadata
+            metadataByPID: metadata,
         )
         let failure = PortScannerFailure(message: "lsof failed")
         let result = PortGroupKillResult(
             request: request,
-            failures: [.init(pid: 0, message: failure.message)]
+            failures: [.init(pid: 0, message: failure.message)],
         )
         let confirmationRecorder = ConfirmationRecorder(result: true)
         let notificationRecorder = NotificationRecorder()
@@ -1517,7 +1517,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let additionalPort = PortEntry(
             networkProtocol: .tcp,
@@ -1525,7 +1525,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3001,
             pid: 202,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let originalMetadata = appMetadata(for: [101])
         let refreshedMetadata = appMetadata(for: [101, 202])
@@ -1539,7 +1539,7 @@ final class AppFeatureTests: XCTestCase {
         let request = PortGroupKillRequest(
             group: group,
             mode: .quit,
-            metadataByPID: originalMetadata
+            metadataByPID: originalMetadata,
         )
         let recorder = KillRecorder()
         let confirmationRecorder = ConfirmationRecorder(result: true)
@@ -1572,10 +1572,10 @@ final class AppFeatureTests: XCTestCase {
                     PortGroupKillResult(
                         request: request,
                         failures: [.init(pid: 0, message: PortKillerFailure.staleTarget.message)],
-                        refreshedSnapshot: refreshedSnapshot
-                    )
-                )
-            )
+                        refreshedSnapshot: refreshedSnapshot,
+                    ),
+                ),
+            ),
         ) {
             $0.isLoading = false
             $0.errorMessage = PortKillerFailure.staleTarget.message
@@ -1597,7 +1597,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let secondPort = PortEntry(
             networkProtocol: .tcp,
@@ -1605,7 +1605,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3001,
             pid: 202,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let metadata = appMetadata(for: [101, 202])
         let initialSnapshot = makeSnapshot([firstPort, secondPort], metadata: metadata)
@@ -1617,7 +1617,7 @@ final class AppFeatureTests: XCTestCase {
         let request = PortGroupKillRequest(
             group: group,
             mode: .quit,
-            metadataByPID: metadata
+            metadataByPID: metadata,
         )
         let failure = PortKillPIDFailure(pid: 202, message: "permission denied")
         let result = PortGroupKillResult(request: request, failures: [failure])
@@ -1675,8 +1675,8 @@ final class AppFeatureTests: XCTestCase {
             calls,
             [
                 .init(pid: 101, mode: .quit),
-                .init(pid: 202, mode: .quit)
-            ]
+                .init(pid: 202, mode: .quit),
+            ],
         )
         let notifications = await notificationRecorder.values()
         XCTAssertEqual(notifications, [result.notification])
@@ -1691,7 +1691,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "node",
-            user: "501"
+            user: "501",
         )
         let recorder = KillRecorder()
         let confirmationRecorder = ConfirmationRecorder(result: false)
@@ -1726,7 +1726,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let metadata = appMetadata(for: [101])
         let snapshot = makeSnapshot([port], metadata: metadata)
@@ -1739,12 +1739,12 @@ final class AppFeatureTests: XCTestCase {
             ApplicationQuitRequest(
                 group: group,
                 mode: .normal,
-                metadataByPID: metadata
-            )
+                metadataByPID: metadata,
+            ),
         )
         let attempt = ApplicationQuitAttempt(
             matchedInstanceCount: 1,
-            acceptedInstanceCount: 1
+            acceptedInstanceCount: 1,
         )
         let result = ApplicationQuitResult(request: request, attempt: attempt)
         let now = Date(timeIntervalSince1970: 8_000)
@@ -1798,7 +1798,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let metadata = appMetadata(for: [101])
         let snapshot = makeSnapshot([port], metadata: metadata)
@@ -1811,11 +1811,11 @@ final class AppFeatureTests: XCTestCase {
             ApplicationQuitRequest(
                 group: group,
                 mode: .force,
-                metadataByPID: metadata
-            )
+                metadataByPID: metadata,
+            ),
         )
         let quitRecorder = ApplicationQuitRecorder(
-            attempt: .init(matchedInstanceCount: 1, acceptedInstanceCount: 1)
+            attempt: .init(matchedInstanceCount: 1, acceptedInstanceCount: 1),
         )
         let confirmationRecorder = ConfirmationRecorder(result: false)
 
@@ -1845,7 +1845,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let metadata = appMetadata(for: [101])
         let snapshot = makeSnapshot([port], metadata: metadata)
@@ -1858,12 +1858,12 @@ final class AppFeatureTests: XCTestCase {
             ApplicationQuitRequest(
                 group: group,
                 mode: .force,
-                metadataByPID: metadata
-            )
+                metadataByPID: metadata,
+            ),
         )
         let attempt = ApplicationQuitAttempt(
             matchedInstanceCount: 2,
-            acceptedInstanceCount: 1
+            acceptedInstanceCount: 1,
         )
         let result = ApplicationQuitResult(request: request, attempt: attempt)
         let now = Date(timeIntervalSince1970: 9_000)
@@ -1920,7 +1920,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let metadata = appMetadata(for: [101])
         let group = try XCTUnwrap(makeSnapshot([port], metadata: metadata).processGroups.first)
@@ -1928,21 +1928,21 @@ final class AppFeatureTests: XCTestCase {
             ApplicationQuitRequest(
                 group: group,
                 mode: .force,
-                metadataByPID: metadata
-            )
+                metadataByPID: metadata,
+            ),
         )
 
         let missing = ApplicationQuitResult(
             request: request,
-            attempt: .init(matchedInstanceCount: 0, acceptedInstanceCount: 0)
+            attempt: .init(matchedInstanceCount: 0, acceptedInstanceCount: 0),
         )
         let rejected = ApplicationQuitResult(
             request: request,
-            attempt: .init(matchedInstanceCount: 2, acceptedInstanceCount: 0)
+            attempt: .init(matchedInstanceCount: 2, acceptedInstanceCount: 0),
         )
         let partial = ApplicationQuitResult(
             request: request,
-            attempt: .init(matchedInstanceCount: 2, acceptedInstanceCount: 1)
+            attempt: .init(matchedInstanceCount: 2, acceptedInstanceCount: 1),
         )
 
         XCTAssertNotNil(missing.failureMessage)
@@ -1961,7 +1961,7 @@ final class AppFeatureTests: XCTestCase {
             port: 3000,
             pid: 101,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let secondPort = PortEntry(
             networkProtocol: .tcp,
@@ -1969,29 +1969,29 @@ final class AppFeatureTests: XCTestCase {
             port: 3001,
             pid: 202,
             command: "Example Helper",
-            user: "501"
+            user: "501",
         )
         let metadata = [
             101: PortProcessMetadata(
                 bundleIdentifier: "com.example.App",
                 name: "Example",
-                path: "/Applications/Example.app"
+                path: "/Applications/Example.app",
             ),
             202: PortProcessMetadata(
                 bundleIdentifier: "com.example.App",
                 name: "Example",
-                path: "/Users/example/Applications/Example.app"
-            )
+                path: "/Users/example/Applications/Example.app",
+            ),
         ]
         let appGroup = try XCTUnwrap(
-            makeSnapshot([firstPort, secondPort], metadata: metadata).processGroups.first
+            makeSnapshot([firstPort, secondPort], metadata: metadata).processGroups.first,
         )
         let request = try XCTUnwrap(
             ApplicationQuitRequest(
                 group: appGroup,
                 mode: .normal,
-                metadataByPID: metadata
-            )
+                metadataByPID: metadata,
+            ),
         )
         let processGroup = try XCTUnwrap(makeSnapshot([firstPort]).processGroups.first)
 
@@ -2000,30 +2000,30 @@ final class AppFeatureTests: XCTestCase {
             request.bundlePaths,
             [
                 "/Applications/Example.app",
-                "/Users/example/Applications/Example.app"
-            ]
+                "/Users/example/Applications/Example.app",
+            ],
         )
         XCTAssertNil(
             ApplicationQuitRequest(
                 group: processGroup,
                 mode: .normal,
-                metadataByPID: [:]
-            )
+                metadataByPID: [:],
+            ),
         )
     }
 }
 
 private func makeSnapshot(
     _ ports: [PortEntry],
-    metadata: [Int: PortProcessMetadata] = [:]
+    metadata: [Int: PortProcessMetadata] = [:],
 ) -> PortScanSnapshot {
     PortScanSnapshot(
         ports: ports,
         metadataByPID: metadata,
         processGroups: PortProcessGroupingService.groups(
             for: ports,
-            metadataByPID: metadata
-        )
+            metadataByPID: metadata,
+        ),
     )
 }
 
@@ -2035,10 +2035,10 @@ private func appMetadata(for pids: [Int]) -> [Int: PortProcessMetadata] {
                 PortProcessMetadata(
                     bundleIdentifier: "com.example.App",
                     name: "Example",
-                    path: "/Applications/Example.app"
-                )
+                    path: "/Applications/Example.app",
+                ),
             )
-        }
+        },
     )
 }
 

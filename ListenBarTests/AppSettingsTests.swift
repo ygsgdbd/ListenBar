@@ -1,15 +1,15 @@
 import Dependencies
 import Foundation
+@testable import ListenBar
 import Sharing
 import XCTest
-@testable import ListenBar
 
 final class AppSettingsTests: XCTestCase {
     func testUsesBundleScopedApplicationSupportPath() {
         XCTAssertTrue(
             AppSettings.storageURL.path.hasSuffix(
-                "/Library/Application Support/top.ygsgdbd.ListenBar/settings.json"
-            )
+                "/Library/Application Support/top.ygsgdbd.ListenBar/settings.json",
+            ),
         )
     }
 
@@ -18,7 +18,7 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(
             try encodedJSON(settings),
-            #"{"autoRefresh":{"type":"onMenuOpen"}}"#
+            #"{"autoRefresh":{"type":"onMenuOpen"}}"#,
         )
     }
 
@@ -29,7 +29,7 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(
             json,
-            #"{"autoRefresh":{"seconds":2,"type":"fixed"}}"#
+            #"{"autoRefresh":{"seconds":2,"type":"fixed"}}"#,
         )
         XCTAssertFalse(json.contains("twoSeconds"))
     }
@@ -39,7 +39,7 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(
             try encodedJSON(settings),
-            #"{"autoRefresh":{"type":"off"}}"#
+            #"{"autoRefresh":{"type":"off"}}"#,
         )
     }
 
@@ -47,7 +47,7 @@ final class AppSettingsTests: XCTestCase {
         for seconds in [0, -1] {
             XCTAssertEqual(
                 try encodedJSON(AppSettings(autoRefresh: .fixed(seconds: seconds))),
-                #"{"autoRefresh":{"type":"onMenuOpen"}}"#
+                #"{"autoRefresh":{"type":"onMenuOpen"}}"#,
             )
         }
     }
@@ -60,7 +60,7 @@ final class AppSettingsTests: XCTestCase {
 
     func testUnknownAutoRefreshTypeFallsBackToOnMenuOpen() throws {
         let settings = try decodeSettings(
-            from: #"{"autoRefresh":{"type":"futureMode"}}"#
+            from: #"{"autoRefresh":{"type":"futureMode"}}"#,
         )
 
         XCTAssertEqual(settings.autoRefresh, .onMenuOpen)
@@ -69,7 +69,7 @@ final class AppSettingsTests: XCTestCase {
     func testNonPositiveFixedSecondsFallBackToOnMenuOpen() throws {
         for seconds in [0, -1] {
             let settings = try decodeSettings(
-                from: #"{"autoRefresh":{"type":"fixed","seconds":\#(seconds)}}"#
+                from: #"{"autoRefresh":{"type":"fixed","seconds":\#(seconds)}}"#,
             )
 
             XCTAssertEqual(settings.autoRefresh, .onMenuOpen)
@@ -92,7 +92,7 @@ final class AppSettingsTests: XCTestCase {
 
             XCTAssertEqual(
                 try encodedJSON(JSONDecoder().decode(AppSettings.self, from: Data(contentsOf: url))),
-                #"{"autoRefresh":{"seconds":2,"type":"fixed"}}"#
+                #"{"autoRefresh":{"seconds":2,"type":"fixed"}}"#,
             )
         }
     }

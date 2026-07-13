@@ -3,7 +3,7 @@ import Foundation
 enum PortProcessGroupingService {
     static func groups(
         for ports: [PortEntry],
-        metadataByPID: [Int: PortProcessMetadata]
+        metadataByPID: [Int: PortProcessMetadata],
     ) -> [PortProcessGroup] {
         var accumulators: [String: GroupAccumulator] = [:]
 
@@ -13,7 +13,7 @@ enum PortProcessGroupingService {
             let identity = identity(
                 for: port,
                 metadata: metadata,
-                classification: classification
+                classification: classification,
             )
             var accumulator = accumulators[identity.id] ?? GroupAccumulator(identity: identity)
             accumulator.ports.append(port)
@@ -32,7 +32,7 @@ enum PortProcessGroupingService {
     private static func identity(
         for port: PortEntry,
         metadata: PortProcessMetadata?,
-        classification: PortProcessClassification
+        classification: PortProcessClassification,
     ) -> GroupIdentity {
         if let metadata {
             switch metadata.kind {
@@ -41,7 +41,7 @@ enum PortProcessGroupingService {
                     id: "app:\(bundleIdentifier)",
                     displayName: metadata.name,
                     icon: .application(path: metadata.path),
-                    classification: classification
+                    classification: classification,
                 )
 
             case .executable:
@@ -49,7 +49,7 @@ enum PortProcessGroupingService {
                     id: "process:\(port.pid):\(port.command)",
                     displayName: "\(port.command) (PID \(port.pid))",
                     icon: metadata.path.map(PortProcessIcon.executable(path:)) ?? .process,
-                    classification: classification
+                    classification: classification,
                 )
             }
         }
@@ -58,13 +58,13 @@ enum PortProcessGroupingService {
             id: "process:\(port.pid):\(port.command)",
             displayName: "\(port.command) (PID \(port.pid))",
             icon: .process,
-            classification: classification
+            classification: classification,
         )
     }
 
     private static func classification(
         for port: PortEntry,
-        metadata: PortProcessMetadata?
+        metadata: PortProcessMetadata?,
     ) -> PortProcessClassification {
         if let metadata {
             return metadata.classification
@@ -150,7 +150,7 @@ private struct GroupAccumulator {
                 format: String(localized: "%lld 个子进程 · %@", bundle: .main, comment: "多个 helper 进程及其端口的分组副标题。"),
                 locale: Locale.current,
                 Int64(detailNames.count),
-                portSummary
+                portSummary,
             )
         } else {
             subtitle = portSummary
@@ -163,7 +163,7 @@ private struct GroupAccumulator {
             icon: identity.icon,
             classification: classification,
             ports: sortedPorts,
-            portProcessDetails: portProcessDetails
+            portProcessDetails: portProcessDetails,
         )
     }
 }

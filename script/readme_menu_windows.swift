@@ -11,7 +11,8 @@ enum Command: String {
 }
 
 guard CommandLine.arguments.count >= 2,
-      let command = Command(rawValue: CommandLine.arguments[1]) else {
+      let command = Command(rawValue: CommandLine.arguments[1])
+else {
     fputs("usage: readme_menu_windows snapshot | content <pid> <display-id> <x> <y> <width> <height> <pixel-width> <pixel-height> <output-path> | display | windows <snapshot-file> <display-id> <pid>\n", stderr)
     exit(2)
 }
@@ -19,7 +20,8 @@ guard CommandLine.arguments.count >= 2,
 func onlineDisplayIDs() -> [CGDirectDisplayID] {
     var displayCount: UInt32 = 0
     guard CGGetOnlineDisplayList(0, nil, &displayCount) == .success,
-          displayCount > 0 else {
+          displayCount > 0
+    else {
         return []
     }
 
@@ -41,7 +43,8 @@ func displayIDsWithMenuBar() -> Set<CGDirectDisplayID> {
     let displayIDs = NSScreen.screens.compactMap { screen -> CGDirectDisplayID? in
         guard screen.frame.maxY - screen.visibleFrame.maxY > 0.5,
               let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
-                as? NSNumber else {
+              as? NSNumber
+        else {
             return nil
         }
         return number.uint32Value
@@ -58,26 +61,28 @@ func captureContent() async throws {
           let width = Double(CommandLine.arguments[6]),
           let height = Double(CommandLine.arguments[7]),
           let pixelWidth = Int(CommandLine.arguments[8]),
-          let pixelHeight = Int(CommandLine.arguments[9]) else {
+          let pixelHeight = Int(CommandLine.arguments[9])
+    else {
         throw NSError(
             domain: "ReadmeMenuWindows",
             code: 2,
-            userInfo: [NSLocalizedDescriptionKey: "Invalid content capture arguments."]
+            userInfo: [NSLocalizedDescriptionKey: "Invalid content capture arguments."],
         )
     }
 
     let shareableContent = try await SCShareableContent.excludingDesktopWindows(
         false,
-        onScreenWindowsOnly: true
+        onScreenWindowsOnly: true,
     )
     guard let display = shareableContent.displays.first(where: { $0.displayID == displayID }),
           let application = shareableContent.applications.first(where: {
               $0.processID == processID
-          }) else {
+          })
+    else {
         throw NSError(
             domain: "ReadmeMenuWindows",
             code: 1,
-            userInfo: [NSLocalizedDescriptionKey: "Unable to find the selected display or ListenBar process."]
+            userInfo: [NSLocalizedDescriptionKey: "Unable to find the selected display or ListenBar process."],
         )
     }
 
@@ -85,14 +90,14 @@ func captureContent() async throws {
     let filter = SCContentFilter(
         display: display,
         including: [application],
-        exceptingWindows: []
+        exceptingWindows: [],
     )
     let configuration = SCStreamConfiguration()
     configuration.sourceRect = CGRect(
         x: x - displayBounds.minX,
         y: y - displayBounds.minY,
         width: width,
-        height: height
+        height: height,
     )
     configuration.width = pixelWidth
     configuration.height = pixelHeight
@@ -100,14 +105,14 @@ func captureContent() async throws {
 
     let image = try await SCScreenshotManager.captureImage(
         contentFilter: filter,
-        configuration: configuration
+        configuration: configuration,
     )
     let representation = NSBitmapImageRep(cgImage: image)
     guard let pngData = representation.representation(using: .png, properties: [:]) else {
         throw NSError(
             domain: "ReadmeMenuWindows",
             code: 1,
-            userInfo: [NSLocalizedDescriptionKey: "Unable to encode the captured menu content."]
+            userInfo: [NSLocalizedDescriptionKey: "Unable to encode the captured menu content."],
         )
     }
     try pngData.write(to: URL(fileURLWithPath: CommandLine.arguments[10]))
@@ -117,7 +122,7 @@ switch command {
 case .snapshot:
     guard let windowInfo = CGWindowListCopyWindowInfo(
         [.optionOnScreenOnly, .excludeDesktopElements],
-        kCGNullWindowID
+        kCGNullWindowID,
     ) as? [[String: Any]] else {
         fputs("Unable to read the macOS window list.\n", stderr)
         exit(1)
@@ -162,19 +167,20 @@ case .display:
     print(
         "\(displayID),\(Int(bounds.minX)),\(Int(bounds.minY)),"
             + "\(Int(bounds.width)),\(Int(bounds.height)),"
-            + "\(pixels.width),\(pixels.height)"
+            + "\(pixels.width),\(pixels.height)",
     )
 
 case .windows:
     guard CommandLine.arguments.count == 5,
           let displayID = CGDirectDisplayID(CommandLine.arguments[3]),
-          let processID = pid_t(CommandLine.arguments[4]) else {
+          let processID = pid_t(CommandLine.arguments[4])
+    else {
         fputs("windows requires a snapshot file, display ID, and process ID.\n", stderr)
         exit(2)
     }
     guard let windowInfo = CGWindowListCopyWindowInfo(
         [.optionOnScreenOnly, .excludeDesktopElements],
-        kCGNullWindowID
+        kCGNullWindowID,
     ) as? [[String: Any]] else {
         fputs("Unable to read the macOS window list.\n", stderr)
         exit(1)
@@ -183,7 +189,7 @@ case .windows:
     let snapshotURL = URL(fileURLWithPath: CommandLine.arguments[2])
     let snapshotText = try String(contentsOf: snapshotURL, encoding: .utf8)
     let existingWindowIDs = Set(
-        snapshotText.split(whereSeparator: \.isWhitespace).compactMap { UInt32($0) }
+        snapshotText.split(whereSeparator: \.isWhitespace).compactMap { UInt32($0) },
     )
     let displayBounds = CGDisplayBounds(displayID)
     let pixels = pixelDimensions(of: displayID)
@@ -203,7 +209,8 @@ case .windows:
               let bounds = CGRect(dictionaryRepresentation: boundsDictionary),
               displayBounds.contains(CGPoint(x: bounds.midX, y: bounds.midY)),
               bounds.width >= 100,
-              bounds.height >= 40 else {
+              bounds.height >= 40
+        else {
             return nil
         }
         return (windowNumber.uint32Value, bounds)
@@ -222,7 +229,7 @@ case .windows:
         print(
             "\(window.id),\(pixelX),\(pixelY),\(pixelWidth),\(pixelHeight),"
                 + "\(Int(window.bounds.minX)),\(Int(window.bounds.minY)),"
-                + "\(Int(window.bounds.width)),\(Int(window.bounds.height))"
+                + "\(Int(window.bounds.width)),\(Int(window.bounds.height))",
         )
     }
 }

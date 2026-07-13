@@ -3,7 +3,7 @@ import Foundation
 enum PortListFormatter {
     static func text(
         groups: [PortProcessGroup],
-        metadataByPID: [Int: PortProcessMetadata]
+        metadataByPID: [Int: PortProcessMetadata],
     ) -> String {
         groups.map { group in
             text(group: group, metadataByPID: metadataByPID)
@@ -14,7 +14,7 @@ enum PortListFormatter {
 
     static func text(
         group: PortProcessGroup,
-        metadataByPID: [Int: PortProcessMetadata]
+        metadataByPID: [Int: PortProcessMetadata],
     ) -> String {
         let processCount = Set(group.ports.map(\.pid)).count
         let header = [
@@ -22,7 +22,7 @@ enum PortListFormatter {
             shellToken(group.displayName),
             "processes=\(processCount)",
             "ports=\(group.ports.count)",
-            "source=\(groupSource(group: group, metadataByPID: metadataByPID))"
+            "source=\(groupSource(group: group, metadataByPID: metadataByPID))",
         ].joined(separator: " ")
 
         let rows = group.ports.map { port in
@@ -41,14 +41,14 @@ enum PortListFormatter {
 
     private static func portText(
         port: PortEntry,
-        metadata: PortProcessMetadata?
+        metadata: PortProcessMetadata?,
     ) -> String {
         var fields = [
             port.networkProtocol.rawValue,
             port.address,
             String(port.port),
             "pid=\(port.pid)",
-            "command=\(shellToken(port.command))"
+            "command=\(shellToken(port.command))",
         ]
 
         if let sources = metadata?.sources, !sources.isEmpty {
@@ -65,7 +65,7 @@ enum PortListFormatter {
 
     private static func groupSource(
         group: PortProcessGroup,
-        metadataByPID: [Int: PortProcessMetadata]
+        metadataByPID: [Int: PortProcessMetadata],
     ) -> String {
         var sources: [PortProcessSource] = []
         for port in group.ports {

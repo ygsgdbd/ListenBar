@@ -15,21 +15,21 @@ private let defaultPalette = Palette(
     body: NSColor(calibratedRed: 0.137, green: 0.165, blue: 0.196, alpha: 1.0),
     cutout: NSColor(calibratedRed: 0.933, green: 0.953, blue: 0.973, alpha: 1.0),
     backgroundTop: NSColor(calibratedRed: 0.965, green: 0.970, blue: 0.980, alpha: 1.0),
-    backgroundBottom: NSColor(calibratedRed: 0.885, green: 0.895, blue: 0.910, alpha: 1.0)
+    backgroundBottom: NSColor(calibratedRed: 0.885, green: 0.895, blue: 0.910, alpha: 1.0),
 )
 
 private let darkPalette = Palette(
     body: NSColor(calibratedRed: 0.933, green: 0.953, blue: 0.973, alpha: 1.0),
     cutout: NSColor(calibratedRed: 0.137, green: 0.165, blue: 0.196, alpha: 1.0),
     backgroundTop: NSColor(calibratedRed: 0.185, green: 0.185, blue: 0.185, alpha: 1.0),
-    backgroundBottom: NSColor(calibratedRed: 0.050, green: 0.054, blue: 0.060, alpha: 1.0)
+    backgroundBottom: NSColor(calibratedRed: 0.050, green: 0.054, blue: 0.060, alpha: 1.0),
 )
 
 private let monoPalette = Palette(
     body: NSColor(calibratedWhite: 0.96, alpha: 1.0),
     cutout: NSColor(calibratedWhite: 0.12, alpha: 1.0),
     backgroundTop: NSColor(calibratedWhite: 0.92, alpha: 1.0),
-    backgroundBottom: NSColor(calibratedWhite: 0.72, alpha: 1.0)
+    backgroundBottom: NSColor(calibratedWhite: 0.72, alpha: 1.0),
 )
 
 private let size = 1024
@@ -47,7 +47,7 @@ private func context(size: Int = size) -> CGContext {
         bitsPerComponent: 8,
         bytesPerRow: size * 4,
         space: colorSpace,
-        bitmapInfo: bitmapInfo
+        bitmapInfo: bitmapInfo,
     ) else {
         fatalError("Unable to create bitmap context.")
     }
@@ -94,20 +94,20 @@ private func drawPreview(palette: Palette, output: URL) throws {
     let gradient = CGGradient(
         colorsSpace: CGColorSpaceCreateDeviceRGB(),
         colors: [palette.backgroundTop.cgColor, palette.backgroundBottom.cgColor] as CFArray,
-        locations: [0, 1]
+        locations: [0, 1],
     )!
     context.drawLinearGradient(
         gradient,
         start: CGPoint(x: 0, y: 0),
         end: CGPoint(x: 0, y: CGFloat(size)),
-        options: []
+        options: [],
     )
 
     context.saveGState()
     context.setShadow(
         offset: CGSize(width: 0, height: 18),
         blur: 24,
-        color: NSColor(calibratedWhite: 0.0, alpha: 0.24).cgColor
+        color: NSColor(calibratedWhite: 0.0, alpha: 0.24).cgColor,
     )
     fillRoundedRect(bodyRect, radius: bodyRect.height / 2, color: palette.body, in: context)
     context.restoreGState()
@@ -131,8 +131,8 @@ private func writePNG(context: CGContext, output: URL) throws {
     }
     CGImageDestinationAddImage(destination, image, [
         kCGImagePropertyPNGDictionary: [
-            kCGImagePropertyPNGInterlaceType: 0
-        ]
+            kCGImagePropertyPNGInterlaceType: 0,
+        ],
     ] as CFDictionary)
     if !CGImageDestinationFinalize(destination) {
         fatalError("Unable to write \(output.path).")

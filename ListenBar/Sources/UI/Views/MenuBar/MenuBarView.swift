@@ -39,18 +39,18 @@ struct MenuBarView: View {
                     processGroupsSection(
                         title: PortProcessSectionLabels.title(
                             classification: .user,
-                            groups: userGroups
+                            groups: userGroups,
                         ),
-                        groups: userGroups
+                        groups: userGroups,
                     )
                 }
                 if !systemGroups.isEmpty {
                     processGroupsSection(
                         title: PortProcessSectionLabels.title(
                             classification: .systemOrOtherUser,
-                            groups: systemGroups
+                            groups: systemGroups,
                         ),
-                        groups: systemGroups
+                        groups: systemGroups,
                     )
                 }
             }
@@ -83,9 +83,9 @@ struct MenuBarView: View {
                     String(
                         format: String(localized: "自动刷新：%@", bundle: .main, comment: "自动刷新菜单标题。"),
                         locale: Locale.current,
-                        store.autoRefreshMode.title
+                        store.autoRefreshMode.title,
                     ),
-                    systemImage: "clock.arrow.circlepath"
+                    systemImage: "clock.arrow.circlepath",
                 )
             }
 
@@ -93,8 +93,8 @@ struct MenuBarView: View {
                 "登录时打开",
                 isOn: Binding(
                     get: { store.launchAtLoginEnabled },
-                    set: { store.send(.view(.setLaunchAtLogin($0))) }
-                )
+                    set: { store.send(.view(.setLaunchAtLogin($0))) },
+                ),
             )
             .toggleStyle(.checkbox)
 
@@ -142,7 +142,7 @@ struct MenuBarView: View {
 
     private func processGroupsSection(
         title: String,
-        groups: [PortProcessGroup]
+        groups: [PortProcessGroup],
     ) -> some View {
         Section(title) {
             ForEach(groups) { group in
@@ -188,7 +188,7 @@ struct MenuBarView: View {
                     },
                     onQuitApplication: { group, mode in
                         store.send(.view(.quitApplicationTapped(group, mode)))
-                    }
+                    },
                 )
             }
         }
@@ -200,7 +200,6 @@ struct MenuBarView: View {
         }
         return String(localized: "未发现监听端口", bundle: .main, comment: "没有发现监听端口时的空状态。")
     }
-
 }
 
 private struct PortProcessGroupMenu: View {
@@ -225,7 +224,7 @@ private struct PortProcessGroupMenu: View {
         let showsPIDInPortMenus = PortMenuLabels.showsPID(for: group.ports)
         let processInfoItems = PortProcessInfoItems(
             group: group,
-            metadataByPID: metadataByPID
+            metadataByPID: metadataByPID,
         )
 
         Menu {
@@ -238,7 +237,7 @@ private struct PortProcessGroupMenu: View {
                     onOpenLocalhost: onOpenLocalhost,
                     onCopyURL: onCopyURL,
                     onCopyLsofCommand: onCopyLsofCommand,
-                    onKillPort: onKillPort
+                    onKillPort: onKillPort,
                 )
             }
 
@@ -266,9 +265,9 @@ private struct PortProcessGroupMenu: View {
                         String(
                             format: String(localized: "退出 %@", bundle: .main, comment: "正常退出应用菜单项。"),
                             locale: Locale.current,
-                            group.displayName
+                            group.displayName,
                         ),
-                        systemImage: "rectangle.portrait.and.arrow.right"
+                        systemImage: "rectangle.portrait.and.arrow.right",
                     )
                 }
                 .disabled(isLoading)
@@ -280,9 +279,9 @@ private struct PortProcessGroupMenu: View {
                         String(
                             format: String(localized: "强制退出 %@…", bundle: .main, comment: "强制退出应用菜单项。"),
                             locale: Locale.current,
-                            group.displayName
+                            group.displayName,
                         ),
-                        systemImage: "exclamationmark.octagon"
+                        systemImage: "exclamationmark.octagon",
                     )
                 }
                 .disabled(isLoading)
@@ -314,7 +313,7 @@ private struct PortProcessGroupMenu: View {
                     onCopyProcessPath: onCopyProcessPath,
                     onCopyCommandLine: onCopyCommandLine,
                     onCopyRedactedCommandLine: onCopyRedactedCommandLine,
-                    onRevealProcessPath: onRevealProcessPath
+                    onRevealProcessPath: onRevealProcessPath,
                 )
             } else if !processInfoItems.items.isEmpty {
                 Divider()
@@ -329,7 +328,7 @@ private struct PortProcessGroupMenu: View {
                                 onCopyProcessPath: onCopyProcessPath,
                                 onCopyCommandLine: onCopyCommandLine,
                                 onCopyRedactedCommandLine: onCopyRedactedCommandLine,
-                                onRevealProcessPath: onRevealProcessPath
+                                onRevealProcessPath: onRevealProcessPath,
                             )
                         } label: {
                             Text(verbatim: item.title)
@@ -364,7 +363,7 @@ private struct PortMenu: View {
         let labels = PortMenuLabels(
             port: port,
             showsPID: showsPID,
-            processName: processName
+            processName: processName,
         )
 
         Menu {
@@ -502,7 +501,7 @@ struct PortProcessInfoItems: Equatable {
 
     init(
         group: PortProcessGroup,
-        metadataByPID: [Int: PortProcessMetadata]
+        metadataByPID: [Int: PortProcessMetadata],
     ) {
         var seenPIDs: Set<Int> = []
         var items: [PortProcessInfoItem] = []
@@ -518,10 +517,10 @@ struct PortProcessInfoItems: Equatable {
                     title: Self.title(
                         for: port,
                         metadata: metadata,
-                        group: group
+                        group: group,
                     ),
-                    labels: labels
-                )
+                    labels: labels,
+                ),
             )
         }
 
@@ -531,10 +530,11 @@ struct PortProcessInfoItems: Equatable {
     private static func title(
         for port: PortEntry,
         metadata: PortProcessMetadata?,
-        group: PortProcessGroup
+        group: PortProcessGroup,
     ) -> String {
         if let detailName = group.portProcessDetails[port.id] ?? metadata?.processDetailName,
-           !detailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+           !detailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
             return "\(detailName) · PID \(port.pid)"
         }
 
@@ -551,7 +551,7 @@ struct PortProcessInfoItem: Equatable, Identifiable {
         String(
             format: String(localized: "复制 PID (%@)", bundle: .main, comment: "复制 PID 菜单项，括号内显示实际进程 ID。"),
             locale: Locale.current,
-            String(pid)
+            String(pid),
         )
     }
 
@@ -584,7 +584,7 @@ struct PortProcessInfoLabels: Equatable {
         self.source = String(
             format: String(localized: "来源：%@", bundle: .main, comment: "进程来源推断标签。"),
             locale: Locale.current,
-            metadata.sources.map(\.label).joined(separator: " • ")
+            metadata.sources.map(\.label).joined(separator: " • "),
         )
         let memoryValue = metadata.residentMemoryBytes
             .map { PortMemoryFormatter.string(bytes: $0) }
@@ -592,7 +592,7 @@ struct PortProcessInfoLabels: Equatable {
         self.memory = String(
             format: String(localized: "常驻内存：%@", bundle: .main, comment: "进程常驻内存。"),
             locale: Locale.current,
-            memoryValue
+            memoryValue,
         )
         self.path = metadata.executablePath ?? metadata.path
         self.commandLineSummary = metadata.commandLineSummary
@@ -623,7 +623,7 @@ enum PortMemoryFormatter {
 struct PortProcessSectionLabels: Equatable {
     static func title(
         classification: PortProcessClassification,
-        groups: [PortProcessGroup]
+        groups: [PortProcessGroup],
     ) -> String {
         let processCount = Set(groups.flatMap { group in
             group.ports.map(\.pid)
@@ -634,7 +634,7 @@ struct PortProcessSectionLabels: Equatable {
             locale: Locale.current,
             classification.sectionTitle,
             MenuCountLabels.processes(processCount),
-            MenuCountLabels.ports(portCount)
+            MenuCountLabels.ports(portCount),
         )
     }
 }
@@ -652,7 +652,7 @@ struct PortMenuLabels: Equatable {
     init(
         port: PortEntry,
         showsPID: Bool,
-        processName: String? = nil
+        processName: String? = nil,
     ) {
         self.title = "\(port.address):\(port.port)"
         self.localhostURLString = port.localhostURL?.absoluteString
@@ -663,7 +663,8 @@ struct PortMenuLabels: Equatable {
             subtitle += " · PID \(port.pid)"
         }
         if let processName = processName?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !processName.isEmpty {
+           !processName.isEmpty
+        {
             subtitle += " · \(processName)"
         }
         self.subtitle = subtitle
@@ -705,8 +706,8 @@ private struct PortProcessIconView: View {
                         port: 8080,
                         pid: 123,
                         command: "node",
-                        user: "501"
-                    )
+                        user: "501",
+                    ),
                 ],
                 processGroups: [
                     PortProcessGroup(
@@ -721,19 +722,19 @@ private struct PortProcessIconView: View {
                                 port: 8080,
                                 pid: 123,
                                 command: "node",
-                                user: "501"
-                            )
-                        ]
-                    )
-                ]
-            )
+                                user: "501",
+                            ),
+                        ],
+                    ),
+                ],
+            ),
         ) {
             AppFeature()
         },
         updaterController: SPUStandardUpdaterController(
             startingUpdater: false,
             updaterDelegate: nil,
-            userDriverDelegate: nil
-        )
+            userDriverDelegate: nil,
+        ),
     )
 }

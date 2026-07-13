@@ -27,7 +27,7 @@ enum LaunchAtLoginService {
             executableURL: { Bundle.main.executableURL },
             runLaunchctl: runLaunchctl,
             userID: { getuid() },
-            fileManager: .default
+            fileManager: .default,
         )
     }
 
@@ -61,7 +61,7 @@ enum LaunchAtLoginService {
 
     static func setLaunchAtLogin(
         _ enabled: Bool,
-        environment: LaunchAtLoginServiceEnvironment
+        environment: LaunchAtLoginServiceEnvironment,
     ) -> LaunchAtLoginStatus {
         if enabled {
             enableLaunchAtLogin(environment: environment)
@@ -116,13 +116,13 @@ private extension LaunchAtLoginService {
     }
 
     static func fallbackLaunchAgentIsEnabled(
-        environment: LaunchAtLoginServiceEnvironment
+        environment: LaunchAtLoginServiceEnvironment,
     ) -> Bool {
         guard
             let executableURL = environment.executableURL(),
             let arguments = fallbackProgramArguments(
                 plistURL: environment.plistURL,
-                fileManager: environment.fileManager
+                fileManager: environment.fileManager,
             ),
             let executablePath = arguments.first
         else {
@@ -134,7 +134,7 @@ private extension LaunchAtLoginService {
 
     static func fallbackProgramArguments(
         plistURL: URL,
-        fileManager: FileManager
+        fileManager: FileManager,
     ) -> [String]? {
         guard
             fileManager.fileExists(atPath: plistURL.path),
@@ -142,7 +142,7 @@ private extension LaunchAtLoginService {
             let plist = try? PropertyListSerialization.propertyList(
                 from: data,
                 options: [],
-                format: nil
+                format: nil,
             ) as? [String: Any]
         else {
             return nil
@@ -152,30 +152,30 @@ private extension LaunchAtLoginService {
     }
 
     static func installFallbackLaunchAgent(
-        environment: LaunchAtLoginServiceEnvironment
+        environment: LaunchAtLoginServiceEnvironment,
     ) throws {
         guard let executableURL = environment.executableURL() else {
             throw NSError(
                 domain: "ListenBar.LaunchAtLogin",
                 code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Cannot resolve ListenBar executable path"]
+                userInfo: [NSLocalizedDescriptionKey: "Cannot resolve ListenBar executable path"],
             )
         }
 
         try environment.fileManager.createDirectory(
             at: environment.plistURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
+            withIntermediateDirectories: true,
         )
 
         let plist: [String: Any] = [
             "Label": launchAgentIdentifier,
             "ProgramArguments": [executableURL.path],
-            "RunAtLoad": true
+            "RunAtLoad": true,
         ]
         let data = try PropertyListSerialization.data(
             fromPropertyList: plist,
             format: .xml,
-            options: 0
+            options: 0,
         )
         try data.write(to: environment.plistURL, options: .atomic)
 
@@ -203,8 +203,8 @@ private extension LaunchAtLoginService {
                 domain: "ListenBar.LaunchAtLogin",
                 code: Int(process.terminationStatus),
                 userInfo: [
-                    NSLocalizedDescriptionKey: "launchctl \(arguments.joined(separator: " ")) failed"
-                ]
+                    NSLocalizedDescriptionKey: "launchctl \(arguments.joined(separator: " ")) failed",
+                ],
             )
         }
     }
