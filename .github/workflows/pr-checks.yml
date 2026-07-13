@@ -30,6 +30,12 @@ jobs:
           curl -fsSL \
             "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip" \
             -o "$RUNNER_TEMP/swiftformat.zip"
+          EXPECTED_SHA256="$(tr -d '[:space:]' < .swiftformat-checksum)"
+          ACTUAL_SHA256="$(shasum -a 256 "$RUNNER_TEMP/swiftformat.zip" | awk '{print $1}')"
+          if [[ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]]; then
+            echo "::error title=SwiftFormat checksum mismatch::Expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}."
+            exit 1
+          fi
           unzip -q "$RUNNER_TEMP/swiftformat.zip" -d "$SWIFTFORMAT_DIR"
           chmod +x "$SWIFTFORMAT_DIR/swiftformat"
           echo "$SWIFTFORMAT_DIR" >> "$GITHUB_PATH"

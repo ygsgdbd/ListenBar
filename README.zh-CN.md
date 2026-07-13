@@ -100,7 +100,7 @@ brew upgrade listenbar
 
 ## 🧪 开发与测试
 
-项目当前包含 **132 个 XCTest 测试方法**，覆盖 reducer 行为、配置持久化、登录项管理、端口解析与分组、进程元数据、菜单呈现、截图 fixture 和 Sparkle 配置。
+项目当前包含 **140 个 XCTest 测试方法**，覆盖 reducer 行为、配置持久化、登录项管理、端口解析与分组、进程元数据、菜单呈现、截图 fixture 和 Sparkle 配置。
 
 环境要求：Xcode 26、[Homebrew](https://brew.sh/)、[just](https://github.com/casey/just)、[SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 和 [Tuist](https://tuist.dev/)。
 
@@ -115,7 +115,7 @@ just check
 
 `just setup` 只检查已安装的工具并配置 `core.hooksPath`，不会安装或升级任何软件。如果 Homebrew 不再提供 SwiftFormat 0.62.1，请从[官方 Release](https://github.com/nicklockwood/SwiftFormat/releases/tag/0.62.1)手动安装该精确版本。
 
-每次提交前，hook 会格式化已暂存的 Swift 文件。如果产生格式变化，本次提交会中止，便于你检查 diff、重新暂存并再次提交。运行 `just --list` 可以查看所有开发命令。
+每次提交前，hook 会格式化已暂存的 Swift 文件。如果产生格式变化，本次提交会中止，便于你检查 diff、重新暂存并再次提交。对于部分暂存的 Swift 文件，hook 不会自动修改；请先暂存或 stash 其余改动，或手动运行 `just format`。运行 `just --list` 可以查看所有开发命令。
 
 如需直接运行测试命令：
 

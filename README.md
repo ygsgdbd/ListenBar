@@ -100,7 +100,7 @@ Only bypass Gatekeeper when you obtained the app from this repository's official
 
 ## 🧪 Development and tests
 
-The project currently contains **132 XCTest test methods** covering reducer behavior, settings persistence, login item management, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
+The project currently contains **140 XCTest test methods** covering reducer behavior, settings persistence, login item management, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
 
 Requirements: Xcode 26, [Homebrew](https://brew.sh/), [just](https://github.com/casey/just), [SwiftFormat](https://github.com/nicklockwood/SwiftFormat), and [Tuist](https://tuist.dev/).
 
@@ -115,7 +115,7 @@ just check
 
 `just setup` only checks the installed tools and configures `core.hooksPath`; it never installs or upgrades software. If Homebrew no longer provides SwiftFormat 0.62.1, install that exact version from the [official release](https://github.com/nicklockwood/SwiftFormat/releases/tag/0.62.1).
 
-Before each commit, the hook formats staged Swift files. When formatting changes are required, the commit stops so you can review the diff, stage the updated files, and retry. Run `just --list` to see all available development commands.
+Before each commit, the hook formats staged Swift files. When formatting changes are required, the commit stops so you can review the diff, stage the updated files, and retry. Partially staged Swift files are not modified automatically; stage or stash the remaining edits, or run `just format` manually. Run `just --list` to see all available development commands.
 
 To run the test command directly:
 

@@ -44,19 +44,32 @@ format-staged: check-swiftformat
 
     swiftformat --cache ignore --config "$repo_root/.swiftformat" "${formatted_files[@]}" >/dev/null
 
-    needs_formatting=false
+    needs_formatting_files=()
     for index in "${!files[@]}"; do
         if ! cmp -s "${original_files[$index]}" "${formatted_files[$index]}"; then
-            needs_formatting=true
-            break
+            needs_formatting_files+=("${files[$index]}")
         fi
     done
 
-    if [[ "$needs_formatting" == false ]]; then
+    if [[ ${#needs_formatting_files[@]} -eq 0 ]]; then
         exit 0
     fi
 
-    swiftformat --cache ignore "${files[@]}"
+    partially_staged_files=()
+    for file in "${needs_formatting_files[@]}"; do
+        if ! git diff --quiet -- "$file"; then
+            partially_staged_files+=("$file")
+        fi
+    done
+
+    if [[ ${#partially_staged_files[@]} -gt 0 ]]; then
+        echo "SwiftFormat cannot safely update partially staged Swift files:" >&2
+        printf '  %s\n' "${partially_staged_files[@]}" >&2
+        echo "Stage or stash the remaining edits, or run just format manually, then retry." >&2
+        exit 1
+    fi
+
+    swiftformat --cache ignore "${needs_formatting_files[@]}"
     echo >&2
     echo "SwiftFormat updated staged Swift files in the working tree." >&2
     echo "Review the changes, run git add again, then retry the commit." >&2
