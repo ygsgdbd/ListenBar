@@ -4,5 +4,5 @@ name = "ListenBar"
 
 [setup]
 script = '''
-tuist generate
+tuist generate --no-open
 codegraph init'''
