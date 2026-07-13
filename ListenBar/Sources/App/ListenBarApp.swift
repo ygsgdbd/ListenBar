@@ -15,28 +15,28 @@ struct ListenBarApp: App {
 
     init() {
         PortKillInteractionService.configureNotifications()
-#if DEBUG
-        let readmeConfiguration = ReadmeScreenshotConfiguration(
-            arguments: ProcessInfo.processInfo.arguments
-        )
-        if readmeConfiguration != nil {
-            prepareDependencies {
-                $0.defaultFileStorage = .inMemory
+        #if DEBUG
+            let readmeConfiguration = ReadmeScreenshotConfiguration(
+                arguments: ProcessInfo.processInfo.arguments,
+            )
+            if readmeConfiguration != nil {
+                prepareDependencies {
+                    $0.defaultFileStorage = .inMemory
+                }
             }
-        }
-        readmeConfiguration?.applyAppearance()
-        let readmeMenuAppearance = readmeConfiguration?.appAppearance
-        self.readmeBackdropWindow = readmeConfiguration?.makeBackdropWindow()
-        self.readmeColorScheme = readmeConfiguration?.colorScheme
-        let initialState = readmeConfiguration?.initialState(now: Date()) ?? AppFeature.State()
-        let startsLiveServices = readmeConfiguration == nil
-#else
-        let readmeMenuAppearance: NSAppearance? = nil
-        self.readmeBackdropWindow = nil
-        self.readmeColorScheme = nil
-        let initialState = AppFeature.State()
-        let startsLiveServices = true
-#endif
+            readmeConfiguration?.applyAppearance()
+            let readmeMenuAppearance = readmeConfiguration?.appAppearance
+            self.readmeBackdropWindow = readmeConfiguration?.makeBackdropWindow()
+            self.readmeColorScheme = readmeConfiguration?.colorScheme
+            let initialState = readmeConfiguration?.initialState(now: Date()) ?? AppFeature.State()
+            let startsLiveServices = readmeConfiguration == nil
+        #else
+            let readmeMenuAppearance: NSAppearance? = nil
+            self.readmeBackdropWindow = nil
+            self.readmeColorScheme = nil
+            let initialState = AppFeature.State()
+            let startsLiveServices = true
+        #endif
         let store = Store(initialState: initialState) {
             AppFeature()
         }
@@ -44,17 +44,18 @@ struct ListenBarApp: App {
         self.updaterController = SPUStandardUpdaterController(
             startingUpdater: startsLiveServices,
             updaterDelegate: nil,
-            userDriverDelegate: nil
+            userDriverDelegate: nil,
         )
         self.menuTrackingObservers = [
             NotificationCenter.default.addObserver(
                 forName: NSMenu.didBeginTrackingNotification,
                 object: nil,
-                queue: .main
+                queue: .main,
             ) { notification in
                 MainActor.assumeIsolated {
                     if let menu = notification.object as? NSMenu,
-                       let readmeMenuAppearance {
+                       let readmeMenuAppearance
+                    {
                         menu.appearance = readmeMenuAppearance
                         for item in menu.items {
                             item.submenu?.appearance = readmeMenuAppearance
@@ -67,13 +68,13 @@ struct ListenBarApp: App {
             NotificationCenter.default.addObserver(
                 forName: NSMenu.didEndTrackingNotification,
                 object: nil,
-                queue: .main
+                queue: .main,
             ) { notification in
                 MainActor.assumeIsolated {
                     guard MenuBarView.isRootMenuTrackingNotification(notification) else { return }
                     store.send(.menuDismissed)
                 }
-            }
+            },
         ]
         if !isTesting && startsLiveServices {
             store.send(.task)

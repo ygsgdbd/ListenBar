@@ -81,7 +81,7 @@ struct PortEntry: Equatable, Hashable, Identifiable, Sendable {
             address,
             String(port),
             String(pid),
-            command
+            command,
         ].joined(separator: "|")
     }
 
@@ -96,7 +96,8 @@ struct PortEntry: Equatable, Hashable, Identifiable, Sendable {
 
         if normalizedAddress == "localhost"
             || normalizedAddress == "::1"
-            || normalizedAddress.hasPrefix("127.") {
+            || normalizedAddress.hasPrefix("127.")
+        {
             return .localOnly
         }
 
@@ -211,7 +212,7 @@ struct PortProcessMetadata: Equatable, Sendable {
         redactedCommandLineSummary: String? = nil,
         residentMemoryBytes: UInt64? = nil,
         sources: [PortProcessSource] = [.application],
-        classification: PortProcessClassification = .user
+        classification: PortProcessClassification = .user,
     ) {
         self.kind = .application(bundleIdentifier: bundleIdentifier)
         self.name = name
@@ -239,7 +240,7 @@ struct PortProcessMetadata: Equatable, Sendable {
         redactedCommandLineSummary: String? = nil,
         residentMemoryBytes: UInt64? = nil,
         sources: [PortProcessSource] = [.unknown],
-        classification: PortProcessClassification = .user
+        classification: PortProcessClassification = .user,
     ) {
         self.kind = kind
         self.name = name
@@ -264,7 +265,7 @@ struct PortProcessMetadata: Equatable, Sendable {
         redactedCommandLineSummary: String? = nil,
         residentMemoryBytes: UInt64? = nil,
         sources: [PortProcessSource] = [.executable],
-        classification: PortProcessClassification = .user
+        classification: PortProcessClassification = .user,
     ) -> Self {
         Self(
             kind: .executable,
@@ -277,7 +278,7 @@ struct PortProcessMetadata: Equatable, Sendable {
             redactedCommandLineSummary: redactedCommandLineSummary,
             residentMemoryBytes: residentMemoryBytes,
             sources: sources,
-            classification: classification
+            classification: classification,
         )
     }
 }
@@ -313,7 +314,7 @@ struct PortProcessGroup: Equatable, Identifiable, Sendable {
         icon: PortProcessIcon,
         classification: PortProcessClassification = .user,
         ports: [PortEntry],
-        portProcessDetails: [String: String] = [:]
+        portProcessDetails: [String: String] = [:],
     ) {
         self.id = id
         self.displayName = displayName

@@ -1,7 +1,7 @@
 import Foundation
+@testable import ListenBar
 import ServiceManagement
 import XCTest
-@testable import ListenBar
 
 final class LaunchAtLoginServiceTests: XCTestCase {
     func testStatusUsesFallbackLaunchAgentWhenExecutableMatches() throws {
@@ -18,7 +18,7 @@ final class LaunchAtLoginServiceTests: XCTestCase {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
         try fixture.writeLaunchAgent(
-            executablePath: "/Applications/OldListenBar.app/Contents/MacOS/ListenBar"
+            executablePath: "/Applications/OldListenBar.app/Contents/MacOS/ListenBar",
         )
 
         let status = LaunchAtLoginService.status(environment: fixture.environment())
@@ -32,15 +32,15 @@ final class LaunchAtLoginServiceTests: XCTestCase {
 
         XCTAssertEqual(
             LaunchAtLoginService.status(
-                environment: fixture.environment(serviceManagementStatus: { .requiresApproval })
+                environment: fixture.environment(serviceManagementStatus: { .requiresApproval }),
             ),
-            .requiresApproval
+            .requiresApproval,
         )
         XCTAssertEqual(
             LaunchAtLoginService.status(
-                environment: fixture.environment(serviceManagementStatus: { .notFound })
+                environment: fixture.environment(serviceManagementStatus: { .notFound }),
             ),
-            .unavailable
+            .unavailable,
         )
     }
 
@@ -53,8 +53,8 @@ final class LaunchAtLoginServiceTests: XCTestCase {
             true,
             environment: fixture.environment(
                 serviceManagementStatus: { .requiresApproval },
-                runLaunchctl: { launchctlCalls.append($0) }
-            )
+                runLaunchctl: { launchctlCalls.append($0) },
+            ),
         )
 
         XCTAssertEqual(status, .enabled)
@@ -62,8 +62,8 @@ final class LaunchAtLoginServiceTests: XCTestCase {
             launchctlCalls,
             [
                 ["bootout", "gui/501", fixture.plistURL.path],
-                ["bootstrap", "gui/501", fixture.plistURL.path]
-            ]
+                ["bootstrap", "gui/501", fixture.plistURL.path],
+            ],
         )
         XCTAssertEqual(try fixture.programArguments(), [fixture.executableURL.path])
     }
@@ -77,8 +77,8 @@ final class LaunchAtLoginServiceTests: XCTestCase {
             environment: fixture.environment(
                 registerMainApp: {
                     throw NSError(domain: "test", code: 1)
-                }
-            )
+                },
+            ),
         )
 
         XCTAssertEqual(status, .enabled)
@@ -94,8 +94,8 @@ final class LaunchAtLoginServiceTests: XCTestCase {
         let status = LaunchAtLoginService.status(
             environment: fixture.environment(
                 serviceManagementStatus: { .enabled },
-                runLaunchctl: { launchctlCalls.append($0) }
-            )
+                runLaunchctl: { launchctlCalls.append($0) },
+            ),
         )
 
         XCTAssertEqual(status, .enabled)
@@ -116,8 +116,8 @@ final class LaunchAtLoginServiceTests: XCTestCase {
                 registerMainApp: {
                     XCTFail("Already-enabled ServiceManagement should not register again")
                 },
-                runLaunchctl: { launchctlCalls.append($0) }
-            )
+                runLaunchctl: { launchctlCalls.append($0) },
+            ),
         )
 
         XCTAssertEqual(status, .enabled)
@@ -136,8 +136,8 @@ final class LaunchAtLoginServiceTests: XCTestCase {
             false,
             environment: fixture.environment(
                 unregisterMainApp: { didUnregister = true },
-                runLaunchctl: { launchctlCalls.append($0) }
-            )
+                runLaunchctl: { launchctlCalls.append($0) },
+            ),
         )
 
         XCTAssertEqual(status, .disabled)
@@ -163,7 +163,7 @@ private struct Fixture {
         serviceManagementStatus: @escaping () -> SMAppService.Status = { .notRegistered },
         registerMainApp: @escaping () throws -> Void = {},
         unregisterMainApp: @escaping () throws -> Void = {},
-        runLaunchctl: @escaping ([String]) throws -> Void = { _ in }
+        runLaunchctl: @escaping ([String]) throws -> Void = { _ in },
     ) -> LaunchAtLoginServiceEnvironment {
         LaunchAtLoginServiceEnvironment(
             serviceManagementStatus: serviceManagementStatus,
@@ -173,7 +173,7 @@ private struct Fixture {
             executableURL: { executableURL },
             runLaunchctl: runLaunchctl,
             userID: { 501 },
-            fileManager: .default
+            fileManager: .default,
         )
     }
 
@@ -181,12 +181,12 @@ private struct Fixture {
         let plist: [String: Any] = [
             "Label": "top.ygsgdbd.ListenBar",
             "ProgramArguments": [executablePath],
-            "RunAtLoad": true
+            "RunAtLoad": true,
         ]
         let data = try PropertyListSerialization.data(
             fromPropertyList: plist,
             format: .xml,
-            options: 0
+            options: 0,
         )
         try data.write(to: plistURL)
     }
@@ -195,7 +195,7 @@ private struct Fixture {
         let data = try Data(contentsOf: plistURL)
         let plist = try XCTUnwrap(
             PropertyListSerialization.propertyList(from: data, options: [], format: nil)
-                as? [String: Any]
+                as? [String: Any],
         )
         return plist["ProgramArguments"] as? [String]
     }

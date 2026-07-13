@@ -36,7 +36,7 @@ final class LocalizationCatalogTests: XCTestCase {
                     XCTAssertEqual(
                         Self.placeholders(in: value),
                         expectedPlaceholders,
-                        "Placeholder signature differs for \(localization) localization of \(key)"
+                        "Placeholder signature differs for \(localization) localization of \(key)",
                     )
                 }
             }
@@ -65,7 +65,7 @@ final class LocalizationCatalogTests: XCTestCase {
             "终止全部监听进程 (SIGTERM)": "Terminate All Listening Processes (SIGTERM)",
             "强制终止进程…": "Force Kill Process…",
             "强制终止全部监听进程…": "Force Kill All Listening Processes…",
-            "SIGKILL 无法由进程处理。": "SIGKILL cannot be handled by the process."
+            "SIGKILL 无法由进程处理。": "SIGKILL cannot be handled by the process.",
         ]
 
         try Self.assertLocalizedValues(expectedValues, localization: "en")
@@ -84,7 +84,7 @@ final class LocalizationCatalogTests: XCTestCase {
             "%lld 个进程": "%lld 個程序",
             "%lld 个端口": "%lld 個連接埠",
             "终止进程 (SIGTERM)": "終止程序 (SIGTERM)",
-            "强制终止进程…": "強制終止程序…"
+            "强制终止进程…": "強制終止程序…",
         ]
 
         try Self.assertLocalizedValues(expectedValues, localization: "zh-Hant")
@@ -98,7 +98,7 @@ final class LocalizationCatalogTests: XCTestCase {
 
         XCTAssertEqual(
             traditionalChineseBundle.localizedString(forKey: "进程详情", value: nil, table: nil),
-            "程序詳細資訊"
+            "程序詳細資訊",
         )
     }
 
@@ -106,7 +106,7 @@ final class LocalizationCatalogTests: XCTestCase {
         _ expectedValues: [String: String],
         localization: String,
         file: StaticString = #filePath,
-        line: UInt = #line
+        line: UInt = #line,
     ) throws {
         let strings = try catalogStrings()
 
@@ -145,7 +145,7 @@ final class LocalizationCatalogTests: XCTestCase {
     private static func placeholders(in value: String) -> [String] {
         let pattern = #"%(?:lld|d|@)"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
-        let range = NSRange(value.startIndex..<value.endIndex, in: value)
+        let range = NSRange(value.startIndex ..< value.endIndex, in: value)
         return regex.matches(in: value, range: range).compactMap { match in
             guard let placeholderRange = Range(match.range, in: value) else { return nil }
             return String(value[placeholderRange])

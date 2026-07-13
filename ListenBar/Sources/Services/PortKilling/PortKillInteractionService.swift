@@ -34,7 +34,7 @@ enum PortKillInteractionService {
         alert.addButton(withTitle: confirmation.confirmButtonTitle)
         alert.buttons.first?.hasDestructiveAction = confirmation.isDestructive
         alert.addButton(
-            withTitle: String(localized: "取消", bundle: .main, comment: "取消按钮标题。")
+            withTitle: String(localized: "取消", bundle: .main, comment: "取消按钮标题。"),
         )
 
         return alert.runModal() == .alertFirstButtonReturn
@@ -55,8 +55,8 @@ enum PortKillInteractionService {
                 UNNotificationRequest(
                     identifier: UUID().uuidString,
                     content: content,
-                    trigger: nil
-                )
+                    trigger: nil,
+                ),
             )
         } catch {
             // Notifications are best-effort and must not change the kill result.
@@ -68,7 +68,7 @@ private final class PortKillNotificationDelegate: NSObject, UNUserNotificationCe
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void,
     ) {
         completionHandler([.banner, .list])
     }

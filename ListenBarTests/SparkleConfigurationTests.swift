@@ -5,27 +5,27 @@ final class SparkleConfigurationTests: XCTestCase {
     func testSparkleInfoPlistConfiguration() {
         XCTAssertEqual(
             Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String,
-            "https://github.com/ygsgdbd/ListenBar/releases/latest/download/appcast.xml"
+            "https://github.com/ygsgdbd/ListenBar/releases/latest/download/appcast.xml",
         )
         XCTAssertEqual(
             Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") as? String,
-            "J+ZJPF3atcveHHVhQk2hXnQwfNiAzfUNUflfBKpQKgc="
+            "J+ZJPF3atcveHHVhQk2hXnQwfNiAzfUNUflfBKpQKgc=",
         )
         XCTAssertEqual(
             Bundle.main.object(forInfoDictionaryKey: "SUEnableAutomaticChecks") as? Bool,
-            false
+            false,
         )
     }
 
     func testSwiftUIAppDoesNotDeclareMainStoryboard() {
         XCTAssertNil(
-            Bundle.main.object(forInfoDictionaryKey: "NSMainStoryboardFile")
+            Bundle.main.object(forInfoDictionaryKey: "NSMainStoryboardFile"),
         )
     }
 
     func testEnglishProcessDetailsLocalization() throws {
         let localizationURL = try XCTUnwrap(
-            Bundle.main.url(forResource: "en", withExtension: "lproj")
+            Bundle.main.url(forResource: "en", withExtension: "lproj"),
         )
         let englishBundle = try XCTUnwrap(Bundle(url: localizationURL))
 
@@ -33,15 +33,15 @@ final class SparkleConfigurationTests: XCTestCase {
             englishBundle.localizedString(
                 forKey: "进程详情",
                 value: nil,
-                table: nil
+                table: nil,
             ),
-            "Process Details"
+            "Process Details",
         )
     }
 
     func testEnglishMenuCountLocalizationsUseSingularAndPluralUnits() throws {
         let localizationURL = try XCTUnwrap(
-            Bundle.main.url(forResource: "en", withExtension: "lproj")
+            Bundle.main.url(forResource: "en", withExtension: "lproj"),
         )
         let englishBundle = try XCTUnwrap(Bundle(url: localizationURL))
 
@@ -57,7 +57,7 @@ final class SparkleConfigurationTests: XCTestCase {
         String(
             format: bundle.localizedString(forKey: key, value: nil, table: nil),
             locale: Locale(identifier: "en"),
-            count
+            count,
         )
     }
 }

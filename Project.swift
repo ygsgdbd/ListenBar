@@ -7,41 +7,41 @@ let project = Project(
     name: "ListenBar",
     options: .options(
         defaultKnownRegions: ["zh-Hans", "zh-Hant", "en"],
-        developmentRegion: "zh-Hans"
+        developmentRegion: "zh-Hans",
     ),
     packages: [
         .remote(
             url: "https://github.com/pointfreeco/swift-case-paths",
-            requirement: .upToNextMajor(from: "1.7.3")
+            requirement: .upToNextMajor(from: "1.7.3"),
         ),
         .remote(
             url: "https://github.com/pointfreeco/swift-composable-architecture",
-            requirement: .upToNextMajor(from: "1.25.5")
+            requirement: .upToNextMajor(from: "1.25.5"),
         ),
         .remote(
             url: "https://github.com/pointfreeco/swift-clocks",
-            requirement: .upToNextMajor(from: "1.1.0")
+            requirement: .upToNextMajor(from: "1.1.0"),
         ),
         .remote(
             url: "https://github.com/pointfreeco/swift-dependencies",
-            requirement: .upToNextMajor(from: "1.12.0")
+            requirement: .upToNextMajor(from: "1.12.0"),
         ),
         .remote(
             url: "https://github.com/pointfreeco/swift-perception",
-            requirement: .upToNextMajor(from: "2.0.10")
+            requirement: .upToNextMajor(from: "2.0.10"),
         ),
         .remote(
             url: "https://github.com/pointfreeco/swift-sharing",
-            requirement: .upToNextMajor(from: "2.0.0")
+            requirement: .upToNextMajor(from: "2.0.0"),
         ),
         .remote(
             url: "https://github.com/sparkle-project/Sparkle",
-            requirement: .upToNextMajor(from: "2.9.4")
+            requirement: .upToNextMajor(from: "2.9.4"),
         ),
         .remote(
             url: "https://github.com/SwifterSwift/SwifterSwift",
-            requirement: .upToNextMajor(from: "8.0.0")
-        )
+            requirement: .upToNextMajor(from: "8.0.0"),
+        ),
     ],
     settings: .settings(
         base: [
@@ -51,12 +51,12 @@ let project = Project(
             "CURRENT_PROJECT_VERSION": SettingValue(stringLiteral: buildVersion),
             "SWIFT_STRICT_CONCURRENCY": "complete",
             "ENABLE_MACROS": "YES",
-            "SWIFT_MACRO_DEBUGGING": "YES"
+            "SWIFT_MACRO_DEBUGGING": "YES",
         ],
         configurations: [
             .debug(name: "Debug"),
-            .release(name: "Release")
-        ]
+            .release(name: "Release"),
+        ],
     ),
     targets: [
         .target(
@@ -82,7 +82,7 @@ let project = Project(
                 "CFBundleVersion": .string(buildVersion),
                 "SUFeedURL": "https://github.com/ygsgdbd/ListenBar/releases/latest/download/appcast.xml",
                 "SUPublicEDKey": "J+ZJPF3atcveHHVhQk2hXnQwfNiAzfUNUflfBKpQKgc=",
-                "SUEnableAutomaticChecks": false
+                "SUEnableAutomaticChecks": false,
             ]),
             sources: ["ListenBar/Sources/**"],
             resources: ["ListenBar/Resources/**"],
@@ -93,7 +93,7 @@ let project = Project(
                 .package(product: "PerceptionCore"),
                 .package(product: "Sharing"),
                 .package(product: "Sparkle"),
-                .package(product: "SwifterSwift")
+                .package(product: "SwifterSwift"),
             ],
             settings: .settings(
                 base: [
@@ -101,13 +101,13 @@ let project = Project(
                     "SWIFT_STRICT_CONCURRENCY": "complete",
                     "ENABLE_MACROS": "YES",
                     "SWIFT_MACRO_DEBUGGING": "YES",
-                    "SWIFT_MACRO_EXPANSION": "YES"
+                    "SWIFT_MACRO_EXPANSION": "YES",
                 ],
                 configurations: [
                     .debug(name: "Debug"),
-                    .release(name: "Release")
-                ]
-            )
+                    .release(name: "Release"),
+                ],
+            ),
         ),
         .target(
             name: "ListenBarTests",
@@ -123,20 +123,20 @@ let project = Project(
                 .target(name: "ListenBar"),
                 .package(product: "ComposableArchitecture"),
                 .package(product: "Dependencies"),
-                .package(product: "Sharing")
+                .package(product: "Sharing"),
             ],
             settings: .settings(
                 base: [
                     "BUNDLE_LOADER": "$(TEST_HOST)",
                     "SWIFT_VERSION": "5.9",
                     "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/ListenBar.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ListenBar",
-                    "TEST_TARGET_NAME": "ListenBar"
+                    "TEST_TARGET_NAME": "ListenBar",
                 ],
                 configurations: [
                     .debug(name: "Debug"),
-                    .release(name: "Release")
-                ]
-            )
-        )
-    ]
+                    .release(name: "Release"),
+                ],
+            ),
+        ),
+    ],
 )

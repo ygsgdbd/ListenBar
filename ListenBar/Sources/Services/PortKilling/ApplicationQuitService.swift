@@ -34,7 +34,7 @@ enum ApplicationQuitService {
 
         return ApplicationQuitAttempt(
             matchedInstanceCount: applications.count,
-            acceptedInstanceCount: acceptedInstanceCount
+            acceptedInstanceCount: acceptedInstanceCount,
         )
     }
 }

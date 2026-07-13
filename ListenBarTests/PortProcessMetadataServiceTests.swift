@@ -1,6 +1,6 @@
 import Darwin
-import XCTest
 @testable import ListenBar
+import XCTest
 
 final class PortProcessMetadataServiceTests: XCTestCase {
     func testApplicationBundleResolutionReturnsOwnerAndProcessAppsForNestedHelperPath() {
@@ -9,15 +9,15 @@ final class PortProcessMetadataServiceTests: XCTestCase {
 
         XCTAssertEqual(
             resolution?.ownerBundleURL.path,
-            "/Applications/Google Chrome.app"
+            "/Applications/Google Chrome.app",
         )
         XCTAssertEqual(
             resolution?.processBundleURL.path,
-            "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/1/Helpers/Google Chrome Helper.app"
+            "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/1/Helpers/Google Chrome Helper.app",
         )
         XCTAssertEqual(
             PortProcessMetadataService.applicationBundleURL(forExecutablePath: path)?.path,
-            "/Applications/Google Chrome.app"
+            "/Applications/Google Chrome.app",
         )
     }
 
@@ -26,7 +26,7 @@ final class PortProcessMetadataServiceTests: XCTestCase {
 
         XCTAssertEqual(
             PortProcessMetadataService.applicationBundleURL(forExecutablePath: path)?.path,
-            "/Applications/Example.app"
+            "/Applications/Example.app",
         )
     }
 
@@ -46,16 +46,16 @@ final class PortProcessMetadataServiceTests: XCTestCase {
         XCTAssertEqual(
             PortProcessMetadataService.processDetailName(
                 processName: "GitHub Desktop Helper (Renderer)",
-                ownerName: "GitHub Desktop"
+                ownerName: "GitHub Desktop",
             ),
-            "Helper (Renderer)"
+            "Helper (Renderer)",
         )
         XCTAssertEqual(
             PortProcessMetadataService.processDetailName(
                 processName: "Google Chrome Helper",
-                ownerName: "Google Chrome"
+                ownerName: "Google Chrome",
             ),
-            "Helper"
+            "Helper",
         )
     }
 
@@ -63,8 +63,8 @@ final class PortProcessMetadataServiceTests: XCTestCase {
         XCTAssertNil(
             PortProcessMetadataService.processDetailName(
                 processName: "GitHub Desktop",
-                ownerName: "GitHub Desktop"
-            )
+                ownerName: "GitHub Desktop",
+            ),
         )
     }
 
@@ -74,17 +74,17 @@ final class PortProcessMetadataServiceTests: XCTestCase {
                 "/opt/homebrew/bin/node",
                 "server.js",
                 "--name",
-                "hello world"
-            ]
+                "hello world",
+            ],
         )
 
         XCTAssertEqual(
             commandLine,
-            "/opt/homebrew/bin/node server.js --name 'hello world'"
+            "/opt/homebrew/bin/node server.js --name 'hello world'",
         )
         XCTAssertEqual(
             PortProcessMetadataService.commandLineSummary(for: "1234567890", limit: 8),
-            "12345..."
+            "12345...",
         )
     }
 
@@ -98,13 +98,13 @@ final class PortProcessMetadataServiceTests: XCTestCase {
                 "--password=secret value",
                 "API_KEY=private",
                 "--name",
-                "hello"
-            ]
+                "hello",
+            ],
         )
 
         XCTAssertEqual(
             commandLine,
-            "/opt/homebrew/bin/node server.js --token <redacted> --password=<redacted> API_KEY=<redacted> --name hello"
+            "/opt/homebrew/bin/node server.js --token <redacted> --password=<redacted> API_KEY=<redacted> --name hello",
         )
     }
 
@@ -113,41 +113,41 @@ final class PortProcessMetadataServiceTests: XCTestCase {
             PortProcessMetadataService.inferredSources(
                 executablePath: "/opt/homebrew/bin/node",
                 applicationPath: nil,
-                parentProcessNames: ["Terminal"]
+                parentProcessNames: ["Terminal"],
             ),
-            [.executable, .homebrew, .terminal]
+            [.executable, .homebrew, .terminal],
         )
         XCTAssertEqual(
             PortProcessMetadataService.inferredSources(
                 executablePath: "/Users/example/.nvm/node",
                 applicationPath: nil,
-                parentProcessNames: ["Code Helper", "Visual Studio Code"]
+                parentProcessNames: ["Code Helper", "Visual Studio Code"],
             ),
-            [.executable, .visualStudioCode]
+            [.executable, .visualStudioCode],
         )
         XCTAssertEqual(
             PortProcessMetadataService.inferredSources(
                 executablePath: "/usr/libexec/exampled",
                 applicationPath: nil,
-                parentProcessNames: ["launchd"]
+                parentProcessNames: ["launchd"],
             ),
-            [.system]
+            [.system],
         )
         XCTAssertEqual(
             PortProcessMetadataService.inferredSources(
                 executablePath: "/Applications/Example.app/Contents/MacOS/Example",
                 applicationPath: "/Applications/Example.app",
-                parentProcessNames: ["launchd"]
+                parentProcessNames: ["launchd"],
             ),
-            [.application]
+            [.application],
         )
         XCTAssertEqual(
             PortProcessMetadataService.inferredSources(
                 executablePath: nil,
                 applicationPath: nil,
-                parentProcessNames: []
+                parentProcessNames: [],
             ),
-            [.unknown]
+            [.unknown],
         )
     }
 
@@ -156,33 +156,33 @@ final class PortProcessMetadataServiceTests: XCTestCase {
             PortProcessMetadataService.inferredSources(
                 executablePath: "/usr/local/Cellar/postgresql/17/bin/postgres",
                 applicationPath: nil,
-                parentProcessNames: []
+                parentProcessNames: [],
             ),
-            [.executable, .homebrew]
+            [.executable, .homebrew],
         )
         XCTAssertEqual(
             PortProcessMetadataService.inferredSources(
                 executablePath: "/opt/local/bin/nginx",
                 applicationPath: nil,
-                parentProcessNames: []
+                parentProcessNames: [],
             ),
-            [.executable, .macPorts]
+            [.executable, .macPorts],
         )
         XCTAssertEqual(
             PortProcessMetadataService.inferredSources(
                 executablePath: "/nix/store/example-node/bin/node",
                 applicationPath: nil,
-                parentProcessNames: []
+                parentProcessNames: [],
             ),
-            [.executable, .nix]
+            [.executable, .nix],
         )
         XCTAssertEqual(
             PortProcessMetadataService.inferredSources(
                 executablePath: "/usr/local/bin/custom-tool",
                 applicationPath: nil,
-                parentProcessNames: []
+                parentProcessNames: [],
             ),
-            [.executable]
+            [.executable],
         )
     }
 
@@ -191,23 +191,23 @@ final class PortProcessMetadataServiceTests: XCTestCase {
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(
             at: temporaryDirectory,
-            withIntermediateDirectories: true
+            withIntermediateDirectories: true,
         )
         defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
 
         let executableURL = temporaryDirectory.appendingPathComponent("node")
         try FileManager.default.createSymbolicLink(
             atPath: executableURL.path,
-            withDestinationPath: "/nix/store/example-node/bin/node"
+            withDestinationPath: "/nix/store/example-node/bin/node",
         )
 
         XCTAssertEqual(
             PortProcessMetadataService.inferredSources(
                 executablePath: executableURL.path,
                 applicationPath: nil,
-                parentProcessNames: []
+                parentProcessNames: [],
             ),
-            [.executable, .nix]
+            [.executable, .nix],
         )
     }
 
@@ -218,21 +218,21 @@ final class PortProcessMetadataServiceTests: XCTestCase {
         XCTAssertEqual(
             PortProcessMetadataService.residentMemoryBytes(
                 from: taskInfo,
-                result: Int32(MemoryLayout<proc_taskinfo>.size)
+                result: Int32(MemoryLayout<proc_taskinfo>.size),
             ),
-            5_452_595
+            5_452_595,
         )
         XCTAssertNil(
             PortProcessMetadataService.residentMemoryBytes(
                 from: taskInfo,
-                result: 0
-            )
+                result: 0,
+            ),
         )
     }
 
     func testResidentMemoryBytesReadsCurrentProcess() {
         XCTAssertNotNil(
-            PortProcessMetadataService.residentMemoryBytes(for: Int(getpid()))
+            PortProcessMetadataService.residentMemoryBytes(for: Int(getpid())),
         )
     }
 
@@ -243,14 +243,14 @@ final class PortProcessMetadataServiceTests: XCTestCase {
             port: 80,
             pid: 1,
             command: "launchd",
-            user: "0"
+            user: "0",
         )
 
         let metadata = PortProcessMetadataService.fallbackMetadata(
             for: port,
             processName: nil,
             uid: nil,
-            residentMemoryBytes: nil
+            residentMemoryBytes: nil,
         )
 
         XCTAssertEqual(metadata.name, "launchd")
@@ -266,36 +266,36 @@ final class PortProcessMetadataServiceTests: XCTestCase {
                 uid: 501,
                 executablePath: "/Users/example/bin/server",
                 applicationPath: nil,
-                currentUID: 501
+                currentUID: 501,
             ),
-            .user
+            .user,
         )
         XCTAssertEqual(
             PortProcessMetadataService.processClassification(
                 uid: 0,
                 executablePath: "/Users/example/bin/server",
                 applicationPath: nil,
-                currentUID: 501
+                currentUID: 501,
             ),
-            .systemOrOtherUser
+            .systemOrOtherUser,
         )
         XCTAssertEqual(
             PortProcessMetadataService.processClassification(
                 uid: 502,
                 executablePath: "/Users/example/bin/server",
                 applicationPath: nil,
-                currentUID: 501
+                currentUID: 501,
             ),
-            .systemOrOtherUser
+            .systemOrOtherUser,
         )
         XCTAssertEqual(
             PortProcessMetadataService.processClassification(
                 uid: 501,
                 executablePath: "/usr/sbin/sshd",
                 applicationPath: nil,
-                currentUID: 501
+                currentUID: 501,
             ),
-            .systemOrOtherUser
+            .systemOrOtherUser,
         )
     }
 
@@ -308,7 +308,7 @@ final class PortProcessMetadataServiceTests: XCTestCase {
             "/usr/sbin/sshd",
             "/bin/zsh",
             "/sbin/mount",
-            "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app/Contents/MacOS/Safari"
+            "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app/Contents/MacOS/Safari",
         ]
 
         for path in systemPaths {
@@ -317,10 +317,10 @@ final class PortProcessMetadataServiceTests: XCTestCase {
                     uid: 501,
                     executablePath: path,
                     applicationPath: nil,
-                    currentUID: 501
+                    currentUID: 501,
                 ),
                 .systemOrOtherUser,
-                path
+                path,
             )
         }
     }
@@ -331,9 +331,9 @@ final class PortProcessMetadataServiceTests: XCTestCase {
                 uid: 501,
                 executablePath: "/usr/local/bin/custom-tool",
                 applicationPath: nil,
-                currentUID: 501
+                currentUID: 501,
             ),
-            .user
+            .user,
         )
     }
 
@@ -341,7 +341,7 @@ final class PortProcessMetadataServiceTests: XCTestCase {
         let systemPaths = [
             "/Library/Apple/System/Library/PrivateFrameworks/RemotePairing.framework/Versions/A/XPCServices/remotepairingd.xpc/Contents/MacOS/remotepairingd",
             "/Library/Apple/usr/libexec/rpmuxd",
-            "/usr/bin/python3"
+            "/usr/bin/python3",
         ]
 
         for path in systemPaths {
@@ -349,10 +349,10 @@ final class PortProcessMetadataServiceTests: XCTestCase {
                 PortProcessMetadataService.inferredSources(
                     executablePath: path,
                     applicationPath: nil,
-                    parentProcessNames: ["launchd"]
+                    parentProcessNames: ["launchd"],
                 ),
                 [.system],
-                path
+                path,
             )
         }
     }

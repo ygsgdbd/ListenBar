@@ -135,7 +135,7 @@ struct AppFeature {
                 return .merge(
                     refresh,
                     launchAtLogin,
-                    autoRefreshEffect(seconds: seconds)
+                    autoRefreshEffect(seconds: seconds),
                 )
 
             case .view where state.isReadmeDemo:
@@ -150,11 +150,12 @@ struct AppFeature {
                     if mode == .onMenuOpen,
                        state.isMenuPresented,
                        !state.isLoading,
-                       !state.isMenuOpenRefreshInFlight {
+                       !state.isMenuOpenRefreshInFlight
+                    {
                         state.isMenuOpenRefreshInFlight = true
                         return .merge(
                             .cancel(id: CancelID.autoRefresh),
-                            loadMenuOpenPortsEffect()
+                            loadMenuOpenPortsEffect(),
                         )
                     }
                     return .cancel(id: CancelID.autoRefresh)
@@ -176,9 +177,9 @@ struct AppFeature {
                     await send(
                         .response(
                             .launchAtLoginLoaded(
-                                await launchAtLoginClient.setEnabled(isEnabled)
-                            )
-                        )
+                                await launchAtLoginClient.setEnabled(isEnabled),
+                            ),
+                        ),
                     )
                 }
 
@@ -186,8 +187,8 @@ struct AppFeature {
                 return copyTextEffect(
                     PortListFormatter.text(
                         groups: state.processGroups,
-                        metadataByPID: state.metadataByPID
-                    )
+                        metadataByPID: state.metadataByPID,
+                    ),
                 )
 
             case let .view(.copyGroupPortsTapped(group)):
@@ -200,8 +201,8 @@ struct AppFeature {
                 return copyTextEffect(
                     PortListFormatter.text(
                         group: group,
-                        metadataByPID: state.metadataByPID
-                    )
+                        metadataByPID: state.metadataByPID,
+                    ),
                 )
 
             case let .view(.copyProcessPathTapped(pid)):
@@ -227,11 +228,11 @@ struct AppFeature {
                 let request = PortGroupKillRequest(
                     group: group,
                     mode: mode,
-                    metadataByPID: state.metadataByPID
+                    metadataByPID: state.metadataByPID,
                 )
                 return confirmGroupKillEffect(
                     request,
-                    warnings: groupKillWarnings(for: request)
+                    warnings: groupKillWarnings(for: request),
                 )
 
             case let .view(.killPortTapped(port, mode)):
@@ -241,8 +242,8 @@ struct AppFeature {
                     processName: state.metadataByPID[port.pid]?.name,
                     expectedExecutablePath: Self.processPath(
                         forPID: port.pid,
-                        metadataByPID: state.metadataByPID
-                    )
+                        metadataByPID: state.metadataByPID,
+                    ),
                 )
                 let warnings = killWarnings(for: request, state: state)
                 guard warnings.isEmpty else {
@@ -260,7 +261,7 @@ struct AppFeature {
                 guard let request = ApplicationQuitRequest(
                     group: group,
                     mode: mode,
-                    metadataByPID: state.metadataByPID
+                    metadataByPID: state.metadataByPID,
                 ) else {
                     return .none
                 }
@@ -326,7 +327,7 @@ struct AppFeature {
                 state.postRefreshErrorMessage = result.failureMessage
                 return .merge(
                     sendNotificationEffect(result.notification),
-                    loadPortsEffect()
+                    loadPortsEffect(),
                 )
 
             case let .response(.launchAtLoginLoaded(status)):
@@ -341,19 +342,20 @@ struct AppFeature {
                 }
                 return .merge(
                     notificationEffect,
-                    applyPortGroupKillResult(result, to: &state)
+                    applyPortGroupKillResult(result, to: &state),
                 )
 
             case let .response(.portKillFinished(result)):
                 let notificationEffect = sendNotificationEffect(result.notification)
                 if state.isMenuPresented,
-                   result.refreshedSnapshot != nil || result.failure != nil {
+                   result.refreshedSnapshot != nil || result.failure != nil
+                {
                     state.deferredMenuUpdate = .portKillFinished(result)
                     return notificationEffect
                 }
                 return .merge(
                     notificationEffect,
-                    applyPortKillResult(result, to: &state)
+                    applyPortKillResult(result, to: &state),
                 )
             }
         }
@@ -408,7 +410,7 @@ struct AppFeature {
 
     private func applyPortsLoadResult(
         _ result: Result<PortScanSnapshot, PortScannerFailure>,
-        to state: inout State
+        to state: inout State,
     ) {
         switch result {
         case let .success(snapshot):
@@ -425,7 +427,7 @@ struct AppFeature {
 
     private func applyDeferredMenuUpdate(
         _ update: DeferredMenuUpdate,
-        to state: inout State
+        to state: inout State,
     ) -> Effect<Action> {
         switch update {
         case let .menuOpenPortsLoaded(result):
@@ -447,7 +449,7 @@ struct AppFeature {
 
     private func applyPortGroupKillResult(
         _ result: PortGroupKillResult,
-        to state: inout State
+        to state: inout State,
     ) -> Effect<Action> {
         if let snapshot = result.refreshedSnapshot {
             apply(snapshot, to: &state)
@@ -460,7 +462,7 @@ struct AppFeature {
 
     private func applyPortKillResult(
         _ result: PortKillResult,
-        to state: inout State
+        to state: inout State,
     ) -> Effect<Action> {
         if let snapshot = result.refreshedSnapshot {
             apply(snapshot, to: &state)
@@ -487,7 +489,7 @@ struct AppFeature {
 
     private func confirmPortKillEffect(
         _ request: PortKillRequest,
-        warnings: [PortKillWarning]
+        warnings: [PortKillWarning],
     ) -> Effect<Action> {
         let confirmation = request.confirmation(warnings: warnings)
         return .run { send in
@@ -497,7 +499,7 @@ struct AppFeature {
     }
 
     private func confirmApplicationQuitEffect(
-        _ request: ApplicationQuitRequest
+        _ request: ApplicationQuitRequest,
     ) -> Effect<Action> {
         .run { send in
             let confirmed = await portKillConfirmation.confirm(request.confirmation)
@@ -507,7 +509,7 @@ struct AppFeature {
 
     private func confirmGroupKillEffect(
         _ request: PortGroupKillRequest,
-        warnings: [PortKillWarning]
+        warnings: [PortKillWarning],
     ) -> Effect<Action> {
         let confirmation = request.confirmation(warnings: warnings)
         return .run { send in
@@ -524,8 +526,8 @@ struct AppFeature {
             metadataByPID: metadata,
             processGroups: PortProcessGroupingService.groups(
                 for: ports,
-                metadataByPID: metadata
-            )
+                metadataByPID: metadata,
+            ),
         )
     }
 
@@ -540,10 +542,10 @@ struct AppFeature {
                                 .aborted(
                                     request: request,
                                     refreshedSnapshot: snapshot,
-                                    failure: .staleTarget
-                                )
-                            )
-                        )
+                                    failure: .staleTarget,
+                                ),
+                            ),
+                        ),
                     )
                     return
                 }
@@ -556,16 +558,16 @@ struct AppFeature {
     }
 
     private func quitApplicationEffect(
-        _ request: ApplicationQuitRequest
+        _ request: ApplicationQuitRequest,
     ) -> Effect<Action> {
         .run { send in
             let attempt = await applicationQuitter.request(request)
             await send(
                 .response(
                     .applicationQuitFinished(
-                        ApplicationQuitResult(request: request, attempt: attempt)
-                    )
-                )
+                        ApplicationQuitResult(request: request, attempt: attempt),
+                    ),
+                ),
             )
         }
     }
@@ -582,10 +584,10 @@ struct AppFeature {
                             PortGroupKillResult(
                                 request: request,
                                 failures: [.init(pid: 0, message: PortScannerFailure(error).message)],
-                                refreshedSnapshot: nil
-                            )
-                        )
-                    )
+                                refreshedSnapshot: nil,
+                            ),
+                        ),
+                    ),
                 )
                 return
             }
@@ -597,10 +599,10 @@ struct AppFeature {
                             PortGroupKillResult(
                                 request: request,
                                 failures: [.init(pid: 0, message: PortKillerFailure.staleTarget.message)],
-                                refreshedSnapshot: snapshot
-                            )
-                        )
-                    )
+                                refreshedSnapshot: snapshot,
+                            ),
+                        ),
+                    ),
                 )
                 return
             }
@@ -613,17 +615,17 @@ struct AppFeature {
                     failures.append(
                         PortKillPIDFailure(
                             pid: pid,
-                            message: PortKillerFailure(error).message
-                        )
+                            message: PortKillerFailure(error).message,
+                        ),
                     )
                 }
             }
             await send(
                 .response(
                     .portGroupKillFinished(
-                        PortGroupKillResult(request: request, failures: failures)
-                    )
-                )
+                        PortGroupKillResult(request: request, failures: failures),
+                    ),
+                ),
             )
         }
     }
@@ -675,7 +677,7 @@ struct AppFeature {
 
     private func killWarnings(
         for request: PortKillRequest,
-        state: State
+        state: State,
     ) -> [PortKillWarning] {
         var warnings: [PortKillWarning] = []
         if request.mode == .force {
@@ -704,7 +706,7 @@ struct AppFeature {
 
     static func processPath(
         forPID pid: Int,
-        metadataByPID: [Int: PortProcessMetadata]
+        metadataByPID: [Int: PortProcessMetadata],
     ) -> String? {
         guard let metadata = metadataByPID[pid] else {
             return nil
@@ -714,21 +716,21 @@ struct AppFeature {
 
     static func commandLine(
         forPID pid: Int,
-        metadataByPID: [Int: PortProcessMetadata]
+        metadataByPID: [Int: PortProcessMetadata],
     ) -> String? {
         metadataByPID[pid]?.commandLine
     }
 
     static func redactedCommandLine(
         forPID pid: Int,
-        metadataByPID: [Int: PortProcessMetadata]
+        metadataByPID: [Int: PortProcessMetadata],
     ) -> String? {
         metadataByPID[pid]?.redactedCommandLine
     }
 
     static func preflightMatches(
         _ request: PortKillRequest,
-        snapshot: PortScanSnapshot
+        snapshot: PortScanSnapshot,
     ) -> Bool {
         guard snapshot.ports.contains(where: { $0.matchesEndpoint(of: request.port) }) else {
             return false
@@ -741,7 +743,7 @@ struct AppFeature {
 
     static func preflightMatches(
         _ request: PortGroupKillRequest,
-        snapshot: PortScanSnapshot
+        snapshot: PortScanSnapshot,
     ) -> Bool {
         guard let group = snapshot.processGroups.first(where: { $0.id == request.groupID }) else {
             return false
@@ -751,7 +753,8 @@ struct AppFeature {
         }
         for port in request.ports {
             if let expectedExecutablePath = request.expectedExecutablePathsByPID[port.pid],
-               processPath(forPID: port.pid, metadataByPID: snapshot.metadataByPID) != expectedExecutablePath {
+               processPath(forPID: port.pid, metadataByPID: snapshot.metadataByPID) != expectedExecutablePath
+            {
                 return false
             }
         }
@@ -775,7 +778,7 @@ struct AppFeature {
                 "/usr/sbin/",
                 "/usr/libexec/",
                 "/bin/",
-                "/sbin/"
+                "/sbin/",
             ].contains { path.hasPrefix($0) }
         }
     }
@@ -828,7 +831,7 @@ struct ApplicationQuitRequest: Equatable, Sendable {
     init?(
         group: PortProcessGroup,
         mode: ApplicationQuitMode,
-        metadataByPID: [Int: PortProcessMetadata]
+        metadataByPID: [Int: PortProcessMetadata],
     ) {
         guard let bundleIdentifier = group.applicationBundleIdentifier else {
             return nil
@@ -842,11 +845,12 @@ struct ApplicationQuitRequest: Equatable, Sendable {
                     return nil
                 }
                 guard case let .application(metadataBundleIdentifier) = metadata.kind,
-                      metadataBundleIdentifier == bundleIdentifier else {
+                      metadataBundleIdentifier == bundleIdentifier
+                else {
                     return nil
                 }
                 return metadata.path
-            }
+            },
         )
         self.mode = mode
     }
@@ -856,15 +860,15 @@ struct ApplicationQuitRequest: Equatable, Sendable {
             title: String(
                 format: String(localized: "强制退出 %@", bundle: .main, comment: "强制退出应用确认标题。"),
                 locale: Locale.current,
-                applicationName
+                applicationName,
             ),
             message: String(
                 format: String(localized: "将强制退出 %@ 的所有运行实例。未保存的数据可能丢失。", bundle: .main, comment: "强制退出应用确认说明。"),
                 locale: Locale.current,
-                applicationName
+                applicationName,
             ),
             confirmButtonTitle: String(localized: "强制退出", bundle: .main, comment: "强制退出应用确认按钮。"),
-            isDestructive: true
+            isDestructive: true,
         )
     }
 }
@@ -883,14 +887,14 @@ struct ApplicationQuitResult: Equatable, Sendable {
             return String(
                 format: String(localized: "未找到 %@ 的运行实例。", bundle: .main, comment: "退出应用时未找到匹配实例。"),
                 locale: Locale.current,
-                request.applicationName
+                request.applicationName,
             )
         }
         if attempt.acceptedInstanceCount == 0 {
             return String(
                 format: String(localized: "%@ 的退出请求均未被接受。", bundle: .main, comment: "退出应用请求全部失败。"),
                 locale: Locale.current,
-                request.applicationName
+                request.applicationName,
             )
         }
         if attempt.acceptedInstanceCount < attempt.matchedInstanceCount {
@@ -899,7 +903,7 @@ struct ApplicationQuitResult: Equatable, Sendable {
                 locale: Locale.current,
                 request.applicationName,
                 Int64(attempt.acceptedInstanceCount),
-                Int64(attempt.matchedInstanceCount)
+                Int64(attempt.matchedInstanceCount),
             )
         }
         return nil
@@ -911,13 +915,13 @@ struct ApplicationQuitResult: Equatable, Sendable {
             locale: Locale.current,
             request.applicationName,
             Int64(attempt.acceptedInstanceCount),
-            Int64(attempt.matchedInstanceCount)
+            Int64(attempt.matchedInstanceCount),
         )
 
         if failureMessage == nil {
             return PortKillNotification(
                 title: request.mode.successNotificationTitle,
-                body: body
+                body: body,
             )
         }
 
@@ -926,7 +930,7 @@ struct ApplicationQuitResult: Equatable, Sendable {
             : request.mode.failureNotificationTitle
         return PortKillNotification(
             title: title,
-            body: failureMessage.map { "\(body) · \($0)" } ?? body
+            body: failureMessage.map { "\(body) · \($0)" } ?? body,
         )
     }
 }
@@ -947,12 +951,12 @@ enum MenuCountLabels {
     private static func localizedCount(
         _ key: String.LocalizationValue,
         count: Int,
-        comment: StaticString
+        comment: StaticString,
     ) -> String {
         String(
             format: String(localized: key, bundle: .main, comment: comment),
             locale: Locale.current,
-            Int64(count)
+            Int64(count),
         )
     }
 }
@@ -1005,7 +1009,7 @@ enum AutoRefreshMode: Codable, Equatable, Identifiable, Sendable {
             return String(
                 format: String(localized: "每 %lld 秒", bundle: .main, comment: "自动刷新间隔。"),
                 locale: Locale.current,
-                Int64(seconds)
+                Int64(seconds),
             )
         case .off:
             return String(localized: "关闭", bundle: .main, comment: "自动刷新关闭。")
@@ -1068,7 +1072,7 @@ struct PortKillRequest: Equatable, Sendable {
         port: PortEntry,
         mode: PortKillMode,
         processName: String? = nil,
-        expectedExecutablePath: String? = nil
+        expectedExecutablePath: String? = nil,
     ) {
         self.port = port
         self.mode = mode
@@ -1081,7 +1085,7 @@ struct PortKillRequest: Equatable, Sendable {
             title: mode.title,
             message: confirmationMessage(warnings: warnings),
             confirmButtonTitle: mode.title,
-            isDestructive: mode.isDestructive
+            isDestructive: mode.isDestructive,
         )
     }
 
@@ -1095,7 +1099,7 @@ struct PortKillRequest: Equatable, Sendable {
             processName,
             Int64(port.pid),
             endpoint,
-            warningText
+            warningText,
         )
     }
 }
@@ -1112,7 +1116,7 @@ struct PortGroupKillRequest: Equatable, Sendable {
     init(
         group: PortProcessGroup,
         mode: PortKillMode,
-        metadataByPID: [Int: PortProcessMetadata] = [:]
+        metadataByPID: [Int: PortProcessMetadata] = [:],
     ) {
         self.groupID = group.id
         self.processName = group.displayName
@@ -1126,7 +1130,7 @@ struct PortGroupKillRequest: Equatable, Sendable {
                     return nil
                 }
                 return (pid, path)
-            }
+            },
         )
     }
 
@@ -1135,7 +1139,7 @@ struct PortGroupKillRequest: Equatable, Sendable {
             title: mode.groupTitle,
             message: confirmationMessage(warnings: warnings),
             confirmButtonTitle: mode.groupTitle,
-            isDestructive: mode.isDestructive
+            isDestructive: mode.isDestructive,
         )
     }
 
@@ -1152,7 +1156,7 @@ struct PortGroupKillRequest: Equatable, Sendable {
             processName,
             Int64(pids.count),
             portsText,
-            warningText
+            warningText,
         )
     }
 }
@@ -1178,7 +1182,7 @@ struct PortKillResult: Equatable, Sendable {
     static func aborted(
         request: PortKillRequest,
         refreshedSnapshot: PortScanSnapshot,
-        failure: PortKillerFailure
+        failure: PortKillerFailure,
     ) -> Self {
         Self(request: request, refreshedSnapshot: refreshedSnapshot, failure: failure)
     }
@@ -1191,7 +1195,7 @@ struct PortKillResult: Equatable, Sendable {
             Int64(request.port.pid),
             request.port.networkProtocol.rawValue,
             request.port.address,
-            Int64(request.port.port)
+            Int64(request.port.port),
         )
 
         if let failure {
@@ -1199,9 +1203,9 @@ struct PortKillResult: Equatable, Sendable {
                 title: String(
                     format: String(localized: "发送 %@ 失败", bundle: .main, comment: "进程终止信号发送失败通知标题。"),
                     locale: Locale.current,
-                    request.mode.signalName
+                    request.mode.signalName,
                 ),
-                body: "\(target) · \(failure.message)"
+                body: "\(target) · \(failure.message)",
             )
         }
 
@@ -1209,9 +1213,9 @@ struct PortKillResult: Equatable, Sendable {
             title: String(
                 format: String(localized: "已发送 %@", bundle: .main, comment: "进程终止信号发送成功通知标题。"),
                 locale: Locale.current,
-                request.mode.signalName
+                request.mode.signalName,
             ),
-            body: target
+            body: target,
         )
     }
 }
@@ -1235,7 +1239,7 @@ struct PortGroupKillResult: Equatable, Sendable {
         return String(
             format: String(localized: "部分进程未能终止：%@", bundle: .main, comment: "批量终止进程时部分 PID 失败的错误。"),
             locale: Locale.current,
-            details
+            details,
         )
     }
 
@@ -1249,7 +1253,7 @@ struct PortGroupKillResult: Equatable, Sendable {
             locale: Locale.current,
             request.processName,
             Int64(request.pids.count),
-            portsText
+            portsText,
         )
 
         guard let failureMessage else {
@@ -1257,9 +1261,9 @@ struct PortGroupKillResult: Equatable, Sendable {
                 title: String(
                     format: String(localized: "已发送 %@", bundle: .main, comment: "进程终止信号发送成功通知标题。"),
                     locale: Locale.current,
-                    request.mode.signalName
+                    request.mode.signalName,
                 ),
-                body: target
+                body: target,
             )
         }
 
@@ -1276,7 +1280,7 @@ struct PortGroupKillResult: Equatable, Sendable {
                 target,
                 Int64(request.pids.count - failedPIDCount),
                 Int64(request.pids.count),
-                failureMessage
+                failureMessage,
             )
         } else {
             body = "\(target) · \(failureMessage)"
@@ -1286,9 +1290,9 @@ struct PortGroupKillResult: Equatable, Sendable {
             title: String(
                 format: titleFormat,
                 locale: Locale.current,
-                request.mode.signalName
+                request.mode.signalName,
             ),
-            body: body
+            body: body,
         )
     }
 }
@@ -1311,7 +1315,7 @@ enum PortKillWarning: Equatable, Sendable {
             return String(
                 format: String(localized: "这会影响 %lld 个进程。", bundle: .main, comment: "批量终止多个进程前显示的警告。"),
                 locale: Locale.current,
-                Int64(count)
+                Int64(count),
             )
         }
     }
@@ -1343,7 +1347,8 @@ struct PortScannerFailure: LocalizedError, Equatable, Sendable {
         if let failure = error as? PortScannerFailure {
             self = failure
         } else if let localizedError = error as? LocalizedError,
-           let errorDescription = localizedError.errorDescription {
+                  let errorDescription = localizedError.errorDescription
+        {
             self.message = errorDescription
         } else {
             self.message = error.localizedDescription
@@ -1359,8 +1364,8 @@ struct PortKillerFailure: LocalizedError, Equatable, Sendable {
             message: String(
                 localized: "端口占用已变化，请重新确认。",
                 bundle: .main,
-                comment: "终止进程前重新扫描发现端口占用已变化。"
-            )
+                comment: "终止进程前重新扫描发现端口占用已变化。",
+            ),
         )
     }
 
@@ -1376,7 +1381,8 @@ struct PortKillerFailure: LocalizedError, Equatable, Sendable {
         if let failure = error as? PortKillerFailure {
             self = failure
         } else if let localizedError = error as? LocalizedError,
-                  let errorDescription = localizedError.errorDescription {
+                  let errorDescription = localizedError.errorDescription
+        {
             self.message = errorDescription
         } else {
             self.message = error.localizedDescription

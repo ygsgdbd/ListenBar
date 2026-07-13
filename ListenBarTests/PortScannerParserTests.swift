@@ -1,5 +1,5 @@
-import XCTest
 @testable import ListenBar
+import XCTest
 
 final class PortScannerParserTests: XCTestCase {
     func testParsesTcpAndLoopbackPorts() {
@@ -17,7 +17,7 @@ final class PortScannerParserTests: XCTestCase {
             f8
             PTCP
             n127.0.0.1:5037
-            """
+            """,
         )
 
         XCTAssertEqual(
@@ -29,7 +29,7 @@ final class PortScannerParserTests: XCTestCase {
                     port: 5037,
                     pid: 63759,
                     command: "adb",
-                    user: "501"
+                    user: "501",
                 ),
                 PortEntry(
                     networkProtocol: .tcp,
@@ -37,9 +37,9 @@ final class PortScannerParserTests: XCTestCase {
                     port: 8081,
                     pid: 24106,
                     command: "node",
-                    user: "501"
-                )
-            ]
+                    user: "501",
+                ),
+            ],
         )
     }
 
@@ -58,7 +58,7 @@ final class PortScannerParserTests: XCTestCase {
             f35
             PUDP
             n*:5353
-            """
+            """,
         )
 
         XCTAssertEqual(
@@ -70,9 +70,9 @@ final class PortScannerParserTests: XCTestCase {
                     port: 5353,
                     pid: 2433,
                     command: "Google Chrome Helper",
-                    user: "501"
-                )
-            ]
+                    user: "501",
+                ),
+            ],
         )
     }
 
@@ -85,7 +85,7 @@ final class PortScannerParserTests: XCTestCase {
             f9
             PUDP
             n127.0.0.1:53000->127.0.0.1:53
-            """
+            """,
         )
 
         XCTAssertEqual(
@@ -97,9 +97,9 @@ final class PortScannerParserTests: XCTestCase {
                     port: 53000,
                     pid: 42,
                     command: "dns-proxy",
-                    user: "501"
-                )
-            ]
+                    user: "501",
+                ),
+            ],
         )
     }
 
@@ -112,7 +112,7 @@ final class PortScannerParserTests: XCTestCase {
             f9
             PUDP
             n[::1]:53000->[::1]:53
-            """
+            """,
         )
 
         XCTAssertEqual(ports.first?.address, "[::1]")
@@ -131,7 +131,7 @@ final class PortScannerParserTests: XCTestCase {
             f10
             PTCP
             n*:7000
-            """
+            """,
         )
 
         XCTAssertEqual(
@@ -143,9 +143,9 @@ final class PortScannerParserTests: XCTestCase {
                     port: 7000,
                     pid: 1075,
                     command: "ControlCenter",
-                    user: "501"
-                )
-            ]
+                    user: "501",
+                ),
+            ],
         )
     }
 
@@ -164,12 +164,12 @@ final class PortScannerParserTests: XCTestCase {
             f10
             PTCP
             n*:3001
-            """
+            """,
         )
 
         XCTAssertEqual(ports.map(\.id), [
             "TCP|*|3000|101|node",
-            "TCP|*|3001|202|node"
+            "TCP|*|3001|202|node",
         ])
     }
 
@@ -200,7 +200,7 @@ final class PortScannerParserTests: XCTestCase {
             f1
             PTCP
             n*:8000
-            """
+            """,
         )
 
         XCTAssertEqual(ports.map(\.pid), [1, 2, 3, 4])
@@ -215,7 +215,7 @@ final class PortScannerParserTests: XCTestCase {
             f3
             PTCP
             n[::1]:9090
-            """
+            """,
         )
 
         XCTAssertEqual(ports.first?.address, "[::1]")
@@ -237,7 +237,7 @@ final class PortScannerParserTests: XCTestCase {
             f4
             PTCP
             n[::]:3001
-            """
+            """,
         )
 
         XCTAssertEqual(ports.map(\.address), ["0.0.0.0", "[::]"])
