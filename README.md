@@ -34,6 +34,7 @@
 - 🔗 **Open services and copy what you need.** Open eligible loopback TCP services at `http://localhost:<port>`, or copy URLs, ports, PIDs, paths, `lsof` commands, process details, and complete listener reports.
 - 🔒 **Share diagnostics more safely.** Choose between full and redacted command-line copy actions to omit sensitive arguments when needed.
 - 🛠️ **Inspect and manage processes.** Reveal executables in Finder, view native app or executable icons, quit or force-quit apps, and send `SIGTERM` or `SIGKILL` to individual processes, with confirmation for destructive or higher-risk actions.
+- 🙈 **Ignore persistent noise.** Ignore listeners by stable app or executable identity, then restore individual items or all ignored items from the menu.
 - 🔄 **Keep the list current.** Refresh whenever the menu opens, use an optional 1-, 2-, or 5-second interval, disable automatic refresh, or check for updates manually through Sparkle.
 - 🚀 **Launch at login.** Start ListenBar automatically after signing in, with a direct link to macOS Login Items settings when approval is required.
 
@@ -100,7 +101,7 @@ Only bypass Gatekeeper when you obtained the app from this repository's official
 
 ## 🧪 Development and tests
 
-The project currently contains **140 XCTest test methods** covering reducer behavior, settings persistence, login item management, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
+The project currently contains **159 XCTest test methods** covering reducer behavior, settings persistence, ignored listener identities and filtering, login item management, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
 
 Requirements: Xcode 26, [Homebrew](https://brew.sh/), [just](https://github.com/casey/just), [SwiftFormat](https://github.com/nicklockwood/SwiftFormat), and [Tuist](https://tuist.dev/).
 
