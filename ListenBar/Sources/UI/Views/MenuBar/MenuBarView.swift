@@ -64,6 +64,37 @@ struct MenuBarView: View {
             }
             .disabled(store.processGroups.isEmpty)
 
+            if !store.ignoredProcessesForMenu.isEmpty {
+                Menu {
+                    Section {
+                        ForEach(store.ignoredProcessesForMenu) { item in
+                            Button {
+                                store.send(.view(.restoreIgnoredProcessTapped(item)))
+                            } label: {
+                                Label(item.displayName, systemImage: "eye")
+                            }
+                        }
+                    } header: {
+                        Text(IgnoredProcessMenuLabels.restoreHint)
+                    }
+
+                    Divider()
+
+                    Button {
+                        store.send(.view(.restoreAllIgnoredProcessesTapped))
+                    } label: {
+                        Label("恢复全部", systemImage: "arrow.uturn.backward")
+                    }
+                } label: {
+                    Label(
+                        IgnoredProcessMenuLabels.menuTitle(
+                            count: store.ignoredProcessesForMenu.count,
+                        ),
+                        systemImage: "eye.slash",
+                    )
+                }
+            }
+
             Divider()
 
             Menu {
@@ -165,6 +196,9 @@ struct MenuBarView: View {
                     onCopyProcessInformation: { group in
                         store.send(.view(.copyProcessInformationTapped(group)))
                     },
+                    onIgnoreGroup: { group in
+                        store.send(.view(.ignoreGroupTapped(group)))
+                    },
                     onCopyProcessPath: { pid in
                         store.send(.view(.copyProcessPathTapped(pid: pid)))
                     },
@@ -198,7 +232,9 @@ struct MenuBarView: View {
         if store.isLoading {
             return String(localized: "正在扫描…", bundle: .main, comment: "扫描端口时的空状态。")
         }
-        return String(localized: "未发现监听端口", bundle: .main, comment: "没有发现监听端口时的空状态。")
+        return IgnoredProcessMenuLabels.emptyState(
+            hasIgnoredMatches: store.ignoredProcessGroupCount > 0,
+        )
     }
 }
 
@@ -211,6 +247,7 @@ private struct PortProcessGroupMenu: View {
     let onCopyPID: (Int) -> Void
     let onCopyGroupPorts: (PortProcessGroup) -> Void
     let onCopyProcessInformation: (PortProcessGroup) -> Void
+    let onIgnoreGroup: (PortProcessGroup) -> Void
     let onCopyProcessPath: (Int) -> Void
     let onCopyCommandLine: (Int) -> Void
     let onCopyRedactedCommandLine: (Int) -> Void
@@ -226,6 +263,10 @@ private struct PortProcessGroupMenu: View {
             group: group,
             metadataByPID: metadataByPID,
         )
+        let canIgnore = IgnoredProcessItem(
+            group: group,
+            metadataByPID: metadataByPID,
+        ) != nil
 
         Menu {
             ForEach(group.ports) { port in
@@ -255,9 +296,24 @@ private struct PortProcessGroupMenu: View {
                 Label("复制进程信息", systemImage: "doc.text")
             }
 
-            if group.id.hasPrefix("app:") {
+            if canIgnore || group.applicationBundleIdentifier != nil {
                 Divider()
+            }
 
+            if canIgnore {
+                Button {
+                    onIgnoreGroup(group)
+                } label: {
+                    Label(
+                        IgnoredProcessMenuLabels.ignoreTitle(
+                            isApplication: group.applicationBundleIdentifier != nil,
+                        ),
+                        systemImage: "eye.slash",
+                    )
+                }
+            }
+
+            if group.applicationBundleIdentifier != nil {
                 Button {
                     onQuitApplication(group, .normal)
                 } label: {
@@ -346,6 +402,34 @@ private struct PortProcessGroupMenu: View {
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
         }
+    }
+}
+
+enum IgnoredProcessMenuLabels {
+    static var restoreHint: String {
+        String(localized: "点击项目以恢复显示", bundle: .main, comment: "已忽略项目子菜单的恢复操作说明。")
+    }
+
+    static func ignoreTitle(isApplication: Bool) -> String {
+        if isApplication {
+            return String(localized: "忽略此 App", bundle: .main, comment: "忽略应用菜单项。")
+        }
+        return String(localized: "忽略此进程", bundle: .main, comment: "忽略进程菜单项。")
+    }
+
+    static func menuTitle(count: Int) -> String {
+        String(
+            format: String(localized: "已忽略项目（%lld）", bundle: .main, comment: "已忽略项目子菜单标题。"),
+            locale: Locale.current,
+            Int64(count),
+        )
+    }
+
+    static func emptyState(hasIgnoredMatches: Bool) -> String {
+        if hasIgnoredMatches {
+            return String(localized: "所有监听项目均已忽略", bundle: .main, comment: "扫描结果全部被忽略时的空状态。")
+        }
+        return String(localized: "未发现监听端口", bundle: .main, comment: "没有发现监听端口时的空状态。")
     }
 }
 

@@ -34,6 +34,7 @@
 - 🔗 **打开服务，复制所需信息。** 使用 `http://localhost:<port>` 打开符合条件的本机 TCP 服务，或复制 URL、端口、PID、路径、`lsof` 命令、进程详情和完整监听报告。
 - 🔒 **更安全地分享诊断信息。** 可选择复制完整或脱敏后的启动命令，在需要时省略敏感参数。
 - 🛠️ **检查并管理进程。** 可在 Finder 中显示可执行文件、查看原生 App 或可执行文件图标、正常或强制退出 App，以及对单个进程发送 `SIGTERM` 或 `SIGKILL`；破坏性或高风险操作会先请求确认。
+- 🙈 **忽略持续干扰项。** 可按稳定的 App 或可执行文件身份忽略监听项，并从菜单恢复单个或全部已忽略项目。
 - 🔄 **让列表保持最新。** 默认在打开菜单时刷新，也可选择每 1、2、5 秒自动刷新、关闭自动刷新，或通过 Sparkle 手动检查更新。
 - 🚀 **登录后自动启动。** 可让 ListenBar 在登录 macOS 后自动运行；需要用户批准时，可直接打开系统登录项设置。
 
@@ -100,7 +101,7 @@ brew upgrade listenbar
 
 ## 🧪 开发与测试
 
-项目当前包含 **140 个 XCTest 测试方法**，覆盖 reducer 行为、配置持久化、登录项管理、端口解析与分组、进程元数据、菜单呈现、截图 fixture 和 Sparkle 配置。
+项目当前包含 **159 个 XCTest 测试方法**，覆盖 reducer 行为、配置持久化、监听项忽略身份与过滤、登录项管理、端口解析与分组、进程元数据、菜单呈现、截图 fixture 和 Sparkle 配置。
 
 环境要求：Xcode 26、[Homebrew](https://brew.sh/)、[just](https://github.com/casey/just)、[SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 和 [Tuist](https://tuist.dev/)。
 

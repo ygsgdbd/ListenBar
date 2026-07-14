@@ -23,6 +23,324 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(state.title, "2 个监听进程 · 3 个端口")
     }
 
+    func testPortsLoadedFiltersIgnoredProcessesFromVisibleState() async {
+        let ignoredPort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example Helper",
+            user: "501",
+        )
+        let visiblePort = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3001,
+            pid: 202,
+            command: "node",
+            user: "501",
+        )
+        let metadata = [
+            ignoredPort.pid: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: "/Applications/Example.app",
+            ),
+            visiblePort.pid: PortProcessMetadata.executable(
+                name: "node",
+                path: "/opt/homebrew/bin/node",
+            ),
+        ]
+        let snapshot = makeSnapshot([ignoredPort, visiblePort], metadata: metadata)
+        let now = Date(timeIntervalSince1970: 1_000)
+        let initialState = AppFeature.State()
+        initialState.$settings.withLock {
+            $0.ignore(
+                .application(
+                    bundleIdentifier: "com.example.App",
+                    displayName: "Example",
+                ),
+            )
+        }
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+
+        await store.send(.response(.portsLoaded(.success(snapshot)))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.lastUpdated = now
+            $0.hiddenMetadataByPID = [ignoredPort.pid: metadata[ignoredPort.pid]!]
+            $0.hiddenPorts = [ignoredPort]
+            $0.hiddenProcessGroups = snapshot.processGroups.filter { $0.id == "app:com.example.App" }
+            $0.ignoredProcessGroupCount = 1
+            $0.metadataByPID = [visiblePort.pid: metadata[visiblePort.pid]!]
+            $0.ports = [visiblePort]
+            $0.processGroups = snapshot.processGroups.filter { $0.id == "process:202:node" }
+        }
+
+        XCTAssertEqual(store.state.title, "1 个监听进程 · 1 个端口")
+    }
+
+    func testIgnoreGroupWhileMenuPresentedRefreshesAfterDismissal() async throws {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "Example Helper",
+            user: "501",
+        )
+        let metadata = [
+            port.pid: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: "/Applications/Example.app",
+            ),
+        ]
+        let snapshot = makeSnapshot([port], metadata: metadata)
+        let group = try XCTUnwrap(snapshot.processGroups.first)
+        let ignoredItem = try XCTUnwrap(
+            IgnoredProcessItem(group: group, metadataByPID: metadata),
+        )
+        let now = Date(timeIntervalSince1970: 2_000)
+        var initialState = AppFeature.State()
+        initialState.isMenuPresented = true
+        initialState.metadataByPID = metadata
+        initialState.ports = snapshot.ports
+        initialState.processGroups = snapshot.processGroups
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+        store.dependencies.portScanner.scan = { [port] }
+        store.dependencies.portProcessMetadata.resolve = { _ in metadata }
+
+        await store.send(.view(.ignoreGroupTapped(group))) {
+            $0.$settings.withLock {
+                $0.ignore(ignoredItem)
+            }
+            $0.refreshPending = true
+        }
+        await store.send(.menuDismissed) {
+            $0.isMenuPresented = false
+            $0.refreshPending = false
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+            $0.hiddenMetadataByPID = metadata
+            $0.hiddenPorts = [port]
+            $0.hiddenProcessGroups = snapshot.processGroups
+            $0.ignoredProcessGroupCount = 1
+            $0.metadataByPID = [:]
+            $0.ports = []
+            $0.processGroups = []
+        }
+        await store.receive(.response(.portsLoaded(.success(snapshot)))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.lastUpdated = now
+        }
+    }
+
+    func testRestoreIgnoredProcessWhileMenuPresentedRefreshesAfterDismissal() async {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501",
+        )
+        let metadata = [
+            port.pid: PortProcessMetadata.executable(
+                name: "node",
+                path: "/opt/homebrew/bin/node",
+            ),
+        ]
+        let snapshot = makeSnapshot([port], metadata: metadata)
+        let ignoredItem = IgnoredProcessItem.executable(
+            path: "/opt/homebrew/bin/node",
+            displayName: "node",
+        )
+        let now = Date(timeIntervalSince1970: 3_000)
+        var initialState = AppFeature.State()
+        initialState.isMenuPresented = true
+        initialState.hiddenMetadataByPID = metadata
+        initialState.hiddenPorts = [port]
+        initialState.hiddenProcessGroups = snapshot.processGroups
+        initialState.ignoredProcessGroupCount = 1
+        initialState.$settings.withLock {
+            $0.ignore(ignoredItem)
+        }
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(now)
+        store.dependencies.portScanner.scan = { [port] }
+        store.dependencies.portProcessMetadata.resolve = { _ in metadata }
+
+        await store.send(.view(.restoreIgnoredProcessTapped(ignoredItem))) {
+            $0.$settings.withLock {
+                $0.restore(ignoredItem)
+            }
+            $0.refreshPending = true
+        }
+        await store.send(.menuDismissed) {
+            $0.isMenuPresented = false
+            $0.refreshPending = false
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+            $0.hiddenMetadataByPID = [:]
+            $0.hiddenPorts = []
+            $0.hiddenProcessGroups = []
+            $0.ignoredProcessGroupCount = 0
+            $0.metadataByPID = metadata
+            $0.ports = [port]
+            $0.processGroups = snapshot.processGroups
+        }
+        await store.receive(.response(.portsLoaded(.success(snapshot)))) {
+            $0.isLoading = false
+            $0.errorMessage = nil
+            $0.lastUpdated = now
+        }
+    }
+
+    func testRestoreAllIgnoredProcessesDeduplicatesToEmptySettings() async {
+        var initialState = AppFeature.State()
+        initialState.isMenuPresented = true
+        initialState.$settings.withLock {
+            $0.ignore(.application(bundleIdentifier: "com.example.App", displayName: "Example"))
+            $0.ignore(.executable(path: "/opt/homebrew/bin/node", displayName: "node"))
+        }
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        await store.send(.view(.restoreAllIgnoredProcessesTapped)) {
+            $0.$settings.withLock {
+                $0.ignoredProcesses = []
+            }
+            $0.refreshPending = true
+        }
+    }
+
+    func testMenuPresentedFreezesIgnoredItemsWhileSettingsChange() async {
+        let ignoredItem = IgnoredProcessItem.application(
+            bundleIdentifier: "com.example.App",
+            displayName: "Example",
+        )
+        let initialState = AppFeature.State()
+        initialState.$settings.withLock {
+            $0.autoRefresh = .off
+            $0.ignore(ignoredItem)
+        }
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.ignoredProcessesAtMenuPresentation = [ignoredItem]
+        }
+        await store.send(.view(.restoreIgnoredProcessTapped(ignoredItem))) {
+            $0.$settings.withLock {
+                $0.restore(ignoredItem)
+            }
+            $0.refreshPending = true
+        }
+        await store.send(.menuPresented)
+
+        XCTAssertEqual(store.state.settings.ignoredProcesses, [])
+        XCTAssertEqual(store.state.ignoredProcessesForMenu, [ignoredItem])
+    }
+
+    func testRestoreRemainsVisibleWhenRefreshFails() async {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501",
+        )
+        let metadata = [
+            port.pid: PortProcessMetadata.executable(
+                name: "node",
+                path: "/opt/homebrew/bin/node",
+            ),
+        ]
+        let snapshot = makeSnapshot([port], metadata: metadata)
+        let ignoredItem = IgnoredProcessItem.executable(
+            path: "/opt/homebrew/bin/node",
+            displayName: "node",
+        )
+        var initialState = AppFeature.State()
+        initialState.isMenuPresented = true
+        initialState.hiddenMetadataByPID = metadata
+        initialState.hiddenPorts = [port]
+        initialState.hiddenProcessGroups = snapshot.processGroups
+        initialState.ignoredProcessGroupCount = 1
+        initialState.ignoredProcessesAtMenuPresentation = [ignoredItem]
+        initialState.$settings.withLock {
+            $0.ignore(ignoredItem)
+        }
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.portScanner.scan = {
+            throw PortScannerFailure(message: "scan failed")
+        }
+
+        await store.send(.view(.restoreIgnoredProcessTapped(ignoredItem))) {
+            $0.$settings.withLock {
+                $0.restore(ignoredItem)
+            }
+            $0.refreshPending = true
+        }
+        await store.send(.menuDismissed) {
+            $0.isMenuPresented = false
+            $0.refreshPending = false
+            $0.isLoading = true
+            $0.errorMessage = nil
+            $0.postRefreshErrorMessage = nil
+            $0.hiddenMetadataByPID = [:]
+            $0.hiddenPorts = []
+            $0.hiddenProcessGroups = []
+            $0.ignoredProcessGroupCount = 0
+            $0.metadataByPID = metadata
+            $0.ports = [port]
+            $0.processGroups = snapshot.processGroups
+        }
+        await store.receive(.response(.portsLoaded(.failure(.init(message: "scan failed"))))) {
+            $0.isLoading = false
+            $0.errorMessage = "scan failed"
+            $0.postRefreshErrorMessage = nil
+        }
+
+        XCTAssertEqual(store.state.ports, [port])
+        XCTAssertEqual(store.state.processGroups, snapshot.processGroups)
+    }
+
+    func testIgnoreGroupWithoutStableIdentityDoesNothing() async throws {
+        let port = PortEntry(
+            networkProtocol: .tcp,
+            address: "127.0.0.1",
+            port: 3000,
+            pid: 101,
+            command: "node",
+            user: "501",
+        )
+        let group = try XCTUnwrap(makeSnapshot([port]).processGroups.first)
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+
+        await store.send(.view(.ignoreGroupTapped(group)))
+    }
+
     func testLaunchAtLoginLoadedUpdatesMenuState() async {
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
