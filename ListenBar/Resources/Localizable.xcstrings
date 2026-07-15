@@ -1446,6 +1446,29 @@
         }
       }
     },
+    "发现新版本…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Version Available…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发现新版本…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "發現新版本…"
+          }
+        }
+      }
+    },
     "GitHub 仓库" : {
       "extractionState" : "manual",
       "localizations" : {

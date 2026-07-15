@@ -5,6 +5,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Bindable var store: StoreOf<AppFeature>
+    @ObservedObject var updateMonitor: SparkleUpdateMonitor
     let updaterController: SPUStandardUpdaterController
 
     var body: some View {
@@ -113,10 +114,15 @@ struct MenuBarView: View {
             Divider()
 
             Button {
-                updaterController.checkForUpdates(nil)
+                updateMonitor.showUpdate(using: updaterController.updater)
             } label: {
-                Label("检查更新…", systemImage: "arrow.triangle.2.circlepath")
+                Label {
+                    Text(LocalizedStringKey(updateMonitor.menuTitle))
+                } icon: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                }
             }
+            .disabled(!updateMonitor.isMenuActionEnabled)
 
             Link(destination: URL(string: "https://github.com/ygsgdbd/ListenBar")!) {
                 Label("GitHub 仓库", systemImage: "chevron.left.forwardslash.chevron.right")
@@ -731,6 +737,7 @@ private struct PortProcessIconView: View {
         ) {
             AppFeature()
         },
+        updateMonitor: SparkleUpdateMonitor(),
         updaterController: SPUStandardUpdaterController(
             startingUpdater: false,
             updaterDelegate: nil,
