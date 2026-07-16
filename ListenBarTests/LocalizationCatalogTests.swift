@@ -5,7 +5,7 @@ final class LocalizationCatalogTests: XCTestCase {
     func testCatalogContainsEverySupportedLocalization() throws {
         let strings = try Self.catalogStrings()
 
-        XCTAssertEqual(strings.count, 91)
+        XCTAssertEqual(strings.count, 97)
         XCTAssertNil(strings["进程"])
 
         for (key, entry) in strings {
@@ -67,6 +67,12 @@ final class LocalizationCatalogTests: XCTestCase {
             "强制终止进程…": "Force Kill Process…",
             "强制终止全部监听进程…": "Force Kill All Listening Processes…",
             "SIGKILL 无法由进程处理。": "SIGKILL cannot be handled by the process.",
+            "忽略此 App": "Ignore This App",
+            "忽略此进程": "Ignore This Process",
+            "已忽略项目（%lld）": "Ignored Items (%lld)",
+            "恢复全部": "Restore All",
+            "所有监听项目均已忽略": "All listening items are ignored",
+            "点击项目以恢复显示": "Select an item to show it again",
         ]
 
         try Self.assertLocalizedValues(expectedValues, localization: "en")
@@ -87,6 +93,12 @@ final class LocalizationCatalogTests: XCTestCase {
             "%lld 个端口": "%lld 個連接埠",
             "终止进程 (SIGTERM)": "終止程序 (SIGTERM)",
             "强制终止进程…": "強制終止程序…",
+            "忽略此 App": "忽略此 App",
+            "忽略此进程": "忽略此程序",
+            "已忽略项目（%lld）": "已忽略項目（%lld）",
+            "恢复全部": "全部恢復",
+            "所有监听项目均已忽略": "所有監聽項目均已忽略",
+            "点击项目以恢复显示": "點選項目即可重新顯示",
         ]
 
         try Self.assertLocalizedValues(expectedValues, localization: "zh-Hant")

@@ -27,10 +27,15 @@ struct AppFeature {
         @Shared(.appSettings) var settings = AppSettings()
         var deferredMenuUpdate: DeferredMenuUpdate?
         var errorMessage: String?
+        var hiddenMetadataByPID: [Int: PortProcessMetadata] = [:]
+        var hiddenPorts: [PortEntry] = []
+        var hiddenProcessGroups: [PortProcessGroup] = []
         var isLoading = false
         var isMenuOpenRefreshInFlight = false
         var isMenuPresented = false
         var isReadmeDemo = false
+        var ignoredProcessGroupCount = 0
+        var ignoredProcessesAtMenuPresentation: [IgnoredProcessItem] = []
         var lastUpdated: Date?
         var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
         var metadataByPID: [Int: PortProcessMetadata] = [:]
@@ -51,6 +56,10 @@ struct AppFeature {
             launchAtLoginStatus == .requiresApproval
         }
 
+        var ignoredProcessesForMenu: [IgnoredProcessItem] {
+            isMenuPresented ? ignoredProcessesAtMenuPresentation : settings.ignoredProcesses
+        }
+
         var title: String {
             "\(MenuCountLabels.listeningProcesses(processGroups.count)) · \(MenuCountLabels.ports(ports.count))"
         }
@@ -67,11 +76,14 @@ struct AppFeature {
         case copyRedactedCommandLineTapped(pid: Int)
         case copyPIDTapped(pid: Int)
         case copyURLTapped(PortEntry)
+        case ignoreGroupTapped(PortProcessGroup)
         case killGroupTapped(PortProcessGroup, PortKillMode)
         case killPortTapped(PortEntry, PortKillMode)
         case openLocalhostTapped(PortEntry)
         case quitApplicationTapped(PortProcessGroup, ApplicationQuitMode)
         case revealProcessPathTapped(pid: Int)
+        case restoreAllIgnoredProcessesTapped
+        case restoreIgnoredProcessTapped(IgnoredProcessItem)
         case setLaunchAtLogin(Bool)
         case quitTapped
     }
@@ -109,7 +121,9 @@ struct AppFeature {
                 return startRefresh(&state)
 
             case .menuPresented:
+                guard !state.isMenuPresented else { return .none }
                 state.isMenuPresented = true
+                state.ignoredProcessesAtMenuPresentation = state.settings.ignoredProcesses
                 guard !state.isReadmeDemo else { return .none }
                 guard state.autoRefreshMode == .onMenuOpen else { return .none }
                 guard !state.isLoading, !state.isMenuOpenRefreshInFlight else { return .none }
@@ -118,6 +132,7 @@ struct AppFeature {
 
             case .menuDismissed:
                 state.isMenuPresented = false
+                applyCurrentVisibility(to: &state)
                 if let update = state.deferredMenuUpdate {
                     state.deferredMenuUpdate = nil
                     return applyDeferredMenuUpdate(update, to: &state)
@@ -224,6 +239,18 @@ struct AppFeature {
                 guard let url = port.localhostURL else { return .none }
                 return copyTextEffect(url.absoluteString)
 
+            case let .view(.ignoreGroupTapped(group)):
+                guard let item = IgnoredProcessItem(
+                    group: group,
+                    metadataByPID: state.metadataByPID,
+                ) else {
+                    return .none
+                }
+                state.$settings.withLock {
+                    $0.ignore(item)
+                }
+                return refreshAfterVisibilityChange(&state)
+
             case let .view(.killGroupTapped(group, mode)):
                 let request = PortGroupKillRequest(
                     group: group,
@@ -276,6 +303,18 @@ struct AppFeature {
             case let .view(.revealProcessPathTapped(pid)):
                 guard let path = Self.processPath(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
                 return revealPathEffect(path)
+
+            case .view(.restoreAllIgnoredProcessesTapped):
+                state.$settings.withLock {
+                    $0.ignoredProcesses = []
+                }
+                return refreshAfterVisibilityChange(&state)
+
+            case let .view(.restoreIgnoredProcessTapped(item)):
+                state.$settings.withLock {
+                    $0.restore(item)
+                }
+                return refreshAfterVisibilityChange(&state)
 
             case .view(.quitTapped):
                 return .run { _ in
@@ -405,6 +444,19 @@ struct AppFeature {
             return .none
         }
         state.refreshPending = false
+        return startRefresh(&state)
+    }
+
+    private func refreshAfterVisibilityChange(_ state: inout State) -> Effect<Action> {
+        guard !state.isMenuPresented else {
+            state.refreshPending = true
+            return .none
+        }
+        applyCurrentVisibility(to: &state)
+        guard !state.isLoading, !state.isMenuOpenRefreshInFlight else {
+            state.refreshPending = true
+            return .none
+        }
         return startRefresh(&state)
     }
 
@@ -765,9 +817,52 @@ struct AppFeature {
         state.isLoading = false
         state.postRefreshErrorMessage = nil
         state.lastUpdated = now
-        state.metadataByPID = snapshot.metadataByPID
-        state.ports = snapshot.ports
-        state.processGroups = snapshot.processGroups
+        applyVisibility(snapshot, to: &state)
+    }
+
+    private func applyCurrentVisibility(to state: inout State) {
+        var portIDs: Set<String> = []
+        let ports = (state.ports + state.hiddenPorts).filter {
+            portIDs.insert($0.id).inserted
+        }
+        var metadataByPID = state.metadataByPID
+        metadataByPID.merge(state.hiddenMetadataByPID) { current, _ in current }
+        applyVisibility(
+            PortScanSnapshot(
+                ports: ports,
+                metadataByPID: metadataByPID,
+                processGroups: PortProcessGroupingService.groups(
+                    for: ports,
+                    metadataByPID: metadataByPID,
+                ),
+            ),
+            to: &state,
+        )
+    }
+
+    private func applyVisibility(
+        _ snapshot: PortScanSnapshot,
+        to state: inout State,
+    ) {
+        let visibleSnapshot = snapshot.filtering(
+            ignoredProcesses: state.settings.ignoredProcesses,
+        )
+        let visibleGroupIDs = Set(visibleSnapshot.processGroups.map(\.id))
+        let visiblePortIDs = Set(visibleSnapshot.ports.map(\.id))
+        state.hiddenProcessGroups = snapshot.processGroups.filter {
+            !visibleGroupIDs.contains($0.id)
+        }
+        state.hiddenPorts = snapshot.ports.filter {
+            !visiblePortIDs.contains($0.id)
+        }
+        let hiddenPIDs = Set(state.hiddenPorts.map(\.pid))
+        state.hiddenMetadataByPID = snapshot.metadataByPID.filter {
+            hiddenPIDs.contains($0.key)
+        }
+        state.ignoredProcessGroupCount = state.hiddenProcessGroups.count
+        state.metadataByPID = visibleSnapshot.metadataByPID
+        state.ports = visibleSnapshot.ports
+        state.processGroups = visibleSnapshot.processGroups
     }
 
     private func isSystemProcess(_ metadata: PortProcessMetadata) -> Bool {

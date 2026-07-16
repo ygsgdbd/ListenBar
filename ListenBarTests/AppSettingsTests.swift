@@ -18,7 +18,7 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(
             try encodedJSON(settings),
-            #"{"autoRefresh":{"type":"onMenuOpen"}}"#,
+            #"{"autoRefresh":{"type":"onMenuOpen"},"ignoredProcesses":[]}"#,
         )
     }
 
@@ -29,7 +29,7 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(
             json,
-            #"{"autoRefresh":{"seconds":2,"type":"fixed"}}"#,
+            #"{"autoRefresh":{"seconds":2,"type":"fixed"},"ignoredProcesses":[]}"#,
         )
         XCTAssertFalse(json.contains("twoSeconds"))
     }
@@ -39,7 +39,7 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(
             try encodedJSON(settings),
-            #"{"autoRefresh":{"type":"off"}}"#,
+            #"{"autoRefresh":{"type":"off"},"ignoredProcesses":[]}"#,
         )
     }
 
@@ -47,7 +47,7 @@ final class AppSettingsTests: XCTestCase {
         for seconds in [0, -1] {
             XCTAssertEqual(
                 try encodedJSON(AppSettings(autoRefresh: .fixed(seconds: seconds))),
-                #"{"autoRefresh":{"type":"onMenuOpen"}}"#,
+                #"{"autoRefresh":{"type":"onMenuOpen"},"ignoredProcesses":[]}"#,
             )
         }
     }
@@ -56,6 +56,71 @@ final class AppSettingsTests: XCTestCase {
         let settings = try decodeSettings(from: #"{}"#)
 
         XCTAssertEqual(settings.autoRefresh, .onMenuOpen)
+        XCTAssertEqual(settings.ignoredProcesses, [])
+    }
+
+    func testIgnoredProcessesRoundTripAndDeduplicateByStableIdentity() throws {
+        let settings = AppSettings(
+            autoRefresh: .off,
+            ignoredProcesses: [
+                .application(
+                    bundleIdentifier: "com.example.App",
+                    displayName: "Example",
+                ),
+                .application(
+                    bundleIdentifier: "com.example.App",
+                    displayName: "Renamed Example",
+                ),
+                .executable(
+                    path: "/opt/homebrew/bin/node",
+                    displayName: "node",
+                ),
+                .executable(
+                    path: "node",
+                    displayName: "invalid node",
+                ),
+            ],
+        )
+
+        XCTAssertEqual(
+            try encodedJSON(settings),
+            #"{"autoRefresh":{"type":"off"},"ignoredProcesses":[{"displayName":"Example","identifier":"com.example.App","kind":"application"},{"displayName":"node","identifier":"\/opt\/homebrew\/bin\/node","kind":"executable"}]}"#,
+        )
+    }
+
+    func testInvalidIgnoredProcessesAreDiscardedWhenDecoding() throws {
+        let settings = try decodeSettings(
+            from: #"{"ignoredProcesses":[{"displayName":"Invalid","identifier":"node","kind":"executable"},{"displayName":"Example","identifier":"com.example.App","kind":"application"}]}"#,
+        )
+
+        XCTAssertEqual(
+            settings.ignoredProcesses,
+            [
+                .application(
+                    bundleIdentifier: "com.example.App",
+                    displayName: "Example",
+                ),
+            ],
+        )
+    }
+
+    func testIgnoreAndRestoreUseStableIdentity() {
+        var settings = AppSettings()
+        let original = IgnoredProcessItem.application(
+            bundleIdentifier: "com.example.App",
+            displayName: "Example",
+        )
+        let renamed = IgnoredProcessItem.application(
+            bundleIdentifier: "com.example.App",
+            displayName: "Renamed Example",
+        )
+
+        settings.ignore(original)
+        settings.ignore(renamed)
+        XCTAssertEqual(settings.ignoredProcesses, [original])
+
+        settings.restore(renamed)
+        XCTAssertEqual(settings.ignoredProcesses, [])
     }
 
     func testUnknownAutoRefreshTypeFallsBackToOnMenuOpen() throws {
@@ -92,7 +157,7 @@ final class AppSettingsTests: XCTestCase {
 
             XCTAssertEqual(
                 try encodedJSON(JSONDecoder().decode(AppSettings.self, from: Data(contentsOf: url))),
-                #"{"autoRefresh":{"seconds":2,"type":"fixed"}}"#,
+                #"{"autoRefresh":{"seconds":2,"type":"fixed"},"ignoredProcesses":[]}"#,
             )
         }
     }
