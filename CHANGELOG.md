@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.4.0
+
+### 中文
+
+#### 功能
+
+- 新增忽略应用和命令行进程的功能，并可从菜单中恢复单个或全部已忽略项目。
+- 启动时静默检查 Sparkle 更新；发现新版本后通过菜单提示，不会主动弹出更新窗口。
+- 新增完整的繁体中文本地化支持。
+
+#### 优化
+
+- 重新整理菜单分区、进程和端口计数以及进程终止相关文案。
+- 完善非官方 Homebrew tap 的信任、安装、升级和故障排查说明。
+
+### English
+
+#### Features
+
+- Added persistent controls for ignoring applications and command-line processes, with options to restore individual or all ignored items from the menu.
+- Added a silent Sparkle update check at launch; the menu indicates when a new version is available without presenting an update window automatically.
+- Added complete Traditional Chinese localization.
+
+#### Improvements
+
+- Refined menu grouping, process and port counts, and process termination copy.
+- Expanded guidance for trusting, installing, upgrading, and troubleshooting the third-party Homebrew tap.
+
 ## v0.3.0
 
 ### 中文
