@@ -11,6 +11,7 @@ struct ListenBarApp: App {
     let readmeBackdropWindow: NSWindow?
     let readmeColorScheme: ColorScheme?
     let store: StoreOf<AppFeature>
+    let updateMonitor: SparkleUpdateMonitor
     let updaterController: SPUStandardUpdaterController
 
     init() {
@@ -40,12 +41,15 @@ struct ListenBarApp: App {
         let store = Store(initialState: initialState) {
             AppFeature()
         }
-        self.store = store
-        self.updaterController = SPUStandardUpdaterController(
+        let updateMonitor = SparkleUpdateMonitor()
+        let updaterController = SPUStandardUpdaterController(
             startingUpdater: startsLiveServices,
-            updaterDelegate: nil,
+            updaterDelegate: updateMonitor,
             userDriverDelegate: nil,
         )
+        self.store = store
+        self.updateMonitor = updateMonitor
+        self.updaterController = updaterController
         self.menuTrackingObservers = [
             NotificationCenter.default.addObserver(
                 forName: NSMenu.didBeginTrackingNotification,
@@ -77,14 +81,19 @@ struct ListenBarApp: App {
             },
         ]
         if !isTesting && startsLiveServices {
+            updateMonitor.startSilentCheck(using: updaterController.updater)
             store.send(.task)
         }
     }
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(store: store, updaterController: updaterController)
-                .preferredColorScheme(readmeColorScheme)
+            MenuBarView(
+                store: store,
+                updateMonitor: updateMonitor,
+                updaterController: updaterController,
+            )
+            .preferredColorScheme(readmeColorScheme)
         } label: {
             Image("MenuBarIcon")
                 .renderingMode(.template)
