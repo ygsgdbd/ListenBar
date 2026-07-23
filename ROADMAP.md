@@ -1,6 +1,6 @@
 # ListenBar Roadmap
 
-This file tracks feature ideas that are intentionally deferred from the current P1 hardening pass.
+This file tracks current product priorities, deferred ideas, and features that are not planned for the current direction.
 
 ## Menu Bar Status Count
 
@@ -10,27 +10,34 @@ This file tracks feature ideas that are intentionally deferred from the current 
 
 ## Hidden Process Configuration
 
-- Candidate: hide system processes, hide specific app/process groups, or keep an ignore list.
-- Deferred because it needs persistent preferences and clear hide identity semantics.
-- Prefer bundle identifier or process group ID over PID-only hiding.
+- Implemented: persistently ignore individual app or executable groups using bundle identifiers or absolute executable paths.
+- The menu supports restoring individual ignored items or clearing the full ignore list.
+- Deferred extension: optional category filters such as hiding system processes; define category and precedence semantics before implementation.
 
 ## Search
 
-- Candidate: filter by port, app/process name, PID, source, command line, or path.
-- Deferred to avoid changing the current `MenuBarExtra` menu interaction model.
-- Revisit with either lightweight in-memory filtering or a richer popover-style UI.
+- Not planned for the current menu-based product direction.
+- `MenuBarExtra` cannot provide the intended inline search-field experience without moving to a richer popover or window.
+- Watched ports and port change history should reduce the need to search the full listener list.
 
 ## Watched Ports
 
-- Candidate: watch `protocol + port`, pin watched ports, and show `free` or owner status.
-- Deferred because it needs persistent configuration and clear conflict semantics.
-- This should be the foundation for future notifications.
+- Current priority: watch and persist `protocol + port` entries.
+- Show whether each watched port is free or occupied and identify its current owner when available.
+- Define stable identity and conflict semantics before adding notifications or menu bar status counts.
 
 ## Homebrew And LaunchAgent Attribution
 
-- Candidate: parse LaunchAgent/LaunchDaemon plists, `launchctl`, and optional `brew services` output.
-- Deferred because current source inference is heuristic and this needs evidence-based confidence labels.
+- Recorded for a later pass: parse LaunchAgent/LaunchDaemon plists, `launchctl`, and optional `brew services` output.
+- The goal is more reliable service-source attribution than the current heuristic inference.
+- Deferred because it needs evidence-based confidence labels.
 - Avoid making strong claims unless a label, PID, or plist match is available.
+
+## LaunchAtLogin Rollback Hardening
+
+- Deferred: the current failed-install rollback removes the committed fallback plist to avoid reporting login launch as enabled when no service is loaded.
+- Preserve any valid fallback plist that existed before installation and restore it if the replacement attempt fails.
+- Re-bootstrap the previous service when needed so one failed enable attempt does not permanently discard a working login configuration.
 
 ## HTTP Title Probe
 
@@ -40,8 +47,10 @@ This file tracks feature ideas that are intentionally deferred from the current 
 
 ## History
 
-- Candidate: keep snapshot history and show which process previously occupied a port.
-- Deferred because it needs retention, persistence, and privacy policy.
+- Current priority: record changes for watched ports.
+- Track transitions such as `free -> occupied`, `occupied -> free`, and owner changes.
+- Keep the first version focused on watched ports instead of retaining every listener snapshot.
+- Retention duration, persistence, and privacy rules still need to be defined.
 
 ## Notifications
 
@@ -50,9 +59,21 @@ This file tracks feature ideas that are intentionally deferred from the current 
 
 ## Diagnostic Report
 
-- Candidate: copy a diagnostic report containing grouped ports, commands, errors, and environment hints.
-- Deferred because exported data needs redaction rules and explicit user intent.
-- A text-only report should avoid raw command lines unless the user chooses raw export.
+- Low priority enhancement: extend the existing Copy Full Information action into a fuller diagnostic report.
+- The current export already includes grouped listener details, sources, URLs, and executable paths.
+- Future additions may include scan errors, app/version details, and environment hints.
+- Command lines require redaction rules, and raw export must remain an explicit user choice.
+
+## Manual Refresh
+
+- Low priority: allow a one-time refresh without changing the saved automatic refresh mode.
+- The existing menu-open and interval-based refresh modes cover the primary workflow.
+
+## Automation Integrations
+
+- Low priority: expose selected ListenBar actions through App Intents.
+- A future Raycast plugin may consume those actions or provide a dedicated ListenBar integration.
+- Define the safe read-only action surface before exposing process termination or other destructive operations.
 
 ## Dev Ports Mode
 

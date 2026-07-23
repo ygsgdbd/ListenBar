@@ -90,6 +90,8 @@ test: check-tuist
         -project ListenBar.xcodeproj \
         -scheme ListenBar \
         -destination 'platform=macOS' \
+        -test-timeouts-enabled YES \
+        -maximum-test-execution-time-allowance 15 \
         -testLanguage zh-Hans \
         -skipPackagePluginValidation \
         -skipMacroValidation \

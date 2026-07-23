@@ -10,11 +10,13 @@ struct LaunchAtLoginServiceEnvironment {
     var runLaunchctl: ([String]) throws -> Void
     var userID: () -> uid_t
     var fileManager: FileManager
+    var replaceItemAt: (URL, URL) throws -> Void
 }
 
 enum LaunchAtLoginService {
     private static let launchAgentIdentifier = "top.ygsgdbd.ListenBar"
     private static let launchAgentPlistName = "\(launchAgentIdentifier).plist"
+    private static let launchAgentStagingDirectoryName = ".\(launchAgentIdentifier).staging"
 
     private static var liveEnvironment: LaunchAtLoginServiceEnvironment {
         LaunchAtLoginServiceEnvironment(
@@ -28,6 +30,12 @@ enum LaunchAtLoginService {
             runLaunchctl: runLaunchctl,
             userID: { getuid() },
             fileManager: .default,
+            replaceItemAt: { originalItemURL, newItemURL in
+                _ = try FileManager.default.replaceItemAt(
+                    originalItemURL,
+                    withItemAt: newItemURL,
+                )
+            },
         )
     }
 
@@ -166,6 +174,13 @@ private extension LaunchAtLoginService {
             at: environment.plistURL.deletingLastPathComponent(),
             withIntermediateDirectories: true,
         )
+        let stagingDirectoryURL = environment.plistURL.deletingLastPathComponent()
+            .appendingPathComponent(launchAgentStagingDirectoryName, isDirectory: true)
+        let stagingPlistURL = stagingDirectoryURL.appendingPathComponent(launchAgentPlistName)
+        try environment.fileManager.createDirectory(
+            at: stagingDirectoryURL,
+            withIntermediateDirectories: true,
+        )
 
         let plist: [String: Any] = [
             "Label": launchAgentIdentifier,
@@ -177,17 +192,90 @@ private extension LaunchAtLoginService {
             format: .xml,
             options: 0,
         )
-        try data.write(to: environment.plistURL, options: .atomic)
+        try data.write(to: stagingPlistURL, options: .atomic)
 
         let domain = "gui/\(environment.userID())"
-        try? environment.runLaunchctl(["bootout", domain, environment.plistURL.path])
-        try environment.runLaunchctl(["bootstrap", domain, environment.plistURL.path])
+        let serviceTarget = "\(domain)/\(launchAgentIdentifier)"
+        try? environment.runLaunchctl(["bootout", serviceTarget])
+        do {
+            try environment.runLaunchctl(["bootstrap", domain, stagingPlistURL.path])
+            try commitFallbackLaunchAgent(
+                stagingPlistURL: stagingPlistURL,
+                environment: environment,
+            )
+        } catch {
+            cleanUpFailedFallbackInstallation(
+                stagingDirectoryURL: stagingDirectoryURL,
+                serviceTarget: serviceTarget,
+                environment: environment,
+            )
+            throw error
+        }
+
+        removeStagingDirectory(
+            stagingDirectoryURL,
+            fileManager: environment.fileManager,
+        )
     }
 
     static func removeFallbackLaunchAgent(environment: LaunchAtLoginServiceEnvironment) {
-        let domain = "gui/\(environment.userID())"
-        try? environment.runLaunchctl(["bootout", domain, environment.plistURL.path])
+        let serviceTarget = "gui/\(environment.userID())/\(launchAgentIdentifier)"
+        try? environment.runLaunchctl(["bootout", serviceTarget])
         try? environment.fileManager.removeItem(at: environment.plistURL)
+    }
+
+    static func commitFallbackLaunchAgent(
+        stagingPlistURL: URL,
+        environment: LaunchAtLoginServiceEnvironment,
+    ) throws {
+        if environment.fileManager.fileExists(atPath: environment.plistURL.path) {
+            try environment.replaceItemAt(
+                environment.plistURL,
+                stagingPlistURL,
+            )
+        } else {
+            try environment.fileManager.moveItem(
+                at: stagingPlistURL,
+                to: environment.plistURL,
+            )
+        }
+    }
+
+    static func cleanUpFailedFallbackInstallation(
+        stagingDirectoryURL: URL,
+        serviceTarget: String,
+        environment: LaunchAtLoginServiceEnvironment,
+    ) {
+        do {
+            try environment.runLaunchctl(["bootout", serviceTarget])
+        } catch {
+            print("Failed to clean up ListenBar LaunchAgent service: \(error.localizedDescription)")
+        }
+
+        removeStagingDirectory(
+            stagingDirectoryURL,
+            fileManager: environment.fileManager,
+        )
+
+        if environment.fileManager.fileExists(atPath: environment.plistURL.path) {
+            do {
+                try environment.fileManager.removeItem(at: environment.plistURL)
+            } catch {
+                print("Failed to remove ListenBar LaunchAgent plist after rollback: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    static func removeStagingDirectory(_ url: URL, fileManager: FileManager) {
+        guard fileManager.fileExists(atPath: url.path) else {
+            return
+        }
+
+        do {
+            try fileManager.removeItem(at: url)
+        } catch {
+            print("Failed to remove ListenBar LaunchAgent staging files: \(error.localizedDescription)")
+        }
     }
 
     static func runLaunchctl(arguments: [String]) throws {
