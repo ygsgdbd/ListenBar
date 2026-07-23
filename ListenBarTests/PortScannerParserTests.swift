@@ -2,6 +2,119 @@
 import XCTest
 
 final class PortScannerParserTests: XCTestCase {
+    func testExecutesProcessWhileDrainingLargeStandardOutputAndError() async throws {
+        let byteCount = 1_048_576
+        let result = try await PortScannerService.executeProcess(
+            executableURL: URL(fileURLWithPath: "/usr/bin/perl"),
+            arguments: [
+                "-e",
+                #"$SIG{ALRM} = sub { die "alarm\n" }; alarm 3; print STDOUT "o" x 1048576; print STDERR "e" x 1048576; alarm 0;"#,
+            ],
+        )
+
+        XCTAssertEqual(result.terminationStatus, 0)
+        XCTAssertEqual(result.standardOutput, Data(repeating: Character("o").asciiValue!, count: byteCount))
+        XCTAssertEqual(result.standardError, Data(repeating: Character("e").asciiValue!, count: byteCount))
+    }
+
+    func testExecutesManyProcessesWhileDrainingLargeStandardOutputAndError() async throws {
+        executionTimeAllowance = 15
+        let processCount = ProcessInfo.processInfo.activeProcessorCount
+        let byteCount = 1_048_576
+
+        let results = try await withThrowingTaskGroup(of: PortScannerProcessResult.self) { group in
+            for _ in 0 ..< processCount {
+                group.addTask {
+                    try await PortScannerService.executeProcess(
+                        executableURL: URL(fileURLWithPath: "/usr/bin/perl"),
+                        arguments: [
+                            "-e",
+                            #"$SIG{ALRM} = sub { die "alarm\n" }; alarm 12; print STDOUT "o" x 1048576; print STDERR "e" x 1048576; alarm 0;"#,
+                        ],
+                    )
+                }
+            }
+
+            var results: [PortScannerProcessResult] = []
+            for try await result in group {
+                results.append(result)
+            }
+            return results
+        }
+
+        XCTAssertEqual(results.count, processCount)
+        for result in results {
+            XCTAssertEqual(result.terminationStatus, 0)
+            XCTAssertEqual(result.standardOutput.count, byteCount)
+            XCTAssertEqual(result.standardError.count, byteCount)
+        }
+    }
+
+    func testExecuteProcessReturnsWhenProcessFailsToRun() async {
+        executionTimeAllowance = 3
+
+        do {
+            _ = try await PortScannerService.executeProcess(
+                executableURL: URL(fileURLWithPath: "/path/that/does/not/exist"),
+                arguments: [],
+            )
+            XCTFail("Expected process.run() to fail")
+        } catch {
+            XCTAssertFalse(error.localizedDescription.isEmpty)
+        }
+    }
+
+    func testRejectsParseableOutputWhenLsofExitsNonzero() {
+        let result = PortScannerProcessResult(
+            terminationStatus: 1,
+            standardOutput: Data(Self.parseableLsofOutput.utf8),
+            standardError: Data("permission denied\n".utf8),
+        )
+
+        XCTAssertThrowsError(try PortScannerService.interpretLsofResult(result)) { error in
+            XCTAssertEqual(
+                error as? PortScannerError,
+                .lsofFailed(status: 1, message: "permission denied"),
+            )
+        }
+    }
+
+    func testInterpretsParseableOutputWhenLsofExitsSuccessfully() throws {
+        let result = PortScannerProcessResult(
+            terminationStatus: 0,
+            standardOutput: Data(Self.parseableLsofOutput.utf8),
+            standardError: Data(),
+        )
+
+        XCTAssertEqual(
+            try PortScannerService.interpretLsofResult(result),
+            [
+                PortEntry(
+                    networkProtocol: .tcp,
+                    address: "*",
+                    port: 8081,
+                    pid: 24106,
+                    command: "node",
+                    user: "501",
+                ),
+            ],
+        )
+    }
+
+    func testUsesStatusFallbackWhenLsofExitsNonzeroWithoutStandardError() {
+        let result = PortScannerProcessResult(
+            terminationStatus: 9,
+            standardOutput: Data(),
+            standardError: Data(),
+        )
+
+        XCTAssertThrowsError(try PortScannerService.interpretLsofResult(result)) { error in
+            let scannerError = error as? PortScannerError
+            XCTAssertEqual(scannerError, .lsofFailed(status: 9, message: ""))
+            XCTAssertEqual(scannerError?.errorDescription?.contains("9"), true)
+        }
+    }
+
     func testParsesTcpAndLoopbackPorts() {
         let ports = PortScannerService.parseLsofFieldOutput(
             """
@@ -243,4 +356,13 @@ final class PortScannerParserTests: XCTestCase {
         XCTAssertEqual(ports.map(\.address), ["0.0.0.0", "[::]"])
         XCTAssertEqual(ports.map(\.port), [3000, 3001])
     }
+
+    private static let parseableLsofOutput = """
+    p24106
+    cnode
+    u501
+    f31
+    PTCP
+    n*:8081
+    """
 }
