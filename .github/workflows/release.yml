@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing vX.Y.Z tag to publish
+        description: Existing vX.Y.Z tag; dispatch with the same tag ref via CLI or API
         required: true
         type: string
 
@@ -38,16 +38,54 @@ jobs:
             exit 1
           fi
 
-          if ! git rev-parse --verify --quiet "refs/tags/${RELEASE_TAG}" >/dev/null; then
-            echo "::error title=Missing release tag::Tag ${RELEASE_TAG} does not exist."
+          if ! TAG_COMMIT=$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}" 2>/dev/null); then
+            echo "::error title=Invalid release tag::Tag ${RELEASE_TAG} does not exist or does not resolve to a commit."
+            exit 1
+          fi
+
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$RELEASE_TAG" ]]; then
+              echo "::error title=Invalid manual release ref::Manual releases must be dispatched from tag ${RELEASE_TAG}. Run: gh workflow run release.yml --ref ${RELEASE_TAG} -f release_tag=${RELEASE_TAG}"
+              exit 1
+            fi
+          elif [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$RELEASE_TAG" ]]; then
+              echo "::error title=Invalid tag push ref::Expected tag ref ${RELEASE_TAG}, got ${GITHUB_REF_TYPE} ${GITHUB_REF_NAME}."
+              exit 1
+            fi
+          else
+            echo "::error title=Unsupported release event::Expected push or workflow_dispatch, got ${GITHUB_EVENT_NAME}."
+            exit 1
+          fi
+
+          if [[ "$GITHUB_SHA" != "$TAG_COMMIT" ]]; then
+            echo "::error title=Release source mismatch::Event commit ${GITHUB_SHA} does not match tag ${RELEASE_TAG} commit ${TAG_COMMIT}."
             exit 1
           fi
 
           VERSION="${RELEASE_TAG#v}"
-          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=$RELEASE_TAG"
+            echo "version=$VERSION"
+            echo "commit=$TAG_COMMIT"
+          } >> "$GITHUB_OUTPUT"
           echo "Release tag: $RELEASE_TAG"
           echo "Release version: $VERSION"
+          echo "Release commit: $TAG_COMMIT"
+
+      - name: Checkout validated release commit
+        env:
+          RELEASE_COMMIT: ${{ steps.release_tag.outputs.commit }}
+        run: |
+          git checkout --detach "$RELEASE_COMMIT"
+          HEAD_COMMIT=$(git rev-parse HEAD)
+
+          if [[ "$HEAD_COMMIT" != "$RELEASE_COMMIT" ]]; then
+            echo "::error title=Release checkout mismatch::Checked out ${HEAD_COMMIT}, expected ${RELEASE_COMMIT}."
+            exit 1
+          fi
+
+          echo "Checked out release commit: $HEAD_COMMIT"
 
       - name: Check publishing secrets
         env:
