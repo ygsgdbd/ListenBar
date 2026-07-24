@@ -61,7 +61,7 @@ brew trust --cask ygsgdbd/tap/listenbar
 brew install --cask listenbar
 ```
 
-这只会信任 `listenbar` cask，不会信任整个 tap。Homebrew 会保存信任记录，因此通常只需执行一次 trust 命令。详情请参阅 Homebrew 官方的 [Tap Trust 文档](https://docs.brew.sh/Tap-Trust)。
+这只会信任第三方 `listenbar` cask，不会信任整个 tap。Homebrew 会保存信任记录，因此通常只需执行一次 trust 命令。该自定义 cask 还包含 `postflight` 步骤，会在安装后移除 ListenBar 的 macOS quarantine 属性。ListenBar 仍未签名、未经公证，`brew trust` 也不代表获得 Gatekeeper 官方认证。详情请参阅 Homebrew 官方的 [Tap Trust 文档](https://docs.brew.sh/Tap-Trust)。
 
 Homebrew 5.1.14 及更早版本没有 `brew trust`，也不需要执行该命令：
 
@@ -98,6 +98,16 @@ brew upgrade listenbar
 2. 如果仍被阻止，请打开**系统设置 → 隐私与安全性**，找到 ListenBar 相关提示，点击**仍要打开**，然后确认**打开**。
 
 仅当 App 来自本仓库的官方 GitHub Releases 且你信任该下载内容时，才应绕过 Gatekeeper。
+
+### Release 完整性
+
+Release assets 包含 SHA-256 checksum，Sparkle 更新则由 `appcast.xml` 中的 EdDSA 签名保护。本次 workflow 变更后发布的版本还会为 `ListenBar-macOS-universal.zip` 提供 GitHub Artifact Attestation；`v0.4.0` 及更早版本发布时尚未支持这项能力，因此不包含 attestation。
+
+下载带有 attestation 的发布 zip 后，可使用 GitHub CLI 验证其构建来源：
+
+```bash
+gh attestation verify ListenBar-macOS-universal.zip --repo ygsgdbd/ListenBar
+```
 
 ## 🧪 开发与测试
 

@@ -13,6 +13,9 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 jobs:
   build:
@@ -235,6 +238,11 @@ jobs:
 
           cp DerivedData/SparkleFeed/appcast.xml appcast.xml
 
+      - name: Attest release artifact
+        uses: actions/attest@v4
+        with:
+          subject-path: ListenBar-macOS-universal.zip
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
@@ -268,50 +276,27 @@ jobs:
 
           export VERSION SHA256 CASK_PATH
           ruby <<'RUBY'
-          require "fileutils"
-
           path = ENV.fetch("CASK_PATH")
           version = ENV.fetch("VERSION")
           sha256 = ENV.fetch("SHA256")
 
-          FileUtils.mkdir_p(File.dirname(path))
-          File.write(path, <<~CASK)
-          cask "listenbar" do
-            version "#{version}"
-            sha256 "#{sha256}"
+          abort "Homebrew cask does not exist: #{path}" unless File.file?(path)
 
-            url "https://github.com/ygsgdbd/ListenBar/releases/download/v#{version}/ListenBar-macOS-universal.zip"
-            name "ListenBar"
-            desc "macOS menu bar utility for viewing local listening ports"
-            homepage "https://github.com/ygsgdbd/ListenBar"
+          content = File.read(path)
+          replacements = {
+            /^  version ".*"$/ => "  version \"#{version}\"",
+            /^  sha256 ".*"$/ => "  sha256 \"#{sha256}\"",
+            /^  url ".*"$/ => "  url \"https://github.com/ygsgdbd/ListenBar/releases/download/v#{version}/ListenBar-macOS-universal.zip\"",
+          }
 
-            auto_updates false
-            depends_on macos: :sonoma
+          replacements.each do |pattern, replacement|
+            matches = content.scan(pattern).length
+            abort "Expected exactly one #{pattern.inspect} entry in #{path}, found #{matches}" unless matches == 1
 
-            app "ListenBar.app"
-
-            uninstall quit: "top.ygsgdbd.ListenBar"
-
-            caveats <<~EOS
-              ListenBar is currently unsigned. You need to trust it manually:
-              1. Right-click the app and select "Open"
-              2. Click "Open" in the dialog that appears
-              3. Go to System Settings > Privacy & Security and approve the app
-
-              ListenBar 目前未签名，需要手动信任：
-              1. 右键点击应用，选择“打开”
-              2. 在弹出的对话框中再次点击“打开”
-              3. 前往“系统设置”>“隐私与安全性”中允许该应用
-            EOS
-
-            zap trash: [
-              "~/Library/Application Support/top.ygsgdbd.ListenBar",
-              "~/Library/Application Support/ListenBar",
-              "~/Library/Preferences/top.ygsgdbd.ListenBar.plist",
-              "~/Library/Caches/top.ygsgdbd.ListenBar",
-            ]
+            content.sub!(pattern, replacement)
           end
-          CASK
+
+          File.write(path, content)
 
           readme_path = "homebrew-tap/README.md"
           readme = File.read(readme_path)
