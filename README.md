@@ -106,8 +106,25 @@ Release assets include a SHA-256 checksum, and Sparkle updates are protected by 
 After downloading an attested release zip, verify its build provenance with GitHub CLI:
 
 ```bash
-gh attestation verify ListenBar-macOS-universal.zip --repo ygsgdbd/ListenBar
+RELEASE_TAG=v0.5.0
+SOURCE_DIGEST=$(gh api repos/ygsgdbd/ListenBar/commits/$RELEASE_TAG --jq .sha)
+gh attestation verify ListenBar-macOS-universal.zip \
+  --repo ygsgdbd/ListenBar \
+  --signer-workflow ygsgdbd/ListenBar/.github/workflows/release.yml \
+  --source-ref "refs/tags/$RELEASE_TAG" \
+  --source-digest "$SOURCE_DIGEST"
 ```
+
+The GitHub Actions web UI only dispatches workflows from branches, which this release workflow intentionally rejects. To manually retry a release, start a new run from the target tag with GitHub CLI:
+
+```bash
+RELEASE_TAG=v0.5.0
+gh workflow run release.yml \
+  --ref "$RELEASE_TAG" \
+  -f release_tag="$RELEASE_TAG"
+```
+
+The `--ref` value and `release_tag` input must name the same tag. You can also dispatch the workflow through the GitHub API with that tag as the request ref.
 
 ## 🧪 Development and tests
 

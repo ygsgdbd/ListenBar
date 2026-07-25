@@ -170,6 +170,14 @@ private extension LaunchAtLoginService {
             )
         }
 
+        let originalPlistData: Data? = if environment.fileManager.fileExists(
+            atPath: environment.plistURL.path,
+        ) {
+            try Data(contentsOf: environment.plistURL)
+        } else {
+            nil
+        }
+
         try environment.fileManager.createDirectory(
             at: environment.plistURL.deletingLastPathComponent(),
             withIntermediateDirectories: true,
@@ -206,7 +214,9 @@ private extension LaunchAtLoginService {
         } catch {
             cleanUpFailedFallbackInstallation(
                 stagingDirectoryURL: stagingDirectoryURL,
+                domain: domain,
                 serviceTarget: serviceTarget,
+                originalPlistData: originalPlistData,
                 environment: environment,
             )
             throw error
@@ -243,7 +253,9 @@ private extension LaunchAtLoginService {
 
     static func cleanUpFailedFallbackInstallation(
         stagingDirectoryURL: URL,
+        domain: String,
         serviceTarget: String,
+        originalPlistData: Data?,
         environment: LaunchAtLoginServiceEnvironment,
     ) {
         do {
@@ -257,7 +269,20 @@ private extension LaunchAtLoginService {
             fileManager: environment.fileManager,
         )
 
-        if environment.fileManager.fileExists(atPath: environment.plistURL.path) {
+        if let originalPlistData {
+            do {
+                try originalPlistData.write(to: environment.plistURL, options: .atomic)
+            } catch {
+                print("Failed to restore ListenBar LaunchAgent plist after rollback: \(error.localizedDescription)")
+                return
+            }
+
+            do {
+                try environment.runLaunchctl(["bootstrap", domain, environment.plistURL.path])
+            } catch {
+                print("Failed to restore ListenBar LaunchAgent service after rollback: \(error.localizedDescription)")
+            }
+        } else if environment.fileManager.fileExists(atPath: environment.plistURL.path) {
             do {
                 try environment.fileManager.removeItem(at: environment.plistURL)
             } catch {

@@ -69,7 +69,7 @@ final class LaunchAtLoginServiceTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.stagingDirectoryURL.path))
     }
 
-    func testSetLaunchAtLoginRollsBackWhenBootstrapAndBootoutFail() throws {
+    func testSetLaunchAtLoginLeavesNoFilesWhenFirstInstallationBootstrapFails() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
         var launchctlCalls: [[String]] = []
@@ -165,7 +165,11 @@ final class LaunchAtLoginServiceTests: XCTestCase {
     func testSetLaunchAtLoginRollsBackWhenReplacingExistingPlistFails() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
-        try fixture.writeLaunchAgent(executablePath: fixture.executableURL.path)
+        try fixture.writeLaunchAgent(
+            executablePath: fixture.executableURL.path,
+            additionalProperties: ["PreservedValue": "original"],
+        )
+        let originalPlistData = try Data(contentsOf: fixture.plistURL)
         let fileManager = TestFileManager()
         var launchctlCalls: [[String]] = []
 
@@ -173,15 +177,16 @@ final class LaunchAtLoginServiceTests: XCTestCase {
             serviceManagementStatus: { .requiresApproval },
             runLaunchctl: { launchctlCalls.append($0) },
             fileManager: fileManager,
-            replaceItemAt: { _, _ in
+            replaceItemAt: { originalItemURL, _ in
+                try fileManager.removeItem(at: originalItemURL)
                 throw NSError(domain: "replace", code: 1)
             },
         )
         let status = LaunchAtLoginService.setLaunchAtLogin(true, environment: environment)
 
-        XCTAssertEqual(status, .requiresApproval)
-        XCTAssertEqual(LaunchAtLoginService.status(environment: environment), .requiresApproval)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.plistURL.path))
+        XCTAssertEqual(status, .enabled)
+        XCTAssertEqual(try Data(contentsOf: fixture.plistURL), originalPlistData)
+        XCTAssertEqual(try fixture.programArguments(), [fixture.executableURL.path])
         XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.stagingDirectoryURL.path))
         XCTAssertEqual(
             launchctlCalls,
@@ -189,6 +194,90 @@ final class LaunchAtLoginServiceTests: XCTestCase {
                 ["bootout", fixture.serviceTarget],
                 ["bootstrap", "gui/501", fixture.stagingPlistURL.path],
                 ["bootout", fixture.serviceTarget],
+                ["bootstrap", "gui/501", fixture.plistURL.path],
+            ],
+        )
+    }
+
+    func testSetLaunchAtLoginRestoresExistingPlistWhenStagingBootstrapFails() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let originalExecutablePath = "/Applications/OriginalListenBar.app/Contents/MacOS/ListenBar"
+        try fixture.writeLaunchAgent(
+            executablePath: originalExecutablePath,
+            additionalProperties: ["PreservedValue": ["nested", "value"]],
+        )
+        let originalPlistData = try Data(contentsOf: fixture.plistURL)
+        var launchctlCalls: [[String]] = []
+
+        let status = LaunchAtLoginService.setLaunchAtLogin(
+            true,
+            environment: fixture.environment(
+                serviceManagementStatus: { .requiresApproval },
+                runLaunchctl: { arguments in
+                    launchctlCalls.append(arguments)
+                    if arguments == ["bootstrap", "gui/501", fixture.stagingPlistURL.path] {
+                        throw NSError(domain: "bootstrap", code: 1)
+                    }
+                },
+            ),
+        )
+
+        XCTAssertEqual(status, .requiresApproval)
+        XCTAssertEqual(try Data(contentsOf: fixture.plistURL), originalPlistData)
+        XCTAssertEqual(try fixture.programArguments(), [originalExecutablePath])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.stagingDirectoryURL.path))
+        XCTAssertEqual(
+            launchctlCalls,
+            [
+                ["bootout", fixture.serviceTarget],
+                ["bootstrap", "gui/501", fixture.stagingPlistURL.path],
+                ["bootout", fixture.serviceTarget],
+                ["bootstrap", "gui/501", fixture.plistURL.path],
+            ],
+        )
+    }
+
+    func testSetLaunchAtLoginPreservesExistingPlistWhenRecoveryBootstrapFails() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        try fixture.writeLaunchAgent(
+            executablePath: fixture.executableURL.path,
+            additionalProperties: ["PreservedValue": "original"],
+        )
+        let originalPlistData = try Data(contentsOf: fixture.plistURL)
+        let fileManager = TestFileManager()
+        var launchctlCalls: [[String]] = []
+
+        let status = LaunchAtLoginService.setLaunchAtLogin(
+            true,
+            environment: fixture.environment(
+                serviceManagementStatus: { .requiresApproval },
+                runLaunchctl: { arguments in
+                    launchctlCalls.append(arguments)
+                    if arguments == ["bootstrap", "gui/501", fixture.plistURL.path] {
+                        throw NSError(domain: "recovery-bootstrap", code: 1)
+                    }
+                },
+                fileManager: fileManager,
+                replaceItemAt: { originalItemURL, _ in
+                    try fileManager.removeItem(at: originalItemURL)
+                    throw NSError(domain: "replace", code: 1)
+                },
+            ),
+        )
+
+        XCTAssertEqual(status, .enabled)
+        XCTAssertEqual(try Data(contentsOf: fixture.plistURL), originalPlistData)
+        XCTAssertEqual(try fixture.programArguments(), [fixture.executableURL.path])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.stagingDirectoryURL.path))
+        XCTAssertEqual(
+            launchctlCalls,
+            [
+                ["bootout", fixture.serviceTarget],
+                ["bootstrap", "gui/501", fixture.stagingPlistURL.path],
+                ["bootout", fixture.serviceTarget],
+                ["bootstrap", "gui/501", fixture.plistURL.path],
             ],
         )
     }
@@ -317,12 +406,18 @@ private struct Fixture {
         )
     }
 
-    func writeLaunchAgent(executablePath: String) throws {
-        let plist: [String: Any] = [
+    func writeLaunchAgent(
+        executablePath: String,
+        additionalProperties: [String: Any] = [:],
+    ) throws {
+        var plist: [String: Any] = [
             "Label": "top.ygsgdbd.ListenBar",
             "ProgramArguments": [executablePath],
             "RunAtLoad": true,
         ]
+        for (key, value) in additionalProperties {
+            plist[key] = value
+        }
         let data = try PropertyListSerialization.data(
             fromPropertyList: plist,
             format: .xml,
