@@ -14,7 +14,7 @@
   <img alt="Swift 5.9" src="https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white">
   <img alt="SwiftUI" src="https://img.shields.io/badge/UI-SwiftUI-0D96F6">
   <img alt="TCA" src="https://img.shields.io/badge/Architecture-TCA-7C3AED">
-  <img alt="Xcode 26" src="https://img.shields.io/badge/Xcode-26-147EFB?logo=xcode&logoColor=white">
+  <img alt="Xcode 26.5" src="https://img.shields.io/badge/Xcode-26.5-147EFB?logo=xcode&logoColor=white">
   <img alt="Universal Binary" src="https://img.shields.io/badge/Universal-Apple%20Silicon%20%2B%20Intel-555555">
   <a href="https://github.com/ygsgdbd/ListenBar/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/ygsgdbd/ListenBar?display_name=tag&sort=semver&label=Latest%20Release"></a>
 </p>
@@ -42,7 +42,7 @@
 
 - 🍎 **真正原生。** ListenBar 的 App 业务代码 100% 使用 Swift 编写，并采用 SwiftUI 和 The Composable Architecture（TCA）架构。它基于 `MenuBarExtra` 与 `LSUIElement` 构建，不包含 Electron 运行时，也没有嵌入 WebView。
 - 🪶 **超轻量软件。** ListenBar 专注于检查本机监听端口，无需附带完整的浏览器引擎。
-- 🎨 **自然融入 macOS。** 界面会自动适配浅色与暗色模式。在 macOS 26 上，原生 SwiftUI 菜单控件会在适用位置呈现系统提供的 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。ListenBar 不使用自定义视觉效果模拟 Liquid Glass，发布版本使用 Xcode 26.2 构建。
+- 🎨 **自然融入 macOS。** 界面会自动适配浅色与暗色模式。在 macOS 26 上，原生 SwiftUI 菜单控件会在适用位置呈现系统提供的 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。ListenBar 不使用自定义视觉效果模拟 Liquid Glass，发布版本使用 Xcode 26.5 构建。
 
 ## 📦 安装
 
@@ -103,6 +103,13 @@ brew upgrade listenbar
 
 Release assets 包含 SHA-256 checksum，Sparkle 更新则由 `appcast.xml` 中的 EdDSA 签名保护。本次 workflow 变更后发布的版本还会为 `ListenBar-macOS-universal.zip` 提供 GitHub Artifact Attestation；`v0.4.0` 及更早版本发布时尚未支持这项能力，因此不包含 attestation。
 
+正式发布必须使用 annotated `vX.Y.Z` tag，且该 tag 指向的提交必须已经包含在受保护的 `main` 分支中：
+
+```bash
+git tag -a vX.Y.Z -m "ListenBar vX.Y.Z"
+git push origin vX.Y.Z
+```
+
 下载带有 attestation 的发布 zip 后，可使用 GitHub CLI 验证其构建来源：
 
 ```bash
@@ -128,11 +135,11 @@ gh workflow run release.yml \
 
 ## 🧪 开发与测试
 
-项目当前包含 **159 个 XCTest 测试方法**，覆盖 reducer 行为、配置持久化、监听项忽略身份与过滤、登录项管理、端口解析与分组、进程元数据、菜单呈现、截图 fixture 和 Sparkle 配置。
+XCTest 测试套件覆盖 reducer 行为、配置持久化、监听项忽略身份与过滤、登录项管理、端口解析与分组、进程元数据、菜单呈现、截图 fixture 和 Sparkle 配置。
 
-环境要求：Xcode 26、[Homebrew](https://brew.sh/)、[just](https://github.com/casey/just)、[SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 和 [Tuist](https://tuist.dev/)。
+环境要求：Xcode 26.5、[Homebrew](https://brew.sh/)、[just](https://github.com/casey/just)、[SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 和 [Tuist](https://tuist.dev/)。
 
-请手动安装开发工具，然后启用仓库管理的 Git hook：
+请手动安装开发工具，然后启用仓库管理的 Git hook 并运行完整的本地验收：
 
 ```bash
 brew install just swiftformat tuist
@@ -143,20 +150,6 @@ just check
 
 `just setup` 只检查已安装的工具并配置 `core.hooksPath`，不会安装或升级任何软件。如果 Homebrew 不再提供 SwiftFormat 0.62.1，请从[官方 Release](https://github.com/nicklockwood/SwiftFormat/releases/tag/0.62.1)手动安装该精确版本。
 
+`just check` 是本地验收入口。它会检查 Swift 格式，并使用仓库维护的构建与测试参数运行完整 XCTest 测试套件。
+
 每次提交前，hook 会格式化已暂存的 Swift 文件。如果产生格式变化，本次提交会中止，便于你检查 diff、重新暂存并再次提交。对于部分暂存的 Swift 文件，hook 不会自动修改；请先暂存或 stash 其余改动，或手动运行 `just format`。运行 `just --list` 可以查看所有开发命令。
-
-如需直接运行测试命令：
-
-```bash
-tuist generate --no-open
-xcodebuild test \
-  -project ListenBar.xcodeproj \
-  -scheme ListenBar \
-  -destination 'platform=macOS' \
-  -testLanguage zh-Hans \
-  -skipPackagePluginValidation \
-  -skipMacroValidation \
-  CODE_SIGN_IDENTITY='' \
-  CODE_SIGNING_ALLOWED=NO \
-  CODE_SIGNING_REQUIRED=NO
-```

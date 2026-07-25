@@ -38,6 +38,11 @@ jobs:
             exit 1
           fi
 
+          if [[ "$(git cat-file -t "refs/tags/${RELEASE_TAG}" 2>/dev/null || true)" != "tag" ]]; then
+            echo "::error title=Invalid release tag::Tag ${RELEASE_TAG} must be an annotated tag."
+            exit 1
+          fi
+
           if ! TAG_COMMIT=$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}" 2>/dev/null); then
             echo "::error title=Invalid release tag::Tag ${RELEASE_TAG} does not exist or does not resolve to a commit."
             exit 1
@@ -60,6 +65,16 @@ jobs:
 
           if [[ "$GITHUB_SHA" != "$TAG_COMMIT" ]]; then
             echo "::error title=Release source mismatch::Event commit ${GITHUB_SHA} does not match tag ${RELEASE_TAG} commit ${TAG_COMMIT}."
+            exit 1
+          fi
+
+          if ! git rev-parse --verify "origin/main^{commit}" >/dev/null 2>&1; then
+            echo "::error title=Missing main branch::Unable to resolve origin/main from the release checkout."
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" origin/main; then
+            echo "::error title=Release tag not on main::Tag ${RELEASE_TAG} commit ${TAG_COMMIT} is not contained in origin/main."
             exit 1
           fi
 
@@ -233,10 +248,12 @@ jobs:
 
       - name: Generate Checksums
         run: |
-          echo "### SHA-256 Checksums" > checksums.txt
-          echo '```' >> checksums.txt
-          shasum -a 256 ListenBar-macOS-universal.zip >> checksums.txt
-          echo '```' >> checksums.txt
+          {
+            echo "### SHA-256 Checksums"
+            echo '```'
+            shasum -a 256 ListenBar-macOS-universal.zip
+            echo '```'
+          } > checksums.txt
 
           {
             echo "## ListenBar ${{ steps.release_tag.outputs.tag }}"
@@ -253,7 +270,11 @@ jobs:
 
       - name: Download Sparkle tools
         run: |
-          curl -fsSL -o Sparkle-2.9.4.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz
+          curl -fsSL \
+            "https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz" \
+            -o Sparkle-2.9.4.tar.xz
+          echo "ce89daf967db1e1893ed3ebd67575ed82d3902563e3191ca92aaec9164fbdef9  Sparkle-2.9.4.tar.xz" \
+            | shasum -a 256 --check
           mkdir -p sparkle-tools
           tar -xf Sparkle-2.9.4.tar.xz -C sparkle-tools --strip-components=1
 
@@ -282,7 +303,7 @@ jobs:
           subject-path: ListenBar-macOS-universal.zip
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             ListenBar-macOS-universal.zip
