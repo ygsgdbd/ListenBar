@@ -14,7 +14,7 @@
   <img alt="Swift 5.9" src="https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white">
   <img alt="SwiftUI" src="https://img.shields.io/badge/UI-SwiftUI-0D96F6">
   <img alt="TCA" src="https://img.shields.io/badge/Architecture-TCA-7C3AED">
-  <img alt="Xcode 26" src="https://img.shields.io/badge/Xcode-26-147EFB?logo=xcode&logoColor=white">
+  <img alt="Xcode 26.5" src="https://img.shields.io/badge/Xcode-26.5-147EFB?logo=xcode&logoColor=white">
   <img alt="Universal Binary" src="https://img.shields.io/badge/Universal-Apple%20Silicon%20%2B%20Intel-555555">
   <a href="https://github.com/ygsgdbd/ListenBar/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/ygsgdbd/ListenBar?display_name=tag&sort=semver&label=Latest%20Release"></a>
 </p>
@@ -103,6 +103,13 @@ Only bypass Gatekeeper when you obtained the app from this repository's official
 
 Release assets include a SHA-256 checksum, and Sparkle updates are protected by an EdDSA signature in `appcast.xml`. Releases published after this workflow change also include a GitHub Artifact Attestation for `ListenBar-macOS-universal.zip`; `v0.4.0` and earlier releases predate this attestation support.
 
+Production releases must use an annotated `vX.Y.Z` tag whose commit is already contained in the protected `main` branch:
+
+```bash
+git tag -a vX.Y.Z -m "ListenBar vX.Y.Z"
+git push origin vX.Y.Z
+```
+
 After downloading an attested release zip, verify its build provenance with GitHub CLI:
 
 ```bash
@@ -128,11 +135,11 @@ The `--ref` value and `release_tag` input must name the same tag. You can also d
 
 ## 🧪 Development and tests
 
-The project currently contains **159 XCTest test methods** covering reducer behavior, settings persistence, ignored listener identities and filtering, login item management, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
+The XCTest suite covers reducer behavior, settings persistence, ignored listener identities and filtering, login item management, port parsing and grouping, process metadata, menu presentation, screenshot fixtures, and Sparkle configuration.
 
-Requirements: Xcode 26, [Homebrew](https://brew.sh/), [just](https://github.com/casey/just), [SwiftFormat](https://github.com/nicklockwood/SwiftFormat), and [Tuist](https://tuist.dev/).
+Requirements: Xcode 26.5, [Homebrew](https://brew.sh/), [just](https://github.com/casey/just), [SwiftFormat](https://github.com/nicklockwood/SwiftFormat), and [Tuist](https://tuist.dev/).
 
-Install the development tools manually, then enable the repository-managed Git hook:
+Install the development tools manually, then enable the repository-managed Git hook and run the complete local validation:
 
 ```bash
 brew install just swiftformat tuist
@@ -143,20 +150,6 @@ just check
 
 `just setup` only checks the installed tools and configures `core.hooksPath`; it never installs or upgrades software. If Homebrew no longer provides SwiftFormat 0.62.1, install that exact version from the [official release](https://github.com/nicklockwood/SwiftFormat/releases/tag/0.62.1).
 
+`just check` is the local acceptance entry point. It checks Swift formatting and runs the complete XCTest suite with the repository-managed build and test parameters.
+
 Before each commit, the hook formats staged Swift files. When formatting changes are required, the commit stops so you can review the diff, stage the updated files, and retry. Partially staged Swift files are not modified automatically; stage or stash the remaining edits, or run `just format` manually. Run `just --list` to see all available development commands.
-
-To run the test command directly:
-
-```bash
-tuist generate --no-open
-xcodebuild test \
-  -project ListenBar.xcodeproj \
-  -scheme ListenBar \
-  -destination 'platform=macOS' \
-  -testLanguage zh-Hans \
-  -skipPackagePluginValidation \
-  -skipMacroValidation \
-  CODE_SIGN_IDENTITY='' \
-  CODE_SIGNING_ALLOWED=NO \
-  CODE_SIGNING_REQUIRED=NO
-```
