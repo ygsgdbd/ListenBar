@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.5.0
+
+### 中文
+
+#### 修复
+
+- 修复端口扫描在 `lsof` 产生大量输出时可能卡住的问题；命令异常退出时不再展示不完整的监听快照。
+- 修复登录启动回退安装在更新失败时可能丢失已有 LaunchAgent 配置的问题；现在会保留并恢复原有配置。
+
+#### 优化
+
+- 强化发布产物的可验证性：构建源码必须与目标 tag 完全一致，构建号统一使用 UTC，并为通用 ZIP 提供 GitHub Artifact Attestation。
+- 发布时仅更新 Homebrew cask 的版本、下载地址和 SHA-256，保留 tap 管理的隔离属性处理、卸载规则与安全提示。
+
+### English
+
+#### Fixes
+
+- Fixed a possible port scan hang when `lsof` produces large output; failed commands no longer expose incomplete listener snapshots.
+- Fixed fallback launch-at-login updates potentially losing an existing LaunchAgent configuration; the original configuration is now preserved and restored on failure.
+
+#### Improvements
+
+- Strengthened release provenance by requiring builds to match the target tag, using UTC build numbers, and providing a GitHub Artifact Attestation for the universal ZIP.
+- Limited release-time Homebrew cask updates to the version, download URL, and SHA-256 while preserving tap-managed quarantine handling, uninstall rules, and security guidance.
+
 ## v0.4.0
 
 ### 中文
