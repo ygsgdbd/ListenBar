@@ -44,6 +44,10 @@
 - 🪶 **超轻量软件。** ListenBar 专注于检查本机监听端口，无需附带完整的浏览器引擎。
 - 🎨 **自然融入 macOS。** 界面会自动适配浅色与暗色模式。在 macOS 26 上，原生 SwiftUI 菜单控件会在适用位置呈现系统提供的 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。ListenBar 不使用自定义视觉效果模拟 Liquid Glass，发布版本使用 Xcode 26.5 构建。
 
+## 🙏 致谢
+
+ListenBar 的灵感来自 Lucas Schultz 开发的 [Port Manager](https://www.raycast.com/lucaschultz/port-manager)。Port Manager 本身也是一款很棒的软件；如果你更喜欢简单、直接的体验，也非常值得尝试。感谢 Lucas Schultz 和 Port Manager 带来的启发。
+
 ## 📦 安装
 
 ### 系统要求
