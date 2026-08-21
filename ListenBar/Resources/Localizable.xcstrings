@@ -848,6 +848,28 @@
         }
       }
     },
+    "使用 Google 搜索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search with Google"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Google 搜索"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Google 搜尋"
+          }
+        }
+      }
+    },
     "将强制退出 %@ 的所有运行实例。未保存的数据可能丢失。" : {
       "extractionState" : "stale",
       "localizations" : {

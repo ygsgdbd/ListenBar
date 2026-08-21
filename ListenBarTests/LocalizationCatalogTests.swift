@@ -5,7 +5,7 @@ final class LocalizationCatalogTests: XCTestCase {
     func testCatalogContainsEverySupportedLocalization() throws {
         let strings = try Self.catalogStrings()
 
-        XCTAssertEqual(strings.count, 98)
+        XCTAssertEqual(strings.count, 99)
         XCTAssertNil(strings["进程"])
 
         for (key, entry) in strings {
@@ -62,6 +62,7 @@ final class LocalizationCatalogTests: XCTestCase {
             "复制脱敏启动命令": "Copy Redacted Launch Command",
             "在 Finder 中显示 App": "Show App in Finder",
             "在 Finder 中显示可执行文件": "Show Executable in Finder",
+            "使用 Google 搜索": "Search with Google",
             "发现新版本…": "New Version Available…",
             "自动刷新：%@": "Auto Refresh: %@",
             "终止进程 (SIGTERM)": "Terminate Process (SIGTERM)",
@@ -97,6 +98,7 @@ final class LocalizationCatalogTests: XCTestCase {
             "强制终止进程…": "強制終止程序…",
             "在 Finder 中显示 App": "在 Finder 中顯示 App",
             "在 Finder 中显示可执行文件": "在 Finder 中顯示可執行檔",
+            "使用 Google 搜索": "使用 Google 搜尋",
             "忽略此 App": "忽略此 App",
             "忽略此进程": "忽略此程序",
             "已忽略项目（%lld）": "已忽略項目（%lld）",
