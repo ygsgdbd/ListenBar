@@ -273,6 +273,10 @@ private struct PortProcessGroupMenu: View {
             group: group,
             metadataByPID: metadataByPID,
         ) != nil
+        let googleSearchURL = PortProcessGoogleSearch.url(
+            group: group,
+            metadataByPID: metadataByPID,
+        )
 
         Menu {
             ForEach(group.ports) { port in
@@ -300,6 +304,12 @@ private struct PortProcessGroupMenu: View {
                 onCopyProcessInformation(group)
             } label: {
                 Label("复制进程信息", systemImage: "doc.text")
+            }
+
+            if let googleSearchURL {
+                Link(destination: googleSearchURL) {
+                    Label("使用 Google 搜索", systemImage: "magnifyingglass")
+                }
             }
 
             if canIgnore || group.applicationBundleIdentifier != nil {
@@ -408,6 +418,63 @@ private struct PortProcessGroupMenu: View {
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
         }
+    }
+}
+
+enum PortProcessGoogleSearch {
+    static func query(
+        group: PortProcessGroup,
+        metadataByPID: [Int: PortProcessMetadata],
+    ) -> String? {
+        let processIdentity: String
+
+        if let bundleIdentifier = normalized(group.applicationBundleIdentifier) {
+            let displayName = normalized(group.displayName)
+            if let displayName,
+               displayName.caseInsensitiveCompare(bundleIdentifier) != .orderedSame
+            {
+                processIdentity = "\(displayName) \(bundleIdentifier)"
+            } else {
+                processIdentity = bundleIdentifier
+            }
+        } else {
+            guard let firstPort = group.ports.first,
+                  let processName = normalized(metadataByPID[firstPort.pid]?.name)
+                  ?? normalized(firstPort.command)
+            else {
+                return nil
+            }
+            processIdentity = processName
+        }
+
+        return "\(processIdentity) macOS process"
+    }
+
+    static func url(
+        group: PortProcessGroup,
+        metadataByPID: [Int: PortProcessMetadata],
+    ) -> URL? {
+        guard let query = query(group: group, metadataByPID: metadataByPID) else {
+            return nil
+        }
+
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "www.google.com"
+        components.path = "/search"
+        components.queryItems = [URLQueryItem(name: "q", value: query)]
+        return components.url
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        guard let normalized = value?
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " "),
+            !normalized.isEmpty
+        else {
+            return nil
+        }
+        return normalized
     }
 }
 
