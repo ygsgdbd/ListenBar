@@ -826,24 +826,24 @@
         }
       }
     },
-    "使用 Google 搜索" : {
+    "在线搜索" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Search with Google"
+            "value" : "Search Online"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用 Google 搜索"
+            "value" : "在线搜索"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用 Google 搜尋"
+            "value" : "線上搜尋"
           }
         }
       }

@@ -273,7 +273,7 @@ private struct PortProcessGroupMenu: View {
             group: group,
             metadataByPID: metadataByPID,
         ) != nil
-        let googleSearchURL = PortProcessGoogleSearch.url(
+        let onlineSearchQuery = PortProcessSearch.query(
             group: group,
             metadataByPID: metadataByPID,
         )
@@ -306,9 +306,17 @@ private struct PortProcessGroupMenu: View {
                 Label("复制进程信息", systemImage: "doc.text")
             }
 
-            if let googleSearchURL {
-                Link(destination: googleSearchURL) {
-                    Label("使用 Google 搜索", systemImage: "magnifyingglass")
+            if let onlineSearchQuery {
+                Menu {
+                    ForEach(PortProcessSearchProvider.allCases) { provider in
+                        if let url = provider.url(query: onlineSearchQuery) {
+                            Link(destination: url) {
+                                Text(verbatim: provider.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    Label("在线搜索", systemImage: "magnifyingglass")
                 }
             }
 
@@ -421,7 +429,48 @@ private struct PortProcessGroupMenu: View {
     }
 }
 
-enum PortProcessGoogleSearch {
+enum PortProcessSearchProvider: CaseIterable, Hashable, Identifiable {
+    case google
+    case bing
+    case baidu
+
+    var id: Self { self }
+
+    var displayName: String {
+        switch self {
+        case .google:
+            "Google"
+        case .bing:
+            "Bing"
+        case .baidu:
+            "百度"
+        }
+    }
+
+    func url(query: String) -> URL? {
+        var components = URLComponents()
+        components.scheme = "https"
+
+        switch self {
+        case .google:
+            components.host = "www.google.com"
+            components.path = "/search"
+            components.queryItems = [URLQueryItem(name: "q", value: query)]
+        case .bing:
+            components.host = "www.bing.com"
+            components.path = "/search"
+            components.queryItems = [URLQueryItem(name: "q", value: query)]
+        case .baidu:
+            components.host = "www.baidu.com"
+            components.path = "/s"
+            components.queryItems = [URLQueryItem(name: "wd", value: query)]
+        }
+
+        return components.url
+    }
+}
+
+enum PortProcessSearch {
     static func query(
         group: PortProcessGroup,
         metadataByPID: [Int: PortProcessMetadata],
@@ -448,22 +497,6 @@ enum PortProcessGoogleSearch {
         }
 
         return "\(processIdentity) macOS process"
-    }
-
-    static func url(
-        group: PortProcessGroup,
-        metadataByPID: [Int: PortProcessMetadata],
-    ) -> URL? {
-        guard let query = query(group: group, metadataByPID: metadataByPID) else {
-            return nil
-        }
-
-        var components = URLComponents()
-        components.scheme = "https"
-        components.host = "www.google.com"
-        components.path = "/search"
-        components.queryItems = [URLQueryItem(name: "q", value: query)]
-        return components.url
     }
 
     private static func normalized(_ value: String?) -> String? {
