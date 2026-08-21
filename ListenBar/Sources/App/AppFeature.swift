@@ -81,6 +81,7 @@ struct AppFeature {
         case killPortTapped(PortEntry, PortKillMode)
         case openLocalhostTapped(PortEntry)
         case quitApplicationTapped(PortProcessGroup, ApplicationQuitMode)
+        case revealApplicationPathTapped(PortProcessGroup)
         case revealProcessPathTapped(pid: Int)
         case restoreAllIgnoredProcessesTapped
         case restoreIgnoredProcessTapped(IgnoredProcessItem)
@@ -302,6 +303,10 @@ struct AppFeature {
 
             case let .view(.revealProcessPathTapped(pid)):
                 guard let path = Self.processPath(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
+                return revealPathEffect(path)
+
+            case let .view(.revealApplicationPathTapped(group)):
+                guard let path = Self.applicationPath(for: group, metadataByPID: state.metadataByPID) else { return .none }
                 return revealPathEffect(path)
 
             case .view(.restoreAllIgnoredProcessesTapped):
@@ -764,6 +769,32 @@ struct AppFeature {
             return nil
         }
         return metadata.executablePath ?? metadata.path
+    }
+
+    static func applicationPath(
+        for group: PortProcessGroup,
+        metadataByPID: [Int: PortProcessMetadata],
+    ) -> String? {
+        guard let groupBundleIdentifier = group.applicationBundleIdentifier else {
+            return nil
+        }
+
+        let paths = Set(
+            group.ports.compactMap { port -> String? in
+                guard
+                    let metadata = metadataByPID[port.pid],
+                    case let .application(bundleIdentifier) = metadata.kind,
+                    bundleIdentifier == groupBundleIdentifier
+                else {
+                    return nil
+                }
+                return metadata.path
+            },
+        )
+        guard paths.count == 1 else {
+            return nil
+        }
+        return paths.first
     }
 
     static func commandLine(

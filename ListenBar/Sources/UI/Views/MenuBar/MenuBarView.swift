@@ -220,6 +220,9 @@ struct MenuBarView: View {
                     onRevealProcessPath: { pid in
                         store.send(.view(.revealProcessPathTapped(pid: pid)))
                     },
+                    onRevealApplicationPath: { group in
+                        store.send(.view(.revealApplicationPathTapped(group)))
+                    },
                     onKillPort: { port, mode in
                         store.send(.view(.killPortTapped(port, mode)))
                     },
@@ -259,6 +262,7 @@ private struct PortProcessGroupMenu: View {
     let onCopyRedactedCommandLine: (Int) -> Void
     let onCopyLsofCommand: (PortEntry) -> Void
     let onRevealProcessPath: (Int) -> Void
+    let onRevealApplicationPath: (PortProcessGroup) -> Void
     let onKillPort: (PortEntry, PortKillMode) -> Void
     let onKillGroup: (PortProcessGroup, PortKillMode) -> Void
     let onQuitApplication: (PortProcessGroup, ApplicationQuitMode) -> Void
@@ -380,12 +384,16 @@ private struct PortProcessGroupMenu: View {
 
                 PortProcessInfoMenuContent(
                     item: processInfoItem,
+                    applicationPath: processInfoItems.applicationPath,
                     isLoading: isLoading,
                     onCopyPID: onCopyPID,
                     onCopyProcessPath: onCopyProcessPath,
                     onCopyCommandLine: onCopyCommandLine,
                     onCopyRedactedCommandLine: onCopyRedactedCommandLine,
                     onRevealProcessPath: onRevealProcessPath,
+                    onRevealApplicationPath: {
+                        onRevealApplicationPath(group)
+                    },
                 )
             } else if !processInfoItems.items.isEmpty {
                 Divider()
@@ -395,12 +403,16 @@ private struct PortProcessGroupMenu: View {
                         Menu {
                             PortProcessInfoMenuContent(
                                 item: item,
+                                applicationPath: processInfoItems.applicationPath,
                                 isLoading: isLoading,
                                 onCopyPID: onCopyPID,
                                 onCopyProcessPath: onCopyProcessPath,
                                 onCopyCommandLine: onCopyCommandLine,
                                 onCopyRedactedCommandLine: onCopyRedactedCommandLine,
                                 onRevealProcessPath: onRevealProcessPath,
+                                onRevealApplicationPath: {
+                                    onRevealApplicationPath(group)
+                                },
                             )
                         } label: {
                             Text(verbatim: item.title)
@@ -571,12 +583,14 @@ private struct PortMenu: View {
 
 private struct PortProcessInfoMenuContent: View {
     let item: PortProcessInfoItem
+    let applicationPath: String?
     let isLoading: Bool
     let onCopyPID: (Int) -> Void
     let onCopyProcessPath: (Int) -> Void
     let onCopyCommandLine: (Int) -> Void
     let onCopyRedactedCommandLine: (Int) -> Void
     let onRevealProcessPath: (Int) -> Void
+    let onRevealApplicationPath: () -> Void
 
     var body: some View {
         Button {
@@ -593,13 +607,13 @@ private struct PortProcessInfoMenuContent: View {
                         .monospacedDigit()
                 }
 
-                if let path = item.labels.path {
+                if let applicationPath {
                     Button {
-                        onRevealProcessPath(item.pid)
+                        onRevealApplicationPath()
                     } label: {
                         Label {
-                            Text("在 Finder 中显示")
-                            Text(verbatim: path)
+                            Text("在 Finder 中显示 App")
+                            Text(verbatim: applicationPath)
                                 .fontDesign(.monospaced)
                                 .foregroundStyle(.secondary)
                         } icon: {
@@ -607,7 +621,27 @@ private struct PortProcessInfoMenuContent: View {
                         }
                     }
                     .disabled(isLoading)
+                }
 
+                if let executablePath = item.labels.executablePath,
+                   executablePath != applicationPath
+                {
+                    Button {
+                        onRevealProcessPath(item.pid)
+                    } label: {
+                        Label {
+                            Text("在 Finder 中显示可执行文件")
+                            Text(verbatim: executablePath)
+                                .fontDesign(.monospaced)
+                                .foregroundStyle(.secondary)
+                        } icon: {
+                            Image(systemName: "folder")
+                        }
+                    }
+                    .disabled(isLoading)
+                }
+
+                if let path = item.labels.path {
                     Button {
                         onCopyProcessPath(item.pid)
                     } label: {
@@ -651,6 +685,7 @@ private struct PortProcessInfoMenuContent: View {
 
 struct PortProcessInfoItems: Equatable {
     let items: [PortProcessInfoItem]
+    let applicationPath: String?
 
     var singleItem: PortProcessInfoItem? {
         items.count == 1 ? items.first : nil
@@ -682,6 +717,10 @@ struct PortProcessInfoItems: Equatable {
         }
 
         self.items = items
+        self.applicationPath = AppFeature.applicationPath(
+            for: group,
+            metadataByPID: metadataByPID,
+        )
     }
 
     private static func title(
@@ -721,6 +760,7 @@ struct PortProcessInfoLabels: Equatable {
     let source: String
     let memory: String?
     let path: String?
+    let executablePath: String?
     let commandLineSummary: String?
     let redactedCommandLineSummary: String?
 
@@ -733,6 +773,7 @@ struct PortProcessInfoLabels: Equatable {
             self.source = ""
             self.memory = nil
             self.path = nil
+            self.executablePath = nil
             self.commandLineSummary = nil
             self.redactedCommandLineSummary = nil
             return
@@ -752,6 +793,7 @@ struct PortProcessInfoLabels: Equatable {
             memoryValue,
         )
         self.path = metadata.executablePath ?? metadata.path
+        self.executablePath = metadata.executablePath
         self.commandLineSummary = metadata.commandLineSummary
         self.redactedCommandLineSummary = metadata.redactedCommandLineSummary
     }
