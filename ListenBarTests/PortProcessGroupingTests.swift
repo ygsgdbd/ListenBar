@@ -560,6 +560,95 @@ final class PortMenuLabelsTests: XCTestCase {
                 "gpu --type=gpu-process",
             ],
         )
+        XCTAssertEqual(items.applicationPath, "/Applications/GitHub Desktop.app")
+    }
+
+    func testProcessInfoItemsRetainExecutablePathForContextAwareDeduplication() throws {
+        let port = self.port(port: 3000, pid: 10, command: "Example")
+        let metadata = [
+            10: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: "/Applications/Example.app",
+                executablePath: "/Applications/Example.app",
+            ),
+        ]
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(
+                for: [port],
+                metadataByPID: metadata,
+            ).first,
+        )
+
+        let items = PortProcessInfoItems(
+            group: group,
+            metadataByPID: metadata,
+        )
+
+        XCTAssertEqual(items.applicationPath, "/Applications/Example.app")
+        XCTAssertEqual(items.singleItem?.labels.executablePath, "/Applications/Example.app")
+    }
+
+    func testProcessInfoItemsRetainExecutableActionsWhenApplicationPathIsAmbiguous() throws {
+        let firstPort = self.port(port: 3000, pid: 10, command: "Example")
+        let secondPort = self.port(port: 3001, pid: 11, command: "Example")
+        let metadata = [
+            10: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: "/Applications/Example.app",
+                executablePath: "/Applications/Example.app",
+            ),
+            11: PortProcessMetadata(
+                bundleIdentifier: "com.example.App",
+                name: "Example",
+                path: "/Users/example/Applications/Example.app",
+                executablePath: "/Users/example/Applications/Example.app",
+            ),
+        ]
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(
+                for: [firstPort, secondPort],
+                metadataByPID: metadata,
+            ).first,
+        )
+
+        let items = PortProcessInfoItems(
+            group: group,
+            metadataByPID: metadata,
+        )
+
+        XCTAssertNil(items.applicationPath)
+        XCTAssertEqual(
+            items.items.map(\.labels.executablePath),
+            [
+                "/Applications/Example.app",
+                "/Users/example/Applications/Example.app",
+            ],
+        )
+    }
+
+    func testProcessInfoItemsHideApplicationPathForExecutable() throws {
+        let port = self.port(port: 3000, pid: 10, command: "node")
+        let metadata = [
+            10: PortProcessMetadata.executable(
+                name: "node",
+                path: "/opt/homebrew/bin/node",
+            ),
+        ]
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(
+                for: [port],
+                metadataByPID: metadata,
+            ).first,
+        )
+
+        let items = PortProcessInfoItems(
+            group: group,
+            metadataByPID: metadata,
+        )
+
+        XCTAssertNil(items.applicationPath)
     }
 
     func testProcessInfoItemsShowFallbackMetadataForUnreadablePID() throws {
