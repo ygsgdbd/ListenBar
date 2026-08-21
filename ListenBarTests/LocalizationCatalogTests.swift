@@ -5,7 +5,7 @@ final class LocalizationCatalogTests: XCTestCase {
     func testCatalogContainsEverySupportedLocalization() throws {
         let strings = try Self.catalogStrings()
 
-        XCTAssertEqual(strings.count, 97)
+        XCTAssertEqual(strings.count, 98)
         XCTAssertNil(strings["进程"])
 
         for (key, entry) in strings {
@@ -60,6 +60,7 @@ final class LocalizationCatalogTests: XCTestCase {
             "复制全部端口": "Copy All Ports",
             "复制启动命令": "Copy Launch Command",
             "复制脱敏启动命令": "Copy Redacted Launch Command",
+            "使用 Google 搜索": "Search with Google",
             "发现新版本…": "New Version Available…",
             "自动刷新：%@": "Auto Refresh: %@",
             "终止进程 (SIGTERM)": "Terminate Process (SIGTERM)",
@@ -93,6 +94,7 @@ final class LocalizationCatalogTests: XCTestCase {
             "%lld 个端口": "%lld 個連接埠",
             "终止进程 (SIGTERM)": "終止程序 (SIGTERM)",
             "强制终止进程…": "強制終止程序…",
+            "使用 Google 搜索": "使用 Google 搜尋",
             "忽略此 App": "忽略此 App",
             "忽略此进程": "忽略此程序",
             "已忽略项目（%lld）": "已忽略項目（%lld）",
