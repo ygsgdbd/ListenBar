@@ -848,24 +848,24 @@
         }
       }
     },
-    "使用 Google 搜索" : {
+    "搜索进程信息" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Search with Google"
+            "value" : "Search Process Info"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用 Google 搜索"
+            "value" : "搜索进程信息"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用 Google 搜尋"
+            "value" : "搜尋程序資訊"
           }
         }
       }

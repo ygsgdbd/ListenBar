@@ -1,7 +1,15 @@
 @testable import ListenBar
 import XCTest
 
-final class PortProcessGoogleSearchTests: XCTestCase {
+final class PortProcessSearchTests: XCTestCase {
+    func testProvidersUseExpectedOrderAndDisplayNames() {
+        XCTAssertEqual(PortProcessSearchProvider.allCases, [.google, .bing, .baidu])
+        XCTAssertEqual(
+            PortProcessSearchProvider.allCases.map(\.displayName),
+            ["Google", "Bing", "百度"],
+        )
+    }
+
     func testApplicationQueryIncludesDisplayNameAndBundleIdentifier() {
         let group = applicationGroup(
             displayName: "Example App",
@@ -9,7 +17,7 @@ final class PortProcessGoogleSearchTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            PortProcessGoogleSearch.query(group: group, metadataByPID: [:]),
+            PortProcessSearch.query(group: group, metadataByPID: [:]),
             "Example App com.example.App macOS process",
         )
     }
@@ -21,7 +29,7 @@ final class PortProcessGoogleSearchTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            PortProcessGoogleSearch.query(group: group, metadataByPID: [:]),
+            PortProcessSearch.query(group: group, metadataByPID: [:]),
             "com.example.App macOS process",
         )
     }
@@ -36,7 +44,7 @@ final class PortProcessGoogleSearchTests: XCTestCase {
         )
 
         let query = try XCTUnwrap(
-            PortProcessGoogleSearch.query(
+            PortProcessSearch.query(
                 group: group,
                 metadataByPID: [port.pid: metadata],
             ),
@@ -55,36 +63,41 @@ final class PortProcessGoogleSearchTests: XCTestCase {
         let group = executableGroup(port: port)
 
         XCTAssertEqual(
-            PortProcessGoogleSearch.query(group: group, metadataByPID: [:]),
+            PortProcessSearch.query(group: group, metadataByPID: [:]),
             "rapportd helper macOS process",
         )
     }
 
-    func testURLUsesGoogleHTTPSAndPreservesReservedCharacters() throws {
-        let port = port(command: "Node & 工具 + #")
-        let group = executableGroup(port: port)
+    func testProviderURLsUseHTTPSAndPreserveReservedCharacters() throws {
+        let query = "Node & 工具 + # macOS process"
+        let cases: [(PortProcessSearchProvider, String, String, String)] = [
+            (.google, "www.google.com", "/search", "q"),
+            (.bing, "www.bing.com", "/search", "q"),
+            (.baidu, "www.baidu.com", "/s", "wd"),
+        ]
 
-        let url = try XCTUnwrap(
-            PortProcessGoogleSearch.url(group: group, metadataByPID: [:]),
-        )
-        let components = try XCTUnwrap(
-            URLComponents(url: url, resolvingAgainstBaseURL: false),
-        )
+        for (provider, host, path, queryName) in cases {
+            let url = try XCTUnwrap(provider.url(query: query))
+            let components = try XCTUnwrap(
+                URLComponents(url: url, resolvingAgainstBaseURL: false),
+            )
 
-        XCTAssertEqual(components.scheme, "https")
-        XCTAssertEqual(components.host, "www.google.com")
-        XCTAssertEqual(components.path, "/search")
-        XCTAssertEqual(
-            components.queryItems,
-            [URLQueryItem(name: "q", value: "Node & 工具 + # macOS process")],
-        )
+            XCTAssertEqual(components.scheme, "https", provider.displayName)
+            XCTAssertEqual(components.host, host, provider.displayName)
+            XCTAssertEqual(components.path, path, provider.displayName)
+            XCTAssertEqual(
+                components.queryItems,
+                [URLQueryItem(name: queryName, value: query)],
+                provider.displayName,
+            )
+        }
     }
 
-    func testEmptyExecutableNameDoesNotProduceURL() {
+    func testEmptyExecutableNameDoesNotProduceQuery() {
         let port = port(command: " \t ")
         let group = executableGroup(port: port)
 
-        XCTAssertNil(PortProcessGoogleSearch.url(group: group, metadataByPID: [:]))
+        XCTAssertNil(PortProcessSearch.query(group: group, metadataByPID: [:]))
     }
 
     private func applicationGroup(
