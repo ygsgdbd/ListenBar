@@ -316,7 +316,7 @@ private struct PortProcessGroupMenu: View {
                         }
                     }
                 } label: {
-                    Label("在线搜索", systemImage: "magnifyingglass")
+                    Label("搜索进程信息", systemImage: "magnifyingglass")
                 }
             }
 

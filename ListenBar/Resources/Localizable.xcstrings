@@ -826,24 +826,24 @@
         }
       }
     },
-    "在线搜索" : {
+    "搜索进程信息" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Search Online"
+            "value" : "Search Process Info"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在线搜索"
+            "value" : "搜索进程信息"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "線上搜尋"
+            "value" : "搜尋程序資訊"
           }
         }
       }
