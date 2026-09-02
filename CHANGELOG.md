@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.6.1
+
+### 中文
+
+#### 修复
+
+- 修复启动更新检查完成时，已展开的菜单可能因动态刷新而闪退的问题。
+
+### English
+
+#### Fixes
+
+- Fixed a crash that could occur when the launch update check finished while the menu was open.
+
 ## v0.6.0
 
 ### 中文

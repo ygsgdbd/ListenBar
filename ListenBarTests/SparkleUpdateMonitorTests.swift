@@ -1,3 +1,4 @@
+import Combine
 @testable import ListenBar
 import Sparkle
 import XCTest
@@ -110,6 +111,111 @@ final class SparkleUpdateMonitorTests: XCTestCase {
         )
 
         XCTAssertEqual(monitor.status, .idle)
+    }
+
+    func testNoUpdateDefersVisibleStatusUntilMenuTrackingEnds() {
+        let updater = SparkleUpdaterSpy()
+        let monitor = SparkleUpdateMonitor()
+        monitor.startSilentCheck(using: updater)
+        monitor.menuTrackingDidBegin()
+        var publishedStatuses: [SparkleUpdateMonitor.Status] = []
+        let cancellable = monitor.$status.dropFirst().sink { publishedStatuses.append($0) }
+        defer { cancellable.cancel() }
+
+        monitor.updater(
+            delegateUpdater,
+            didFinishUpdateCycleFor: .updateInformation,
+            error: noUpdateError,
+        )
+
+        XCTAssertEqual(monitor.status, .checking)
+        XCTAssertEqual(monitor.menuTitle, String(localized: "正在检查更新…", bundle: .main))
+        XCTAssertFalse(monitor.isMenuActionEnabled)
+        XCTAssertEqual(publishedStatuses, [])
+
+        monitor.menuTrackingDidEnd()
+
+        XCTAssertEqual(monitor.status, .idle)
+        XCTAssertEqual(monitor.menuTitle, String(localized: "检查更新…", bundle: .main))
+        XCTAssertTrue(monitor.isMenuActionEnabled)
+        XCTAssertEqual(publishedStatuses, [.idle])
+    }
+
+    func testAvailableUpdateDefersVisibleStatusUntilMenuTrackingEnds() {
+        let updater = SparkleUpdaterSpy()
+        let monitor = SparkleUpdateMonitor()
+        let update = SUAppcastItem.empty()
+        monitor.startSilentCheck(using: updater)
+        monitor.menuTrackingDidBegin()
+        var publishedStatuses: [SparkleUpdateMonitor.Status] = []
+        let cancellable = monitor.$status.dropFirst().sink { publishedStatuses.append($0) }
+        defer { cancellable.cancel() }
+
+        monitor.updater(delegateUpdater, didFindValidUpdate: update)
+        monitor.updater(delegateUpdater, didFinishUpdateCycleFor: .updateInformation, error: nil)
+
+        XCTAssertEqual(monitor.status, .checking)
+        XCTAssertEqual(monitor.menuTitle, String(localized: "正在检查更新…", bundle: .main))
+        XCTAssertFalse(monitor.isMenuActionEnabled)
+        XCTAssertEqual(publishedStatuses, [])
+
+        monitor.menuTrackingDidEnd()
+
+        XCTAssertEqual(monitor.status, .updateAvailable(version: update.displayVersionString))
+        XCTAssertTrue(monitor.isMenuActionEnabled)
+        XCTAssertEqual(publishedStatuses, [.updateAvailable(version: update.displayVersionString)])
+    }
+
+    func testBackgroundUpdateDefersVisibleStatusUntilMenuTrackingEnds() throws {
+        let updater = SparkleUpdaterSpy()
+        let monitor = SparkleUpdateMonitor()
+        let update = SUAppcastItem.empty()
+        monitor.menuTrackingDidBegin()
+        var publishedStatuses: [SparkleUpdateMonitor.Status] = []
+        let cancellable = monitor.$status.dropFirst().sink { publishedStatuses.append($0) }
+        defer { cancellable.cancel() }
+
+        try monitor.updater(delegateUpdater, mayPerform: .updatesInBackground)
+        monitor.showUpdate(using: updater)
+        monitor.updater(delegateUpdater, didFindValidUpdate: update)
+        monitor.updater(delegateUpdater, didFinishUpdateCycleFor: .updatesInBackground, error: nil)
+
+        XCTAssertEqual(monitor.status, .idle)
+        XCTAssertEqual(monitor.menuTitle, String(localized: "检查更新…", bundle: .main))
+        XCTAssertTrue(monitor.isMenuActionEnabled)
+        XCTAssertEqual(updater.userInitiatedCheckCount, 0)
+        XCTAssertEqual(publishedStatuses, [])
+
+        monitor.menuTrackingDidEnd()
+
+        XCTAssertEqual(monitor.status, .updateAvailable(version: update.displayVersionString))
+        XCTAssertEqual(publishedStatuses, [.updateAvailable(version: update.displayVersionString)])
+    }
+
+    func testFailedCheckDefersRestoredVisibleStatusUntilMenuTrackingEnds() {
+        let updater = SparkleUpdaterSpy()
+        let monitor = SparkleUpdateMonitor()
+        let update = SUAppcastItem.empty()
+        monitor.updater(delegateUpdater, didFindValidUpdate: update)
+        monitor.startSilentCheck(using: updater)
+        monitor.menuTrackingDidBegin()
+        var publishedStatuses: [SparkleUpdateMonitor.Status] = []
+        let cancellable = monitor.$status.dropFirst().sink { publishedStatuses.append($0) }
+        defer { cancellable.cancel() }
+
+        monitor.updater(
+            delegateUpdater,
+            didFinishUpdateCycleFor: .updateInformation,
+            error: TestError(),
+        )
+
+        XCTAssertEqual(monitor.status, .checking)
+        XCTAssertEqual(publishedStatuses, [])
+
+        monitor.menuTrackingDidEnd()
+
+        XCTAssertEqual(monitor.status, .updateAvailable(version: update.displayVersionString))
+        XCTAssertEqual(publishedStatuses, [.updateAvailable(version: update.displayVersionString)])
     }
 
     func testScheduledUpdateUsesGentleReminderAndUpdatesMenuState() {
