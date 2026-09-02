@@ -13,6 +13,14 @@ final class SparkleConfigurationTests: XCTestCase {
         )
         XCTAssertEqual(
             Bundle.main.object(forInfoDictionaryKey: "SUEnableAutomaticChecks") as? Bool,
+            true,
+        )
+        XCTAssertEqual(
+            Bundle.main.object(forInfoDictionaryKey: "SUAutomaticallyUpdate") as? Bool,
+            false,
+        )
+        XCTAssertEqual(
+            Bundle.main.object(forInfoDictionaryKey: "SUAllowsAutomaticUpdates") as? Bool,
             false,
         )
     }

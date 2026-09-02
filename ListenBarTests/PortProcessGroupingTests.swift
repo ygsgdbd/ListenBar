@@ -108,7 +108,7 @@ final class PortProcessGroupingTests: XCTestCase {
         )
     }
 
-    func testGroupsHelperProcessUnderOwnerAppWithDetailSubtitle() {
+    func testGroupsHelperProcessUnderOwnerApp() throws {
         let helperPort = port(
             port: 61305,
             pid: 22749,
@@ -127,19 +127,16 @@ final class PortProcessGroupingTests: XCTestCase {
             ],
         )
 
-        XCTAssertEqual(
-            groups,
-            [
-                PortProcessGroup(
-                    id: "app:com.github.GitHubClient",
-                    displayName: "GitHub Desktop",
-                    subtitle: "Helper (Renderer) · 61305",
-                    icon: .application(path: "/Applications/GitHub Desktop.app"),
-                    ports: [helperPort],
-                    portProcessDetails: [helperPort.id: "Helper (Renderer)"],
-                ),
-            ],
-        )
+        let group = try XCTUnwrap(groups.first)
+
+        XCTAssertEqual(group.displayName, "GitHub Desktop")
+        XCTAssertEqual(group.subtitle, "61305")
+        XCTAssertEqual(group.portProcessDetails, [helperPort.id: "Helper (Renderer)"])
+
+        let labels = PortProcessGroupMenuLabels(group: group)
+        XCTAssertEqual(labels.title, "GitHub Desktop（Helper）")
+        XCTAssertEqual(labels.subtitle, "61305")
+        XCTAssertEqual(labels.portSectionTitle, "端口（1）")
     }
 
     func testGroupsMultipleHelperProcessesUnderOwnerApp() {
@@ -175,7 +172,7 @@ final class PortProcessGroupingTests: XCTestCase {
         XCTAssertEqual(groups.count, 1)
         XCTAssertEqual(groups.first?.id, "app:com.github.GitHubClient")
         XCTAssertEqual(groups.first?.displayName, "GitHub Desktop")
-        XCTAssertEqual(groups.first?.subtitle, "2 个子进程 · 61305, 61306")
+        XCTAssertEqual(groups.first?.subtitle, "61305, 61306")
         XCTAssertEqual(groups.first?.ports, [rendererPort, gpuPort])
         XCTAssertEqual(
             groups.first?.portProcessDetails,
@@ -183,6 +180,10 @@ final class PortProcessGroupingTests: XCTestCase {
                 rendererPort.id: "Helper (Renderer)",
                 gpuPort.id: "Helper (GPU)",
             ],
+        )
+        XCTAssertEqual(
+            groups.first.map(PortProcessGroupMenuLabels.init(group:))?.title,
+            "GitHub Desktop（Helper）",
         )
     }
 
@@ -198,6 +199,79 @@ final class PortProcessGroupingTests: XCTestCase {
         XCTAssertEqual(groups.first?.subtitle, "3000, 3001")
         XCTAssertEqual(groups.first?.ports.map(\.port), [3000, 3000, 3001])
         XCTAssertEqual(groups.first?.ports.map(\.networkProtocol), [.tcp, .udp, .tcp])
+    }
+
+    func testPortSummaryHandlesEmptyAndFiveUniquePorts() {
+        let ports = [5005, 5001, 5004, 5002, 5003].map {
+            port(port: $0, pid: 10, command: "node")
+        }
+
+        XCTAssertEqual(PortProcessGroupingService.portSummary(for: []), "")
+        XCTAssertEqual(
+            PortProcessGroupingService.portSummary(for: ports),
+            "5001, 5002, 5003, 5004, 5005",
+        )
+    }
+
+    func testPortSummaryShowsLocalizedRemainderAfterFiveUniquePorts() {
+        let ports = [5006, 5001, 5004, 5002, 5003, 5005, 5001].map {
+            port(port: $0, pid: 10, command: "node")
+        }
+        let manyPorts = (5001 ... 5015).map {
+            port(port: $0, pid: 10, command: "node")
+        }
+
+        XCTAssertEqual(
+            PortProcessGroupingService.portSummary(for: ports),
+            "5001, 5002, 5003, 5004, 5005, +1 个",
+        )
+        XCTAssertEqual(
+            PortProcessGroupingService.portSummary(for: manyPorts),
+            "5001, 5002, 5003, 5004, 5005, +10 个",
+        )
+    }
+
+    func testMenuLabelsKeepSingleNonHelperRoleExact() throws {
+        let servicePort = port(port: 49368, pid: 20, command: "ChatGPT Codex")
+        let group = try XCTUnwrap(
+            PortProcessGroupingService.groups(
+                for: [servicePort],
+                metadataByPID: [
+                    20: PortProcessMetadata(
+                        bundleIdentifier: "com.openai.chat",
+                        name: "ChatGPT",
+                        path: "/Applications/ChatGPT.app",
+                        processDetailName: "Codex (Service)",
+                    ),
+                ],
+            ).first,
+        )
+
+        XCTAssertEqual(group.displayName, "ChatGPT")
+        XCTAssertEqual(PortProcessGroupMenuLabels(group: group).title, "ChatGPT（Codex (Service)）")
+    }
+
+    func testMenuLabelsCountDistinctNormalizedRolesAndRawPortEntries() {
+        let firstPort = port(networkProtocol: .tcp, port: 3000, pid: 20, command: "Example Helper")
+        let duplicateNumberPort = port(networkProtocol: .udp, port: 3000, pid: 21, command: "Example Worker")
+        let thirdPort = port(port: 3001, pid: 22, command: "Example Agent")
+        let group = PortProcessGroup(
+            id: "app:com.example.App",
+            displayName: "Example",
+            subtitle: "3000, 3001",
+            icon: .application(path: "/Applications/Example.app"),
+            ports: [firstPort, duplicateNumberPort, thirdPort],
+            portProcessDetails: [
+                firstPort.id: "Helper (Renderer)",
+                duplicateNumberPort.id: "Worker",
+                thirdPort.id: "Worker",
+            ],
+        )
+
+        let labels = PortProcessGroupMenuLabels(group: group)
+
+        XCTAssertEqual(labels.title, "Example（2 个子进程）")
+        XCTAssertEqual(labels.portSectionTitle, "端口（3）")
     }
 
     func testClassifiesRootProcessWithoutMetadataAsSystemOrOtherUser() {

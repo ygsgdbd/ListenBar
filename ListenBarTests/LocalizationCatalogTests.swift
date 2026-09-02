@@ -5,7 +5,7 @@ final class LocalizationCatalogTests: XCTestCase {
     func testCatalogContainsEverySupportedLocalization() throws {
         let strings = try Self.catalogStrings()
 
-        XCTAssertEqual(strings.count, 99)
+        XCTAssertEqual(strings.count, 111)
         XCTAssertNil(strings["进程"])
 
         for (key, entry) in strings {
@@ -64,6 +64,13 @@ final class LocalizationCatalogTests: XCTestCase {
             "在 Finder 中显示可执行文件": "Show Executable in Finder",
             "搜索进程信息": "Search Process Info",
             "发现新版本…": "New Version Available…",
+            "正在检查更新…": "Checking for Updates…",
+            "新版本 %@ 可用…": "New Version %@ Available…",
+            "+%lld 个": "+%lld more",
+            "端口（%lld）": "Ports (%lld)",
+            "帮助与关于": "Help & About",
+            "复制诊断信息": "Copy Diagnostics",
+            "报告问题…": "Report an Issue…",
             "自动刷新：%@": "Auto Refresh: %@",
             "终止进程 (SIGTERM)": "Terminate Process (SIGTERM)",
             "终止全部监听进程 (SIGTERM)": "Terminate All Listening Processes (SIGTERM)",
@@ -86,6 +93,13 @@ final class LocalizationCatalogTests: XCTestCase {
             "登录时打开": "登入時開啟",
             "打开登录项设置": "開啟登入項目設定",
             "发现新版本…": "發現新版本…",
+            "正在检查更新…": "正在檢查更新…",
+            "新版本 %@ 可用…": "新版本 %@ 可用…",
+            "+%lld 个": "+%lld 個",
+            "端口（%lld）": "連接埠（%lld）",
+            "帮助与关于": "說明與關於",
+            "复制诊断信息": "複製診斷資訊",
+            "报告问题…": "回報問題…",
             "请前往“系统设置”>“通用”>“登录项”允许 ListenBar。": "請前往「系統設定」>「一般」>「登入項目」允許 ListenBar。",
             "GitHub 仓库": "GitHub 儲存庫",
             "仅本机": "僅限本機",
