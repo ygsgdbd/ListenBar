@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.6.0
+
+### 中文
+
+#### 功能
+
+- 新增进程“在线搜索”子菜单，支持 Google、Bing 和百度；查询仅使用应用或进程身份信息，不包含 PID、端口、用户名、路径或命令行参数。
+- 新增独立的“在 Finder 中显示 App”和“在 Finder 中显示可执行文件”操作，并在两者指向同一目标时自动去重。
+
+#### 优化
+
+- 优化应用分组摘要：在标题中标明辅助或子进程角色，摘要仅展示前 5 个唯一端口及剩余数量，同时在子菜单中保留完整监听详情。
+- 新增“帮助与关于”子菜单，集中展示版本、开发者、README 帮助、基础支持诊断和问题反馈入口。
+- 优化 Sparkle 更新体验：定时检查保持静默，并在菜单中显示检查状态和可用版本号；不会自动下载或安装更新，仅在用户主动操作时显示交互式更新界面。
+- 强化发布来源与工具完整性校验，并更新 README 截图、项目致谢和发布文档。
+
+### English
+
+#### Features
+
+- Added an Online Search submenu for processes with Google, Bing, and Baidu; queries use only app or process identity and exclude PIDs, ports, usernames, paths, and command-line arguments.
+- Added separate Show App in Finder and Show Executable in Finder actions, deduplicating them when both resolve to the same target.
+
+#### Improvements
+
+- Refined application summaries by identifying helper or child-process roles in titles, showing only the first five unique ports plus the remaining count, and preserving complete listener details in submenus.
+- Added a Help & About submenu that groups version, developer, README help, basic support diagnostics, and issue-reporting actions.
+- Refined Sparkle updates so scheduled checks remain silent while the menu shows check status and the available version; updates are never downloaded or installed automatically, and interactive update UI appears only after explicit user action.
+- Strengthened release provenance and tool-integrity checks, and refreshed the README screenshots, project acknowledgements, and release documentation.
+
 ## v0.5.0
 
 ### 中文
