@@ -144,20 +144,10 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button {
-                updateMonitor.showUpdate(using: updaterController.updater)
-            } label: {
-                Label {
-                    Text(LocalizedStringKey(updateMonitor.menuTitle))
-                } icon: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                }
-            }
-            .disabled(!updateMonitor.isMenuActionEnabled)
-
-            Link(destination: URL(string: "https://github.com/ygsgdbd/ListenBar")!) {
-                Label("GitHub 仓库", systemImage: "chevron.left.forwardslash.chevron.right")
-            }
+            AppInfoView(
+                updateMonitor: updateMonitor,
+                updaterController: updaterController,
+            )
 
             Divider()
 
@@ -268,6 +258,7 @@ private struct PortProcessGroupMenu: View {
     let onQuitApplication: (PortProcessGroup, ApplicationQuitMode) -> Void
 
     var body: some View {
+        let labels = PortProcessGroupMenuLabels(group: group)
         let showsPIDInPortMenus = PortMenuLabels.showsPID(for: group.ports)
         let processInfoItems = PortProcessInfoItems(
             group: group,
@@ -283,17 +274,19 @@ private struct PortProcessGroupMenu: View {
         )
 
         Menu {
-            ForEach(group.ports) { port in
-                PortMenu(
-                    port: port,
-                    showsPID: showsPIDInPortMenus,
-                    processName: group.portProcessDetails[port.id],
-                    isLoading: isLoading,
-                    onOpenLocalhost: onOpenLocalhost,
-                    onCopyURL: onCopyURL,
-                    onCopyLsofCommand: onCopyLsofCommand,
-                    onKillPort: onKillPort,
-                )
+            Section(labels.portSectionTitle) {
+                ForEach(group.ports) { port in
+                    PortMenu(
+                        port: port,
+                        showsPID: showsPIDInPortMenus,
+                        processName: group.portProcessDetails[port.id],
+                        isLoading: isLoading,
+                        onOpenLocalhost: onOpenLocalhost,
+                        onCopyURL: onCopyURL,
+                        onCopyLsofCommand: onCopyLsofCommand,
+                        onKillPort: onKillPort,
+                    )
+                }
             }
 
             Divider()
@@ -433,8 +426,8 @@ private struct PortProcessGroupMenu: View {
             }
         } label: {
             PortProcessIconView(icon: group.icon)
-            Text(group.displayName)
-            Text(group.subtitle)
+            Text(labels.title)
+            Text(labels.subtitle)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
         }

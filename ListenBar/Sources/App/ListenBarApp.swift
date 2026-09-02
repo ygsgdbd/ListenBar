@@ -41,11 +41,12 @@ struct ListenBarApp: App {
         let store = Store(initialState: initialState) {
             AppFeature()
         }
+        let startsUpdater = startsLiveServices && !isTesting
         let updateMonitor = SparkleUpdateMonitor()
         let updaterController = SPUStandardUpdaterController(
-            startingUpdater: startsLiveServices,
+            startingUpdater: startsUpdater,
             updaterDelegate: updateMonitor,
-            userDriverDelegate: nil,
+            userDriverDelegate: updateMonitor,
         )
         self.store = store
         self.updateMonitor = updateMonitor
@@ -80,8 +81,10 @@ struct ListenBarApp: App {
                 }
             },
         ]
-        if !isTesting && startsLiveServices {
+        if startsUpdater {
             updateMonitor.startSilentCheck(using: updaterController.updater)
+        }
+        if !isTesting && startsLiveServices {
             store.send(.task)
         }
     }

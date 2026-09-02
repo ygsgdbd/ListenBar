@@ -1,6 +1,8 @@
 import Foundation
 
 enum PortProcessGroupingService {
+    private static let portSummaryLimit = 5
+
     static func groups(
         for ports: [PortEntry],
         metadataByPID: [Int: PortProcessMetadata],
@@ -99,6 +101,26 @@ enum PortProcessGroupingService {
         return lhs.address.localizedStandardCompare(rhs.address) == .orderedAscending
     }
 
+    static func portSummary(for ports: [PortEntry]) -> String {
+        let uniquePorts = Set(ports.map(\.port)).sorted()
+        var components = uniquePorts
+            .prefix(portSummaryLimit)
+            .map(String.init)
+        let remainingCount = uniquePorts.count - components.count
+
+        if remainingCount > 0 {
+            components.append(
+                String(
+                    format: String(localized: "+%lld 个", bundle: .main, comment: "端口摘要中未显示的剩余端口数。"),
+                    locale: Locale.current,
+                    Int64(remainingCount),
+                ),
+            )
+        }
+
+        return components.joined(separator: ", ")
+    }
+
     private static func groupSort(_ lhs: PortProcessGroup, _ rhs: PortProcessGroup) -> Bool {
         let nameComparison = lhs.displayName.localizedStandardCompare(rhs.displayName)
         if nameComparison != .orderedSame {
@@ -135,35 +157,70 @@ private struct GroupAccumulator {
 
     var group: PortProcessGroup {
         let sortedPorts = ports.sorted(by: PortProcessGroupingService.portSort)
-        let portSummary = Set(sortedPorts.map(\.port))
-            .sorted()
-            .map(String.init)
-            .joined(separator: ", ")
-        let detailNames = Set(portProcessDetails.values)
-            .sorted()
-        let subtitle: String
-
-        if detailNames.count == 1, let detailName = detailNames.first {
-            subtitle = "\(detailName) · \(portSummary)"
-        } else if detailNames.count > 1 {
-            subtitle = String(
-                format: String(localized: "%lld 个子进程 · %@", bundle: .main, comment: "多个 helper 进程及其端口的分组副标题。"),
-                locale: Locale.current,
-                Int64(detailNames.count),
-                portSummary,
-            )
-        } else {
-            subtitle = portSummary
-        }
 
         return PortProcessGroup(
             id: identity.id,
             displayName: identity.displayName,
-            subtitle: subtitle,
+            subtitle: PortProcessGroupingService.portSummary(for: sortedPorts),
             icon: identity.icon,
             classification: classification,
             ports: sortedPorts,
             portProcessDetails: portProcessDetails,
         )
+    }
+}
+
+struct PortProcessGroupMenuLabels: Equatable {
+    let title: String
+    let subtitle: String
+    let portSectionTitle: String
+
+    init(group: PortProcessGroup) {
+        let roles = Set(
+            group.portProcessDetails.values.compactMap(Self.normalizedRole),
+        ).sorted()
+
+        if roles.count == 1, let role = roles.first {
+            title = String(
+                format: String(localized: "%@（%@）", bundle: .main, comment: "应用标题及其内部子进程角色。"),
+                locale: Locale.current,
+                group.displayName,
+                role,
+            )
+        } else if roles.count > 1 {
+            let roleCount = String(
+                format: String(localized: "%lld 个子进程", bundle: .main, comment: "应用标题中的不同子进程角色数。"),
+                locale: Locale.current,
+                Int64(roles.count),
+            )
+            title = String(
+                format: String(localized: "%@（%@）", bundle: .main, comment: "应用标题及其内部子进程角色。"),
+                locale: Locale.current,
+                group.displayName,
+                roleCount,
+            )
+        } else {
+            title = group.displayName
+        }
+
+        subtitle = group.subtitle
+        portSectionTitle = String(
+            format: String(localized: "端口（%lld）", bundle: .main, comment: "进程子菜单的端口分区标题。"),
+            locale: Locale.current,
+            Int64(group.ports.count),
+        )
+    }
+
+    private static func normalizedRole(_ role: String) -> String? {
+        let role = role.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !role.isEmpty else {
+            return nil
+        }
+
+        if role == "Helper" || role.hasPrefix("Helper ") || role.hasPrefix("Helper(") {
+            return "Helper"
+        }
+
+        return role
     }
 }
