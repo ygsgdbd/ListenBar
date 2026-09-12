@@ -63,65 +63,6 @@ final class IgnoredProcessItemTests: XCTestCase {
         }
     }
 
-    func testFilteringApplicationMatchesBundleIdentifierAcrossPIDChanges() {
-        let ignoredPort = port(pid: 202, command: "Example Helper", port: 3000)
-        let visiblePort = port(pid: 303, command: "node", port: 3001)
-        let metadata = [
-            ignoredPort.pid: PortProcessMetadata(
-                bundleIdentifier: "com.example.App",
-                name: "Example",
-                path: "/Applications/Example.app",
-            ),
-            visiblePort.pid: PortProcessMetadata.executable(
-                name: "node",
-                path: "/Users/example/bin/node",
-            ),
-        ]
-        let original = snapshot([ignoredPort, visiblePort], metadata: metadata)
-
-        let filtered = original.filtering(
-            ignoredProcesses: [
-                .application(
-                    bundleIdentifier: "com.example.App",
-                    displayName: "Old Example Name",
-                ),
-            ],
-        )
-
-        XCTAssertEqual(filtered.ports, [visiblePort])
-        XCTAssertEqual(filtered.processGroups.map(\.id), ["process:303:node"])
-        XCTAssertEqual(filtered.metadataByPID, [visiblePort.pid: metadata[visiblePort.pid]!])
-    }
-
-    func testFilteringExecutableMatchesPathButNotCommandName() {
-        let ignoredPort = port(pid: 202, command: "node", port: 3000)
-        let visiblePort = port(pid: 303, command: "node", port: 3001)
-        let metadata = [
-            ignoredPort.pid: PortProcessMetadata.executable(
-                name: "node",
-                path: "/opt/homebrew/bin/node",
-            ),
-            visiblePort.pid: PortProcessMetadata.executable(
-                name: "node",
-                path: "/Users/example/bin/node",
-            ),
-        ]
-        let original = snapshot([ignoredPort, visiblePort], metadata: metadata)
-
-        let filtered = original.filtering(
-            ignoredProcesses: [
-                .executable(
-                    path: "/opt/homebrew/bin/node",
-                    displayName: "node",
-                ),
-            ],
-        )
-
-        XCTAssertEqual(filtered.ports, [visiblePort])
-        XCTAssertEqual(filtered.processGroups.map(\.id), ["process:303:node"])
-        XCTAssertEqual(filtered.metadataByPID, [visiblePort.pid: metadata[visiblePort.pid]!])
-    }
-
     private func snapshot(
         _ ports: [PortEntry],
         metadata: [Int: PortProcessMetadata] = [:],

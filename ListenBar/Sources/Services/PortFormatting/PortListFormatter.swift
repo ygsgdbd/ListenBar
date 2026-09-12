@@ -57,7 +57,7 @@ enum PortListFormatter {
         if let url = port.localhostURL?.absoluteString {
             fields.append("url=\(url)")
         }
-        if let path = metadata?.executablePath ?? metadata?.path {
+        if let path = PortProcessDetails(metadata: metadata).path {
             fields.append("path=\(shellToken(path))")
         }
         return fields.joined(separator: " ")

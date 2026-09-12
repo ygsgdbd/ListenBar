@@ -224,11 +224,15 @@
             return AppFeature.State(
                 isReadmeDemo: true,
                 lastUpdated: now,
-                metadataByPID: metadataByPID,
-                ports: ports,
-                processGroups: PortProcessGroupingService.groups(
-                    for: ports,
-                    metadataByPID: metadataByPID,
+                portVisibility: PortVisibility(
+                    snapshot: PortScanSnapshot(
+                        ports: ports,
+                        metadataByPID: metadataByPID,
+                        processGroups: PortProcessGroupingService.groups(
+                            for: ports,
+                            metadataByPID: metadataByPID,
+                        ),
+                    ),
                 ),
             )
         }
