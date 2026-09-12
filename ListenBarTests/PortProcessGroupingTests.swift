@@ -425,7 +425,7 @@ final class PortMenuLabelsTests: XCTestCase {
     }
 
     func testProcessInfoLabelsShowSourcePathAndCommandSummary() {
-        let labels = PortProcessInfoLabels(
+        let labels = PortProcessDetails(
             metadata: PortProcessMetadata.executable(
                 name: "node",
                 path: "/opt/homebrew/bin/node",
@@ -566,11 +566,11 @@ final class PortMenuLabelsTests: XCTestCase {
         XCTAssertEqual(items.items.map(\.pid), [63759])
         XCTAssertEqual(items.singleItem?.title, "PID 63759")
         XCTAssertEqual(
-            items.singleItem?.labels.path,
+            items.singleItem?.details.path,
             "/Users/rainbow/Library/Android/sdk/platform-tools/adb",
         )
         XCTAssertEqual(
-            items.singleItem?.labels.commandLineSummary,
+            items.singleItem?.details.commandLineSummary,
             "adb -L tcp:5037 fork-server server --reply-fd 4",
         )
     }
@@ -628,7 +628,7 @@ final class PortMenuLabelsTests: XCTestCase {
             ],
         )
         XCTAssertEqual(
-            items.items.map(\.labels.commandLineSummary),
+            items.items.map(\.details.commandLineSummary),
             [
                 "renderer --type=renderer",
                 "gpu --type=gpu-process",
@@ -660,7 +660,8 @@ final class PortMenuLabelsTests: XCTestCase {
         )
 
         XCTAssertEqual(items.applicationPath, "/Applications/Example.app")
-        XCTAssertEqual(items.singleItem?.labels.executablePath, "/Applications/Example.app")
+        XCTAssertEqual(items.singleItem?.details.executablePath, "/Applications/Example.app")
+        XCTAssertNil(items.singleItem?.executablePathToReveal)
     }
 
     func testProcessInfoItemsRetainExecutableActionsWhenApplicationPathIsAmbiguous() throws {
@@ -694,7 +695,11 @@ final class PortMenuLabelsTests: XCTestCase {
 
         XCTAssertNil(items.applicationPath)
         XCTAssertEqual(
-            items.items.map(\.labels.executablePath),
+            items.items.map(\.executablePathToReveal),
+            ["/Applications/Example.app", "/Users/example/Applications/Example.app"],
+        )
+        XCTAssertEqual(
+            items.items.map(\.details.executablePath),
             [
                 "/Applications/Example.app",
                 "/Users/example/Applications/Example.app",
@@ -746,8 +751,8 @@ final class PortMenuLabelsTests: XCTestCase {
         )
 
         XCTAssertEqual(items.items.map(\.pid), [port.pid])
-        XCTAssertEqual(items.singleItem?.labels.source, "来源：未知来源")
-        XCTAssertEqual(items.singleItem?.labels.memory, "常驻内存：不可用")
+        XCTAssertEqual(items.singleItem?.details.source, "来源：未知来源")
+        XCTAssertEqual(items.singleItem?.details.memory, "常驻内存：不可用")
     }
 
     func testProcessInfoItemsIncludePIDWithoutMetadata() throws {
@@ -767,14 +772,15 @@ final class PortMenuLabelsTests: XCTestCase {
 
         XCTAssertEqual(items.items.map(\.pid), [10])
         XCTAssertEqual(items.singleItem?.title, "PID 10")
-        XCTAssertEqual(items.singleItem?.labels, PortProcessInfoLabels(metadata: nil))
+        XCTAssertEqual(items.singleItem?.details, PortProcessDetails(metadata: nil))
     }
 
     func testProcessInfoItemCopyPIDTitleShowsPlainPID() {
         let item = PortProcessInfoItem(
             pid: 51_487,
             title: "PID 51487",
-            labels: PortProcessInfoLabels(metadata: nil),
+            details: PortProcessDetails(metadata: nil),
+            applicationPath: nil,
         )
 
         XCTAssertEqual(item.copyPIDTitle, "复制 PID (51487)")
@@ -782,7 +788,7 @@ final class PortMenuLabelsTests: XCTestCase {
     }
 
     func testProcessInfoLabelsHideMissingMetadata() {
-        let labels = PortProcessInfoLabels(metadata: nil)
+        let labels = PortProcessDetails(metadata: nil)
 
         XCTAssertFalse(labels.hasDetails)
         XCTAssertEqual(labels.source, "")
@@ -792,7 +798,7 @@ final class PortMenuLabelsTests: XCTestCase {
     }
 
     func testProcessInfoLabelsShowUnavailableMemoryWhenMetadataExists() {
-        let labels = PortProcessInfoLabels(
+        let labels = PortProcessDetails(
             metadata: PortProcessMetadata(
                 bundleIdentifier: "com.example.App",
                 name: "Example",

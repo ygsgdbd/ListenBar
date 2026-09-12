@@ -7,7 +7,7 @@ import SwiftUI
 
 @main
 struct ListenBarApp: App {
-    let menuTrackingObservers: [NSObjectProtocol]
+    let menuTrackingCoordinator: MenuTrackingCoordinator
     let readmeBackdropWindow: NSWindow?
     let readmeColorScheme: ColorScheme?
     let store: StoreOf<AppFeature>
@@ -51,38 +51,11 @@ struct ListenBarApp: App {
         self.store = store
         self.updateMonitor = updateMonitor
         self.updaterController = updaterController
-        self.menuTrackingObservers = [
-            NotificationCenter.default.addObserver(
-                forName: NSMenu.didBeginTrackingNotification,
-                object: nil,
-                queue: .main,
-            ) { notification in
-                MainActor.assumeIsolated {
-                    if let menu = notification.object as? NSMenu,
-                       let readmeMenuAppearance
-                    {
-                        menu.appearance = readmeMenuAppearance
-                        for item in menu.items {
-                            item.submenu?.appearance = readmeMenuAppearance
-                        }
-                    }
-                    guard MenuBarView.isRootMenuTrackingNotification(notification) else { return }
-                    updateMonitor.menuTrackingDidBegin()
-                    store.send(.menuPresented)
-                }
-            },
-            NotificationCenter.default.addObserver(
-                forName: NSMenu.didEndTrackingNotification,
-                object: nil,
-                queue: .main,
-            ) { notification in
-                MainActor.assumeIsolated {
-                    guard MenuBarView.isRootMenuTrackingNotification(notification) else { return }
-                    updateMonitor.menuTrackingDidEnd()
-                    store.send(.menuDismissed)
-                }
-            },
-        ]
+        self.menuTrackingCoordinator = MenuTrackingCoordinator(
+            store: store,
+            updateMonitor: updateMonitor,
+            readmeMenuAppearance: readmeMenuAppearance,
+        )
         if startsUpdater {
             updateMonitor.startSilentCheck(using: updaterController.updater)
         }

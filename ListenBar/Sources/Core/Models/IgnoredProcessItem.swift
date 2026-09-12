@@ -119,24 +119,3 @@ struct IgnoredProcessItem: Codable, Equatable, Hashable, Identifiable, Sendable 
         return value
     }
 }
-
-extension PortScanSnapshot {
-    func filtering(ignoredProcesses: [IgnoredProcessItem]) -> Self {
-        guard !ignoredProcesses.isEmpty else { return self }
-
-        let visibleGroups = processGroups.filter { group in
-            !ignoredProcesses.contains { item in
-                item.matches(group: group, metadataByPID: metadataByPID)
-            }
-        }
-        let visiblePortIDs = Set(visibleGroups.flatMap(\.ports).map(\.id))
-        let visiblePorts = ports.filter { visiblePortIDs.contains($0.id) }
-        let visiblePIDs = Set(visiblePorts.map(\.pid))
-
-        return Self(
-            ports: visiblePorts,
-            metadataByPID: metadataByPID.filter { visiblePIDs.contains($0.key) },
-            processGroups: visibleGroups,
-        )
-    }
-}

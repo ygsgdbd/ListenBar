@@ -17,8 +17,7 @@ final class AppFeatureTests: XCTestCase {
         ]
         let snapshot = makeSnapshot(ports)
         var state = AppFeature.State()
-        state.ports = snapshot.ports
-        state.processGroups = snapshot.processGroups
+        state.portVisibility = PortVisibility(snapshot: snapshot)
 
         XCTAssertEqual(state.title, "2 个监听进程 · 3 个端口")
     }
@@ -71,16 +70,14 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = false
             $0.errorMessage = nil
             $0.lastUpdated = now
-            $0.hiddenMetadataByPID = [ignoredPort.pid: metadata[ignoredPort.pid]!]
-            $0.hiddenPorts = [ignoredPort]
-            $0.hiddenProcessGroups = snapshot.processGroups.filter { $0.id == "app:com.example.App" }
-            $0.ignoredProcessGroupCount = 1
-            $0.metadataByPID = [visiblePort.pid: metadata[visiblePort.pid]!]
-            $0.ports = [visiblePort]
-            $0.processGroups = snapshot.processGroups.filter { $0.id == "process:202:node" }
+            $0.portVisibility = PortVisibility(snapshot: snapshot, ignoredProcesses: $0.settings.ignoredProcesses)
         }
 
         XCTAssertEqual(store.state.title, "1 个监听进程 · 1 个端口")
+        XCTAssertEqual(store.state.ports, [visiblePort])
+        XCTAssertEqual(store.state.metadataByPID, [visiblePort.pid: metadata[visiblePort.pid]!])
+        XCTAssertEqual(store.state.processGroups.map(\.id), ["process:202:node"])
+        XCTAssertEqual(store.state.ignoredProcessGroupCount, 1)
     }
 
     func testIgnoreGroupWhileMenuPresentedRefreshesAfterDismissal() async throws {
@@ -107,9 +104,7 @@ final class AppFeatureTests: XCTestCase {
         let now = Date(timeIntervalSince1970: 2_000)
         var initialState = AppFeature.State()
         initialState.isMenuPresented = true
-        initialState.metadataByPID = metadata
-        initialState.ports = snapshot.ports
-        initialState.processGroups = snapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: snapshot)
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
@@ -129,13 +124,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = true
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
-            $0.hiddenMetadataByPID = metadata
-            $0.hiddenPorts = [port]
-            $0.hiddenProcessGroups = snapshot.processGroups
-            $0.ignoredProcessGroupCount = 1
-            $0.metadataByPID = [:]
-            $0.ports = []
-            $0.processGroups = []
+            $0.portVisibility = PortVisibility(snapshot: snapshot, ignoredProcesses: $0.settings.ignoredProcesses)
         }
         await store.receive(.response(.portsLoaded(.success(snapshot)))) {
             $0.isLoading = false
@@ -167,10 +156,7 @@ final class AppFeatureTests: XCTestCase {
         let now = Date(timeIntervalSince1970: 3_000)
         var initialState = AppFeature.State()
         initialState.isMenuPresented = true
-        initialState.hiddenMetadataByPID = metadata
-        initialState.hiddenPorts = [port]
-        initialState.hiddenProcessGroups = snapshot.processGroups
-        initialState.ignoredProcessGroupCount = 1
+        initialState.portVisibility = PortVisibility(snapshot: snapshot, ignoredProcesses: [ignoredItem])
         initialState.$settings.withLock {
             $0.ignore(ignoredItem)
         }
@@ -193,13 +179,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = true
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
-            $0.hiddenMetadataByPID = [:]
-            $0.hiddenPorts = []
-            $0.hiddenProcessGroups = []
-            $0.ignoredProcessGroupCount = 0
-            $0.metadataByPID = metadata
-            $0.ports = [port]
-            $0.processGroups = snapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: snapshot, ignoredProcesses: $0.settings.ignoredProcesses)
         }
         await store.receive(.response(.portsLoaded(.success(snapshot)))) {
             $0.isLoading = false
@@ -279,10 +259,7 @@ final class AppFeatureTests: XCTestCase {
         )
         var initialState = AppFeature.State()
         initialState.isMenuPresented = true
-        initialState.hiddenMetadataByPID = metadata
-        initialState.hiddenPorts = [port]
-        initialState.hiddenProcessGroups = snapshot.processGroups
-        initialState.ignoredProcessGroupCount = 1
+        initialState.portVisibility = PortVisibility(snapshot: snapshot, ignoredProcesses: [ignoredItem])
         initialState.ignoredProcessesAtMenuPresentation = [ignoredItem]
         initialState.$settings.withLock {
             $0.ignore(ignoredItem)
@@ -306,13 +283,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = true
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
-            $0.hiddenMetadataByPID = [:]
-            $0.hiddenPorts = []
-            $0.hiddenProcessGroups = []
-            $0.ignoredProcessGroupCount = 0
-            $0.metadataByPID = metadata
-            $0.ports = [port]
-            $0.processGroups = snapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: snapshot, ignoredProcesses: $0.settings.ignoredProcesses)
         }
         await store.receive(.response(.portsLoaded(.failure(.init(message: "scan failed"))))) {
             $0.isLoading = false
@@ -322,6 +293,86 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertEqual(store.state.ports, [port])
         XCTAssertEqual(store.state.processGroups, snapshot.processGroups)
+    }
+
+    func testEmptyScanClearsIgnoredSnapshotBeforeRestore() async {
+        let port = PortEntry(networkProtocol: .tcp, address: "127.0.0.1", port: 3000, pid: 101, command: "node", user: "501")
+        let metadata = [port.pid: PortProcessMetadata.executable(name: "node", path: "/opt/homebrew/bin/node")]
+        let ignoredItem = IgnoredProcessItem.executable(path: "/opt/homebrew/bin/node", displayName: "node")
+        let now = Date(timeIntervalSince1970: 4_000)
+        var initialState = AppFeature.State()
+        initialState.portVisibility = PortVisibility(
+            snapshot: makeSnapshot([port], metadata: metadata),
+            ignoredProcesses: [ignoredItem],
+        )
+        initialState.$settings.withLock { $0.ignore(ignoredItem) }
+        let store = TestStore(initialState: initialState) { AppFeature() }
+        store.dependencies.date = .constant(now)
+        store.dependencies.portScanner.scan = { throw PortScannerFailure(message: "scan failed") }
+
+        await store.send(.response(.portsLoaded(.success(makeSnapshot([]))))) {
+            $0.lastUpdated = now
+            $0.portVisibility = PortVisibility()
+        }
+        await store.send(.view(.restoreAllIgnoredProcessesTapped)) {
+            $0.$settings.withLock { $0.ignoredProcesses = [] }
+            $0.isLoading = true
+        }
+        await store.receive(.response(.portsLoaded(.failure(.init(message: "scan failed"))))) {
+            $0.isLoading = false
+            $0.errorMessage = "scan failed"
+        }
+
+        XCTAssertEqual(store.state.ports, [])
+        XCTAssertEqual(store.state.metadataByPID, [:])
+        XCTAssertEqual(store.state.processGroups, [])
+        XCTAssertEqual(store.state.ignoredProcessGroupCount, 0)
+    }
+
+    func testRestoreUsesDeferredNewSnapshotAndKeepsItWhenNextScanFails() async {
+        let oldPort = PortEntry(networkProtocol: .tcp, address: "127.0.0.1", port: 3000, pid: 101, command: "node", user: "501")
+        let newPort = PortEntry(networkProtocol: .tcp, address: "127.0.0.1", port: 3001, pid: 202, command: "node", user: "501")
+        let metadata = PortProcessMetadata.executable(name: "node", path: "/opt/homebrew/bin/node")
+        let oldSnapshot = makeSnapshot([oldPort], metadata: [oldPort.pid: metadata])
+        let newSnapshot = makeSnapshot([newPort], metadata: [newPort.pid: metadata])
+        let ignoredItem = IgnoredProcessItem.executable(path: "/opt/homebrew/bin/node", displayName: "node")
+        let now = Date(timeIntervalSince1970: 5_000)
+        var initialState = AppFeature.State()
+        initialState.isMenuPresented = true
+        initialState.ignoredProcessesAtMenuPresentation = [ignoredItem]
+        initialState.portVisibility = PortVisibility(snapshot: oldSnapshot, ignoredProcesses: [ignoredItem])
+        initialState.$settings.withLock { $0.ignore(ignoredItem) }
+        let store = TestStore(initialState: initialState) { AppFeature() }
+        store.dependencies.date = .constant(now)
+        store.dependencies.portScanner.scan = { throw PortScannerFailure(message: "scan failed") }
+
+        await store.send(.view(.restoreIgnoredProcessTapped(ignoredItem))) {
+            $0.$settings.withLock { $0.restore(ignoredItem) }
+            $0.refreshPending = true
+        }
+        await store.send(.response(.portsLoaded(.success(newSnapshot)))) {
+            $0.deferredMenuUpdate = .portsLoaded(.success(newSnapshot))
+        }
+        XCTAssertEqual(store.state.ports, [])
+        XCTAssertEqual(store.state.ignoredProcessGroupCount, 1)
+
+        await store.send(.menuDismissed) {
+            $0.isMenuPresented = false
+            $0.deferredMenuUpdate = nil
+            $0.refreshPending = false
+            $0.isLoading = true
+            $0.lastUpdated = now
+            $0.portVisibility = PortVisibility(snapshot: newSnapshot)
+        }
+        await store.receive(.response(.portsLoaded(.failure(.init(message: "scan failed"))))) {
+            $0.isLoading = false
+            $0.errorMessage = "scan failed"
+        }
+
+        XCTAssertEqual(store.state.ports, [newPort])
+        XCTAssertEqual(store.state.metadataByPID, [newPort.pid: metadata])
+        XCTAssertEqual(store.state.processGroups, newSnapshot.processGroups)
+        XCTAssertEqual(store.state.ignoredProcessGroupCount, 0)
     }
 
     func testIgnoreGroupWithoutStableIdentityDoesNothing() async throws {
@@ -429,9 +480,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = false
             $0.errorMessage = nil
             $0.lastUpdated = now
-            $0.metadataByPID = snapshot.metadataByPID
-            $0.ports = ports
-            $0.processGroups = snapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: snapshot)
         }
     }
 
@@ -470,9 +519,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = false
             $0.errorMessage = nil
             $0.lastUpdated = now
-            $0.metadataByPID = snapshot.metadataByPID
-            $0.ports = ports
-            $0.processGroups = snapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: snapshot)
         }
     }
 
@@ -532,8 +579,7 @@ final class AppFeatureTests: XCTestCase {
         var initialState = AppFeature.State()
         initialState.isLoading = true
         initialState.isMenuOpenRefreshInFlight = true
-        initialState.ports = [oldPort]
-        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([oldPort]))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -571,8 +617,7 @@ final class AppFeatureTests: XCTestCase {
         initialState.deferredMenuUpdate = .menuOpenPortsLoaded(.success(snapshot))
         initialState.isLoading = true
         initialState.isMenuPresented = true
-        initialState.ports = [oldPort]
-        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([oldPort]))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -673,9 +718,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = false
             $0.isMenuPresented = false
             $0.lastUpdated = now
-            $0.metadataByPID = snapshot.metadataByPID
-            $0.ports = [port]
-            $0.processGroups = snapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: snapshot)
         }
     }
 
@@ -691,8 +734,7 @@ final class AppFeatureTests: XCTestCase {
         var initialState = AppFeature.State()
         initialState.isLoading = true
         initialState.isMenuPresented = true
-        initialState.ports = [oldPort]
-        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([oldPort]))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -725,8 +767,7 @@ final class AppFeatureTests: XCTestCase {
         var initialState = AppFeature.State()
         initialState.isLoading = true
         initialState.isMenuPresented = true
-        initialState.ports = [port]
-        initialState.processGroups = makeSnapshot([port]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([port]))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -770,8 +811,7 @@ final class AppFeatureTests: XCTestCase {
         var initialState = AppFeature.State()
         initialState.isLoading = true
         initialState.isMenuPresented = true
-        initialState.ports = [oldPort]
-        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([oldPort]))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -794,9 +834,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isMenuPresented = false
             $0.errorMessage = PortKillerFailure.staleTarget.message
             $0.lastUpdated = now
-            $0.metadataByPID = refreshedSnapshot.metadataByPID
-            $0.ports = refreshedSnapshot.ports
-            $0.processGroups = refreshedSnapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: refreshedSnapshot)
         }
     }
 
@@ -822,8 +860,7 @@ final class AppFeatureTests: XCTestCase {
         var initialState = AppFeature.State()
         initialState.isLoading = true
         initialState.isMenuPresented = true
-        initialState.ports = initialSnapshot.ports
-        initialState.processGroups = initialSnapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: initialSnapshot)
         let group = try XCTUnwrap(initialState.processGroups.first)
         let result = PortGroupKillResult(
             request: PortGroupKillRequest(
@@ -851,9 +888,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isMenuPresented = false
             $0.errorMessage = result.failureMessage
             $0.lastUpdated = now
-            $0.metadataByPID = refreshedSnapshot.metadataByPID
-            $0.ports = refreshedSnapshot.ports
-            $0.processGroups = refreshedSnapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: refreshedSnapshot)
         }
     }
 
@@ -895,15 +930,13 @@ final class AppFeatureTests: XCTestCase {
             $0.isMenuPresented = false
             $0.isLoading = true
             $0.lastUpdated = Date(timeIntervalSince1970: 3_000)
-            $0.ports = [firstPort]
-            $0.processGroups = firstSnapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: firstSnapshot)
             $0.refreshPending = false
         }
         await store.receive(.response(.portsLoaded(.success(secondSnapshot)))) {
             $0.isLoading = false
             $0.lastUpdated = Date(timeIntervalSince1970: 3_000)
-            $0.ports = [secondPort]
-            $0.processGroups = secondSnapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: secondSnapshot)
         }
     }
 
@@ -917,8 +950,7 @@ final class AppFeatureTests: XCTestCase {
             user: "501",
         )
         var initialState = AppFeature.State()
-        initialState.ports = [oldPort]
-        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([oldPort]))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -939,30 +971,6 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertEqual(store.state.ports, [oldPort])
         XCTAssertEqual(store.state.processGroups, initialState.processGroups)
-    }
-
-    func testMenuTrackingNotificationOnlyAcceptsRootMenu() {
-        let rootMenu = NSMenu()
-        let submenu = NSMenu()
-        let submenuItem = NSMenuItem(title: "Submenu", action: nil, keyEquivalent: "")
-        rootMenu.addItem(submenuItem)
-        rootMenu.setSubmenu(submenu, for: submenuItem)
-
-        XCTAssertTrue(
-            MenuBarView.isRootMenuTrackingNotification(
-                Notification(name: NSMenu.didBeginTrackingNotification, object: rootMenu),
-            ),
-        )
-        XCTAssertFalse(
-            MenuBarView.isRootMenuTrackingNotification(
-                Notification(name: NSMenu.didEndTrackingNotification, object: submenu),
-            ),
-        )
-        XCTAssertFalse(
-            MenuBarView.isRootMenuTrackingNotification(
-                Notification(name: NSMenu.didEndTrackingNotification, object: NSObject()),
-            ),
-        )
     }
 
     func testOnlyForceKillIsDestructive() {
@@ -1031,8 +1039,7 @@ final class AppFeatureTests: XCTestCase {
         let recorder = KillRecorder()
         let notificationRecorder = NotificationRecorder()
         var initialState = AppFeature.State()
-        initialState.ports = [oldPort]
-        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([oldPort]))
         let refreshedSnapshot = makeSnapshot([refreshedPort])
 
         let store = TestStore(initialState: initialState) {
@@ -1060,9 +1067,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = false
             $0.errorMessage = nil
             $0.lastUpdated = now
-            $0.metadataByPID = refreshedSnapshot.metadataByPID
-            $0.ports = [refreshedPort]
-            $0.processGroups = refreshedSnapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: refreshedSnapshot)
         }
 
         let calls = await recorder.values()
@@ -1081,8 +1086,7 @@ final class AppFeatureTests: XCTestCase {
             user: "501",
         )
         var initialState = AppFeature.State()
-        initialState.ports = [oldPort]
-        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([oldPort]))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -1128,8 +1132,7 @@ final class AppFeatureTests: XCTestCase {
         let recorder = KillRecorder()
         let confirmationRecorder = ConfirmationRecorder(result: true)
         var initialState = AppFeature.State()
-        initialState.ports = [port]
-        initialState.processGroups = makeSnapshot([port]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([port]))
         let now = Date(timeIntervalSince1970: 5_000)
 
         let store = TestStore(initialState: initialState) {
@@ -1159,9 +1162,7 @@ final class AppFeatureTests: XCTestCase {
             $0.isLoading = false
             $0.errorMessage = nil
             $0.lastUpdated = now
-            $0.metadataByPID = [:]
-            $0.ports = []
-            $0.processGroups = []
+            $0.portVisibility = PortVisibility()
         }
 
         let calls = await recorder.values()
@@ -1186,9 +1187,7 @@ final class AppFeatureTests: XCTestCase {
             ),
         ]
         var initialState = AppFeature.State()
-        initialState.metadataByPID = metadata
-        initialState.ports = [port]
-        initialState.processGroups = makeSnapshot([port], metadata: metadata).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([port], metadata: metadata))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -1227,9 +1226,7 @@ final class AppFeatureTests: XCTestCase {
             ),
         ]
         var initialState = AppFeature.State()
-        initialState.metadataByPID = metadata
-        initialState.ports = [port]
-        initialState.processGroups = makeSnapshot([port], metadata: metadata).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([port], metadata: metadata))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -1249,180 +1246,6 @@ final class AppFeatureTests: XCTestCase {
         await store.receive(.portKillConfirmationResponse(request, confirmed: false))
         let confirmations = await confirmationRecorder.values()
         XCTAssertEqual(confirmations, [request.confirmation(warnings: [.appMainProcess])])
-    }
-
-    func testProcessPathAndCommandLineSelectorsUsePIDMetadata() {
-        let metadata = [
-            101: PortProcessMetadata(
-                bundleIdentifier: "com.example.App",
-                name: "Example",
-                path: "/Applications/Example.app",
-                executablePath: "/Applications/Example.app/Contents/MacOS/Example",
-                commandLine: "Example --port 3000",
-                commandLineSummary: "Example --port 3000",
-                redactedCommandLine: "Example --port 3000",
-                redactedCommandLineSummary: "Example --port 3000",
-            ),
-            102: PortProcessMetadata.executable(
-                name: "node",
-                path: "/opt/homebrew/bin/node",
-                commandLine: "node server.js",
-                commandLineSummary: "node server.js",
-                redactedCommandLine: "node server.js",
-                redactedCommandLineSummary: "node server.js",
-            ),
-        ]
-
-        XCTAssertEqual(
-            AppFeature.processPath(forPID: 101, metadataByPID: metadata),
-            "/Applications/Example.app/Contents/MacOS/Example",
-        )
-        XCTAssertEqual(
-            AppFeature.commandLine(forPID: 101, metadataByPID: metadata),
-            "Example --port 3000",
-        )
-        XCTAssertEqual(
-            AppFeature.processPath(forPID: 102, metadataByPID: metadata),
-            "/opt/homebrew/bin/node",
-        )
-        XCTAssertEqual(
-            AppFeature.commandLine(forPID: 102, metadataByPID: metadata),
-            "node server.js",
-        )
-        XCTAssertEqual(
-            AppFeature.redactedCommandLine(forPID: 102, metadataByPID: metadata),
-            "node server.js",
-        )
-        XCTAssertNil(AppFeature.processPath(forPID: 999, metadataByPID: metadata))
-        XCTAssertNil(AppFeature.commandLine(forPID: 999, metadataByPID: metadata))
-        XCTAssertNil(AppFeature.redactedCommandLine(forPID: 999, metadataByPID: metadata))
-    }
-
-    func testApplicationPathSelectorReturnsOneUnambiguousOuterAppPath() throws {
-        let rendererPort = PortEntry(
-            networkProtocol: .tcp,
-            address: "127.0.0.1",
-            port: 3000,
-            pid: 101,
-            command: "Example Helper (Renderer)",
-            user: "501",
-        )
-        let gpuPort = PortEntry(
-            networkProtocol: .tcp,
-            address: "127.0.0.1",
-            port: 3001,
-            pid: 102,
-            command: "Example Helper (GPU)",
-            user: "501",
-        )
-        let electronMetadata = [
-            101: PortProcessMetadata(
-                bundleIdentifier: "com.example.App",
-                name: "Example",
-                path: "/Applications/Example.app",
-                processDetailName: "Helper (Renderer)",
-                executablePath: "/Applications/Example.app/Contents/Frameworks/Example Helper (Renderer).app/Contents/MacOS/Example Helper (Renderer)",
-            ),
-            102: PortProcessMetadata(
-                bundleIdentifier: "com.example.App",
-                name: "Example",
-                path: "/Applications/Example.app",
-                processDetailName: "Helper (GPU)",
-                executablePath: "/Applications/Example.app/Contents/Frameworks/Example Helper (GPU).app/Contents/MacOS/Example Helper (GPU)",
-            ),
-        ]
-        let electronGroup = try XCTUnwrap(
-            PortProcessGroupingService.groups(
-                for: [rendererPort, gpuPort],
-                metadataByPID: electronMetadata,
-            ).first,
-        )
-
-        XCTAssertEqual(
-            AppFeature.applicationPath(for: electronGroup, metadataByPID: electronMetadata),
-            "/Applications/Example.app",
-        )
-        XCTAssertEqual(
-            AppFeature.processPath(forPID: rendererPort.pid, metadataByPID: electronMetadata),
-            "/Applications/Example.app/Contents/Frameworks/Example Helper (Renderer).app/Contents/MacOS/Example Helper (Renderer)",
-        )
-
-        let mainPort = PortEntry(
-            networkProtocol: .tcp,
-            address: "127.0.0.1",
-            port: 4000,
-            pid: 201,
-            command: "Ordinary",
-            user: "501",
-        )
-        let mainMetadata = [
-            201: PortProcessMetadata(
-                bundleIdentifier: "com.example.Ordinary",
-                name: "Ordinary",
-                path: "/Applications/Ordinary.app",
-                executablePath: "/Applications/Ordinary.app/Contents/MacOS/Ordinary",
-            ),
-        ]
-        let mainGroup = try XCTUnwrap(
-            PortProcessGroupingService.groups(
-                for: [mainPort],
-                metadataByPID: mainMetadata,
-            ).first,
-        )
-
-        XCTAssertEqual(
-            AppFeature.applicationPath(for: mainGroup, metadataByPID: mainMetadata),
-            "/Applications/Ordinary.app",
-        )
-
-        let cliMetadata = [
-            201: PortProcessMetadata.executable(
-                name: "node",
-                path: "/opt/homebrew/bin/node",
-            ),
-        ]
-        let cliGroup = try XCTUnwrap(
-            PortProcessGroupingService.groups(
-                for: [mainPort],
-                metadataByPID: cliMetadata,
-            ).first,
-        )
-        XCTAssertNil(AppFeature.applicationPath(for: cliGroup, metadataByPID: cliMetadata))
-
-        let missingPathMetadata = [
-            201: PortProcessMetadata(
-                bundleIdentifier: "com.example.Ordinary",
-                name: "Ordinary",
-                path: nil,
-            ),
-        ]
-        let missingPathGroup = try XCTUnwrap(
-            PortProcessGroupingService.groups(
-                for: [mainPort],
-                metadataByPID: missingPathMetadata,
-            ).first,
-        )
-        XCTAssertNil(AppFeature.applicationPath(for: missingPathGroup, metadataByPID: missingPathMetadata))
-
-        let conflictingMetadata = [
-            101: PortProcessMetadata(
-                bundleIdentifier: "com.example.App",
-                name: "Example",
-                path: "/Applications/Example.app",
-            ),
-            102: PortProcessMetadata(
-                bundleIdentifier: "com.example.App",
-                name: "Example",
-                path: "/Users/example/Applications/Example.app",
-            ),
-        ]
-        let conflictingGroup = try XCTUnwrap(
-            PortProcessGroupingService.groups(
-                for: [rendererPort, gpuPort],
-                metadataByPID: conflictingMetadata,
-            ).first,
-        )
-        XCTAssertNil(AppFeature.applicationPath(for: conflictingGroup, metadataByPID: conflictingMetadata))
     }
 
     func testKillPortAbortsWhenFreshScanNoLongerMatches() async {
@@ -1446,8 +1269,7 @@ final class AppFeatureTests: XCTestCase {
         let recorder = KillRecorder()
         let notificationRecorder = NotificationRecorder()
         var initialState = AppFeature.State()
-        initialState.ports = [oldPort]
-        initialState.processGroups = makeSnapshot([oldPort]).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([oldPort]))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -1471,9 +1293,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = PortKillerFailure.staleTarget.message
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = Date(timeIntervalSince1970: 0)
-            $0.metadataByPID = [:]
-            $0.ports = [newPort]
-            $0.processGroups = refreshedSnapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: refreshedSnapshot)
         }
 
         let calls = await recorder.values()
@@ -1514,9 +1334,7 @@ final class AppFeatureTests: XCTestCase {
         ]
         let refreshedSnapshot = makeSnapshot([port], metadata: newMetadata)
         var initialState = AppFeature.State()
-        initialState.metadataByPID = oldMetadata
-        initialState.ports = [port]
-        initialState.processGroups = makeSnapshot([port], metadata: oldMetadata).processGroups
+        initialState.portVisibility = PortVisibility(snapshot: makeSnapshot([port], metadata: oldMetadata))
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -1543,9 +1361,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = PortKillerFailure.staleTarget.message
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = Date(timeIntervalSince1970: 0)
-            $0.metadataByPID = newMetadata
-            $0.ports = [port]
-            $0.processGroups = refreshedSnapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: refreshedSnapshot)
         }
     }
 
@@ -1581,9 +1397,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = Date(timeIntervalSince1970: 0)
-            $0.metadataByPID = [:]
-            $0.ports = [port]
-            $0.processGroups = snapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: snapshot)
         }
         await clock.advance(by: .seconds(1))
         await store.receive(.autoRefreshTick) {
@@ -1596,9 +1410,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = Date(timeIntervalSince1970: 0)
-            $0.metadataByPID = [:]
-            $0.ports = [port]
-            $0.processGroups = snapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: snapshot)
         }
         await store.send(.view(.autoRefreshModeTapped(.off))) {
             $0.$settings.withLock {
@@ -1690,9 +1502,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = Date(timeIntervalSince1970: 0)
-            $0.metadataByPID = [:]
-            $0.ports = [port]
-            $0.processGroups = snapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: snapshot)
         }
         await store.send(.view(.autoRefreshModeTapped(.off))) {
             $0.$settings.withLock {
@@ -1732,9 +1542,7 @@ final class AppFeatureTests: XCTestCase {
             metadata: metadata,
         )
         var initialState = AppFeature.State()
-        initialState.metadataByPID = metadata
-        initialState.ports = initialSnapshot.ports
-        initialState.processGroups = initialSnapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: initialSnapshot)
         let group = try XCTUnwrap(initialState.processGroups.first)
         let request = PortGroupKillRequest(
             group: group,
@@ -1780,9 +1588,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = now
-            $0.metadataByPID = [:]
-            $0.ports = []
-            $0.processGroups = []
+            $0.portVisibility = PortVisibility()
         }
 
         let calls = await recorder.values()
@@ -1817,9 +1623,7 @@ final class AppFeatureTests: XCTestCase {
         let metadata = appMetadata(for: [101])
         let initialSnapshot = makeSnapshot([port], metadata: metadata)
         var initialState = AppFeature.State()
-        initialState.metadataByPID = metadata
-        initialState.ports = initialSnapshot.ports
-        initialState.processGroups = initialSnapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: initialSnapshot)
         let group = try XCTUnwrap(initialState.processGroups.first)
         let request = PortGroupKillRequest(
             group: group,
@@ -1868,9 +1672,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = PortKillerFailure.staleTarget.message
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = Date(timeIntervalSince1970: 0)
-            $0.metadataByPID = [:]
-            $0.ports = [port]
-            $0.processGroups = refreshedSnapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: refreshedSnapshot)
         }
 
         let calls = await recorder.values()
@@ -1900,9 +1702,7 @@ final class AppFeatureTests: XCTestCase {
         let metadata = appMetadata(for: [101])
         let snapshot = makeSnapshot([port], metadata: metadata)
         var initialState = AppFeature.State()
-        initialState.metadataByPID = metadata
-        initialState.ports = snapshot.ports
-        initialState.processGroups = snapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: snapshot)
         let group = try XCTUnwrap(initialState.processGroups.first)
         let request = PortGroupKillRequest(
             group: group,
@@ -1977,9 +1777,7 @@ final class AppFeatureTests: XCTestCase {
         let initialSnapshot = makeSnapshot([originalPort], metadata: originalMetadata)
         let refreshedSnapshot = makeSnapshot([originalPort, additionalPort], metadata: refreshedMetadata)
         var initialState = AppFeature.State()
-        initialState.metadataByPID = originalMetadata
-        initialState.ports = initialSnapshot.ports
-        initialState.processGroups = initialSnapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: initialSnapshot)
         let group = try XCTUnwrap(initialState.processGroups.first)
         let request = PortGroupKillRequest(
             group: group,
@@ -2026,9 +1824,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = PortKillerFailure.staleTarget.message
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = Date(timeIntervalSince1970: 0)
-            $0.metadataByPID = refreshedMetadata
-            $0.ports = [originalPort, additionalPort]
-            $0.processGroups = refreshedSnapshot.processGroups
+            $0.portVisibility = PortVisibility(snapshot: refreshedSnapshot)
         }
 
         let calls = await recorder.values()
@@ -2055,9 +1851,7 @@ final class AppFeatureTests: XCTestCase {
         let metadata = appMetadata(for: [101, 202])
         let initialSnapshot = makeSnapshot([firstPort, secondPort], metadata: metadata)
         var initialState = AppFeature.State()
-        initialState.metadataByPID = metadata
-        initialState.ports = initialSnapshot.ports
-        initialState.processGroups = initialSnapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: initialSnapshot)
         let group = try XCTUnwrap(initialState.processGroups.first)
         let request = PortGroupKillRequest(
             group: group,
@@ -2110,9 +1904,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = result.failureMessage
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = now
-            $0.metadataByPID = [:]
-            $0.ports = []
-            $0.processGroups = []
+            $0.portVisibility = PortVisibility()
         }
 
         let calls = await recorder.values()
@@ -2176,9 +1968,7 @@ final class AppFeatureTests: XCTestCase {
         let metadata = appMetadata(for: [101])
         let snapshot = makeSnapshot([port], metadata: metadata)
         var initialState = AppFeature.State()
-        initialState.metadataByPID = metadata
-        initialState.ports = snapshot.ports
-        initialState.processGroups = snapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: snapshot)
         let group = try XCTUnwrap(initialState.processGroups.first)
         let request = try XCTUnwrap(
             ApplicationQuitRequest(
@@ -2223,9 +2013,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = nil
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = now
-            $0.metadataByPID = [:]
-            $0.ports = []
-            $0.processGroups = []
+            $0.portVisibility = PortVisibility()
         }
 
         let requests = await quitRecorder.values()
@@ -2248,9 +2036,7 @@ final class AppFeatureTests: XCTestCase {
         let metadata = appMetadata(for: [101])
         let snapshot = makeSnapshot([port], metadata: metadata)
         var initialState = AppFeature.State()
-        initialState.metadataByPID = metadata
-        initialState.ports = snapshot.ports
-        initialState.processGroups = snapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: snapshot)
         let group = try XCTUnwrap(initialState.processGroups.first)
         let request = try XCTUnwrap(
             ApplicationQuitRequest(
@@ -2295,9 +2081,7 @@ final class AppFeatureTests: XCTestCase {
         let metadata = appMetadata(for: [101])
         let snapshot = makeSnapshot([port], metadata: metadata)
         var initialState = AppFeature.State()
-        initialState.metadataByPID = metadata
-        initialState.ports = snapshot.ports
-        initialState.processGroups = snapshot.processGroups
+        initialState.portVisibility = PortVisibility(snapshot: snapshot)
         let group = try XCTUnwrap(initialState.processGroups.first)
         let request = try XCTUnwrap(
             ApplicationQuitRequest(
@@ -2345,9 +2129,7 @@ final class AppFeatureTests: XCTestCase {
             $0.errorMessage = result.failureMessage
             $0.postRefreshErrorMessage = nil
             $0.lastUpdated = now
-            $0.metadataByPID = [:]
-            $0.ports = []
-            $0.processGroups = []
+            $0.portVisibility = PortVisibility()
         }
 
         let requests = await quitRecorder.values()

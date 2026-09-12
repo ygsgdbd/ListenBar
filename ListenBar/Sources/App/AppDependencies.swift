@@ -1,3 +1,4 @@
+import AppKit
 import ComposableArchitecture
 import Foundation
 
@@ -44,6 +45,32 @@ struct PortKillConfirmationClient {
 
 struct PortKillNotificationClient {
     var send: @Sendable (PortKillNotification) async -> Void
+}
+
+struct ProcessInfoActionsClient {
+    var copyText: @Sendable (String) async -> Void
+    var revealPath: @Sendable (String) async -> Void
+}
+
+extension ProcessInfoActionsClient: DependencyKey {
+    static let liveValue = Self(
+        copyText: { text in
+            await MainActor.run {
+                NSPasteboard.general.clearContents()
+                _ = NSPasteboard.general.setString(text, forType: .string)
+            }
+        },
+        revealPath: { path in
+            await MainActor.run {
+                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+            }
+        },
+    )
+
+    static let testValue = Self(
+        copyText: { _ in },
+        revealPath: { _ in },
+    )
 }
 
 extension PortScannerClient: DependencyKey {
@@ -138,6 +165,11 @@ extension PortKillNotificationClient: DependencyKey {
 }
 
 extension DependencyValues {
+    var processInfoActions: ProcessInfoActionsClient {
+        get { self[ProcessInfoActionsClient.self] }
+        set { self[ProcessInfoActionsClient.self] = newValue }
+    }
+
     var applicationQuitter: ApplicationQuitClient {
         get { self[ApplicationQuitClient.self] }
         set { self[ApplicationQuitClient.self] = newValue }
