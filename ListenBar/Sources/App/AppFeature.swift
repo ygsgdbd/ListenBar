@@ -28,22 +28,32 @@ struct AppFeature {
         @Shared(.appSettings) var settings = AppSettings()
         var deferredMenuUpdate: DeferredMenuUpdate?
         var errorMessage: String?
-        var hiddenMetadataByPID: [Int: PortProcessMetadata] = [:]
-        var hiddenPorts: [PortEntry] = []
-        var hiddenProcessGroups: [PortProcessGroup] = []
         var isLoading = false
         var isMenuOpenRefreshInFlight = false
         var isMenuPresented = false
         var isReadmeDemo = false
-        var ignoredProcessGroupCount = 0
         var ignoredProcessesAtMenuPresentation: [IgnoredProcessItem] = []
         var lastUpdated: Date?
         var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
-        var metadataByPID: [Int: PortProcessMetadata] = [:]
         var postRefreshErrorMessage: String?
-        var ports: [PortEntry] = []
-        var processGroups: [PortProcessGroup] = []
+        var portVisibility = PortVisibility()
         var refreshPending = false
+
+        var ignoredProcessGroupCount: Int {
+            portVisibility.ignoredProcessGroupCount
+        }
+
+        var metadataByPID: [Int: PortProcessMetadata] {
+            portVisibility.visibleSnapshot.metadataByPID
+        }
+
+        var ports: [PortEntry] {
+            portVisibility.visibleSnapshot.ports
+        }
+
+        var processGroups: [PortProcessGroup] {
+            portVisibility.visibleSnapshot.processGroups
+        }
 
         var autoRefreshMode: AutoRefreshMode {
             settings.autoRefresh
@@ -134,7 +144,7 @@ struct AppFeature {
 
             case .menuDismissed:
                 state.isMenuPresented = false
-                applyCurrentVisibility(to: &state)
+                state.portVisibility.apply(ignoredProcesses: state.settings.ignoredProcesses)
                 if let update = state.deferredMenuUpdate {
                     state.deferredMenuUpdate = nil
                     return applyDeferredMenuUpdate(update, to: &state)
@@ -455,7 +465,7 @@ struct AppFeature {
             state.refreshPending = true
             return .none
         }
-        applyCurrentVisibility(to: &state)
+        state.portVisibility.apply(ignoredProcesses: state.settings.ignoredProcesses)
         guard !state.isLoading, !state.isMenuOpenRefreshInFlight else {
             state.refreshPending = true
             return .none
@@ -791,52 +801,10 @@ struct AppFeature {
         state.isLoading = false
         state.postRefreshErrorMessage = nil
         state.lastUpdated = now
-        applyVisibility(snapshot, to: &state)
-    }
-
-    private func applyCurrentVisibility(to state: inout State) {
-        var portIDs: Set<String> = []
-        let ports = (state.ports + state.hiddenPorts).filter {
-            portIDs.insert($0.id).inserted
-        }
-        var metadataByPID = state.metadataByPID
-        metadataByPID.merge(state.hiddenMetadataByPID) { current, _ in current }
-        applyVisibility(
-            PortScanSnapshot(
-                ports: ports,
-                metadataByPID: metadataByPID,
-                processGroups: PortProcessGroupingService.groups(
-                    for: ports,
-                    metadataByPID: metadataByPID,
-                ),
-            ),
-            to: &state,
-        )
-    }
-
-    private func applyVisibility(
-        _ snapshot: PortScanSnapshot,
-        to state: inout State,
-    ) {
-        let visibleSnapshot = snapshot.filtering(
+        state.portVisibility = PortVisibility(
+            snapshot: snapshot,
             ignoredProcesses: state.settings.ignoredProcesses,
         )
-        let visibleGroupIDs = Set(visibleSnapshot.processGroups.map(\.id))
-        let visiblePortIDs = Set(visibleSnapshot.ports.map(\.id))
-        state.hiddenProcessGroups = snapshot.processGroups.filter {
-            !visibleGroupIDs.contains($0.id)
-        }
-        state.hiddenPorts = snapshot.ports.filter {
-            !visiblePortIDs.contains($0.id)
-        }
-        let hiddenPIDs = Set(state.hiddenPorts.map(\.pid))
-        state.hiddenMetadataByPID = snapshot.metadataByPID.filter {
-            hiddenPIDs.contains($0.key)
-        }
-        state.ignoredProcessGroupCount = state.hiddenProcessGroups.count
-        state.metadataByPID = visibleSnapshot.metadataByPID
-        state.ports = visibleSnapshot.ports
-        state.processGroups = visibleSnapshot.processGroups
     }
 
     private func isSystemProcess(_ metadata: PortProcessMetadata) -> Bool {
@@ -851,12 +819,6 @@ struct AppFeature {
             ].contains { path.hasPrefix($0) }
         }
     }
-}
-
-struct PortScanSnapshot: Equatable, Sendable {
-    let ports: [PortEntry]
-    let metadataByPID: [Int: PortProcessMetadata]
-    let processGroups: [PortProcessGroup]
 }
 
 enum ApplicationQuitMode: Equatable, Sendable {

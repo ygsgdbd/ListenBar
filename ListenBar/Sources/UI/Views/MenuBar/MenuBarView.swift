@@ -776,22 +776,8 @@ private struct PortProcessIconView: View {
         store: Store(
             initialState: AppFeature.State(
                 lastUpdated: Date(timeIntervalSince1970: 1_800_000_000),
-                ports: [
-                    PortEntry(
-                        networkProtocol: .tcp,
-                        address: "127.0.0.1",
-                        port: 8080,
-                        pid: 123,
-                        command: "node",
-                        user: "501",
-                    ),
-                ],
-                processGroups: [
-                    PortProcessGroup(
-                        id: "process:123:node",
-                        displayName: "node (PID 123)",
-                        subtitle: "8080",
-                        icon: .process,
+                portVisibility: PortVisibility(
+                    snapshot: PortScanSnapshot(
                         ports: [
                             PortEntry(
                                 networkProtocol: .tcp,
@@ -802,8 +788,27 @@ private struct PortProcessIconView: View {
                                 user: "501",
                             ),
                         ],
+                        metadataByPID: [:],
+                        processGroups: [
+                            PortProcessGroup(
+                                id: "process:123:node",
+                                displayName: "node (PID 123)",
+                                subtitle: "8080",
+                                icon: .process,
+                                ports: [
+                                    PortEntry(
+                                        networkProtocol: .tcp,
+                                        address: "127.0.0.1",
+                                        port: 8080,
+                                        pid: 123,
+                                        command: "node",
+                                        user: "501",
+                                    ),
+                                ],
+                            ),
+                        ],
                     ),
-                ],
+                ),
             ),
         ) {
             AppFeature()

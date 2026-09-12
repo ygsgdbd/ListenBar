@@ -184,9 +184,7 @@ final class MenuTrackingCoordinatorTests: XCTestCase {
 
     private func makeStore(snapshot: PortScanSnapshot) -> StoreOf<AppFeature> {
         var state = AppFeature.State()
-        state.metadataByPID = snapshot.metadataByPID
-        state.ports = snapshot.ports
-        state.processGroups = snapshot.processGroups
+        state.portVisibility = PortVisibility(snapshot: snapshot)
         state.$settings.withLock {
             $0.autoRefresh = .off
             $0.ignoredProcesses = []

@@ -171,14 +171,14 @@ final class ProcessInfoActionTests: XCTestCase {
         ignoredProcesses: [IgnoredProcessItem] = [],
     ) -> TestStoreOf<AppFeature> {
         var state = AppFeature.State()
-        let snapshot = PortScanSnapshot(
-            ports: ports,
-            metadataByPID: metadata,
-            processGroups: PortProcessGroupingService.groups(for: ports, metadataByPID: metadata),
-        ).filtering(ignoredProcesses: ignoredProcesses)
-        state.metadataByPID = snapshot.metadataByPID
-        state.ports = snapshot.ports
-        state.processGroups = snapshot.processGroups
+        state.portVisibility = PortVisibility(
+            snapshot: PortScanSnapshot(
+                ports: ports,
+                metadataByPID: metadata,
+                processGroups: PortProcessGroupingService.groups(for: ports, metadataByPID: metadata),
+            ),
+            ignoredProcesses: ignoredProcesses,
+        )
         state.$settings.withLock { $0.ignoredProcesses = ignoredProcesses }
         let store = TestStore(initialState: state) { AppFeature() }
         store.dependencies.processInfoActions = ProcessInfoActionsClient(
