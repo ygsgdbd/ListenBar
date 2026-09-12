@@ -14,6 +14,7 @@ struct AppFeature {
     @Dependency(\.portKiller) var portKiller
     @Dependency(\.portProcessMetadata) var portProcessMetadata
     @Dependency(\.portScanner) var portScanner
+    @Dependency(\.processInfoActions) var processInfoActions
 
     enum DeferredMenuUpdate: Equatable, Sendable {
         case menuOpenPortsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
@@ -222,15 +223,15 @@ struct AppFeature {
                 )
 
             case let .view(.copyProcessPathTapped(pid)):
-                guard let path = Self.processPath(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
+                guard let path = PortProcessDetails(metadata: state.metadataByPID[pid]).path else { return .none }
                 return copyTextEffect(path)
 
             case let .view(.copyCommandLineTapped(pid)):
-                guard let commandLine = Self.commandLine(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
+                guard let commandLine = PortProcessDetails(metadata: state.metadataByPID[pid]).commandLine else { return .none }
                 return copyTextEffect(commandLine)
 
             case let .view(.copyRedactedCommandLineTapped(pid)):
-                guard let commandLine = Self.redactedCommandLine(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
+                guard let commandLine = PortProcessDetails(metadata: state.metadataByPID[pid]).redactedCommandLine else { return .none }
                 return copyTextEffect(commandLine)
 
             case let .view(.copyPIDTapped(pid)):
@@ -268,10 +269,7 @@ struct AppFeature {
                     port: port,
                     mode: mode,
                     processName: state.metadataByPID[port.pid]?.name,
-                    expectedExecutablePath: Self.processPath(
-                        forPID: port.pid,
-                        metadataByPID: state.metadataByPID,
-                    ),
+                    expectedExecutablePath: PortProcessDetails(metadata: state.metadataByPID[port.pid]).path,
                 )
                 let warnings = killWarnings(for: request, state: state)
                 guard warnings.isEmpty else {
@@ -302,11 +300,11 @@ struct AppFeature {
                 return quitApplicationEffect(request)
 
             case let .view(.revealProcessPathTapped(pid)):
-                guard let path = Self.processPath(forPID: pid, metadataByPID: state.metadataByPID) else { return .none }
+                guard let path = PortProcessDetails(metadata: state.metadataByPID[pid]).path else { return .none }
                 return revealPathEffect(path)
 
             case let .view(.revealApplicationPathTapped(group)):
-                guard let path = Self.applicationPath(for: group, metadataByPID: state.metadataByPID) else { return .none }
+                guard let path = PortProcessInfoItems(group: group, metadataByPID: state.metadataByPID).applicationPath else { return .none }
                 return revealPathEffect(path)
 
             case .view(.restoreAllIgnoredProcessesTapped):
@@ -689,10 +687,7 @@ struct AppFeature {
 
     private func copyTextEffect(_ text: String) -> Effect<Action> {
         .run { _ in
-            await MainActor.run {
-                NSPasteboard.general.clearContents()
-                _ = NSPasteboard.general.setString(text, forType: .string)
-            }
+            await processInfoActions.copyText(text)
         }
     }
 
@@ -704,9 +699,7 @@ struct AppFeature {
 
     private func revealPathEffect(_ path: String) -> Effect<Action> {
         .run { _ in
-            await MainActor.run {
-                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
-            }
+            await processInfoActions.revealPath(path)
         }
     }
 
@@ -761,56 +754,6 @@ struct AppFeature {
         return metadata.processDetailName == nil
     }
 
-    static func processPath(
-        forPID pid: Int,
-        metadataByPID: [Int: PortProcessMetadata],
-    ) -> String? {
-        guard let metadata = metadataByPID[pid] else {
-            return nil
-        }
-        return metadata.executablePath ?? metadata.path
-    }
-
-    static func applicationPath(
-        for group: PortProcessGroup,
-        metadataByPID: [Int: PortProcessMetadata],
-    ) -> String? {
-        guard let groupBundleIdentifier = group.applicationBundleIdentifier else {
-            return nil
-        }
-
-        let paths = Set(
-            group.ports.compactMap { port -> String? in
-                guard
-                    let metadata = metadataByPID[port.pid],
-                    case let .application(bundleIdentifier) = metadata.kind,
-                    bundleIdentifier == groupBundleIdentifier
-                else {
-                    return nil
-                }
-                return metadata.path
-            },
-        )
-        guard paths.count == 1 else {
-            return nil
-        }
-        return paths.first
-    }
-
-    static func commandLine(
-        forPID pid: Int,
-        metadataByPID: [Int: PortProcessMetadata],
-    ) -> String? {
-        metadataByPID[pid]?.commandLine
-    }
-
-    static func redactedCommandLine(
-        forPID pid: Int,
-        metadataByPID: [Int: PortProcessMetadata],
-    ) -> String? {
-        metadataByPID[pid]?.redactedCommandLine
-    }
-
     static func preflightMatches(
         _ request: PortKillRequest,
         snapshot: PortScanSnapshot,
@@ -821,7 +764,7 @@ struct AppFeature {
         guard let expectedExecutablePath = request.expectedExecutablePath else {
             return true
         }
-        return processPath(forPID: request.port.pid, metadataByPID: snapshot.metadataByPID) == expectedExecutablePath
+        return PortProcessDetails(metadata: snapshot.metadataByPID[request.port.pid]).path == expectedExecutablePath
     }
 
     static func preflightMatches(
@@ -836,7 +779,7 @@ struct AppFeature {
         }
         for port in request.ports {
             if let expectedExecutablePath = request.expectedExecutablePathsByPID[port.pid],
-               processPath(forPID: port.pid, metadataByPID: snapshot.metadataByPID) != expectedExecutablePath
+               PortProcessDetails(metadata: snapshot.metadataByPID[port.pid]).path != expectedExecutablePath
             {
                 return false
             }
@@ -1252,7 +1195,7 @@ struct PortGroupKillRequest: Equatable, Sendable {
         self.classification = group.classification
         self.expectedExecutablePathsByPID = Dictionary(
             uniqueKeysWithValues: pids.compactMap { pid in
-                guard let path = AppFeature.processPath(forPID: pid, metadataByPID: metadataByPID) else {
+                guard let path = PortProcessDetails(metadata: metadataByPID[pid]).path else {
                     return nil
                 }
                 return (pid, path)

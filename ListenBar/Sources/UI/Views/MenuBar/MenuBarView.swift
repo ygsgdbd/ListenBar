@@ -160,13 +160,6 @@ struct MenuBarView: View {
         }
     }
 
-    static func isRootMenuTrackingNotification(_ notification: Notification) -> Bool {
-        guard let menu = notification.object as? NSMenu else {
-            return false
-        }
-        return menu.supermenu == nil && menu !== NSApp.mainMenu
-    }
-
     private func processGroupsSection(
         title: String,
         groups: [PortProcessGroup],
@@ -385,7 +378,6 @@ private struct PortProcessGroupMenu: View {
 
                 PortProcessInfoMenuContent(
                     item: processInfoItem,
-                    applicationPath: processInfoItems.applicationPath,
                     isLoading: isLoading,
                     onCopyPID: onCopyPID,
                     onCopyProcessPath: onCopyProcessPath,
@@ -404,7 +396,6 @@ private struct PortProcessGroupMenu: View {
                         Menu {
                             PortProcessInfoMenuContent(
                                 item: item,
-                                applicationPath: processInfoItems.applicationPath,
                                 isLoading: isLoading,
                                 onCopyPID: onCopyPID,
                                 onCopyProcessPath: onCopyProcessPath,
@@ -609,7 +600,6 @@ private struct PortMenu: View {
 
 private struct PortProcessInfoMenuContent: View {
     let item: PortProcessInfoItem
-    let applicationPath: String?
     let isLoading: Bool
     let onCopyPID: (Int) -> Void
     let onCopyProcessPath: (Int) -> Void
@@ -626,14 +616,14 @@ private struct PortProcessInfoMenuContent: View {
                 .monospacedDigit()
         }
 
-        if item.labels.hasDetails {
-            Section(item.labels.source) {
-                if let memory = item.labels.memory {
+        if item.details.hasDetails {
+            Section(item.details.source) {
+                if let memory = item.details.memory {
                     Label(memory, systemImage: "memorychip")
                         .monospacedDigit()
                 }
 
-                if let applicationPath {
+                if let applicationPath = item.applicationPath {
                     Button {
                         onRevealApplicationPath()
                     } label: {
@@ -649,9 +639,7 @@ private struct PortProcessInfoMenuContent: View {
                     .disabled(isLoading)
                 }
 
-                if let executablePath = item.labels.executablePath,
-                   executablePath != applicationPath
-                {
+                if let executablePath = item.executablePathToReveal {
                     Button {
                         onRevealProcessPath(item.pid)
                     } label: {
@@ -667,7 +655,7 @@ private struct PortProcessInfoMenuContent: View {
                     .disabled(isLoading)
                 }
 
-                if let path = item.labels.path {
+                if let path = item.details.path {
                     Button {
                         onCopyProcessPath(item.pid)
                     } label: {
@@ -682,7 +670,7 @@ private struct PortProcessInfoMenuContent: View {
                     }
                 }
 
-                if let redactedCommandLineSummary = item.labels.redactedCommandLineSummary {
+                if let redactedCommandLineSummary = item.details.redactedCommandLineSummary {
                     Button {
                         onCopyRedactedCommandLine(item.pid)
                     } label: {
@@ -697,7 +685,7 @@ private struct PortProcessInfoMenuContent: View {
                     }
                 }
 
-                if item.labels.commandLineSummary != nil {
+                if item.details.commandLineSummary != nil {
                     Button {
                         onCopyCommandLine(item.pid)
                     } label: {
@@ -706,142 +694,6 @@ private struct PortProcessInfoMenuContent: View {
                 }
             }
         }
-    }
-}
-
-struct PortProcessInfoItems: Equatable {
-    let items: [PortProcessInfoItem]
-    let applicationPath: String?
-
-    var singleItem: PortProcessInfoItem? {
-        items.count == 1 ? items.first : nil
-    }
-
-    init(
-        group: PortProcessGroup,
-        metadataByPID: [Int: PortProcessMetadata],
-    ) {
-        var seenPIDs: Set<Int> = []
-        var items: [PortProcessInfoItem] = []
-
-        for port in group.ports where !seenPIDs.contains(port.pid) {
-            let metadata = metadataByPID[port.pid]
-            let labels = PortProcessInfoLabels(metadata: metadata)
-
-            seenPIDs.insert(port.pid)
-            items.append(
-                PortProcessInfoItem(
-                    pid: port.pid,
-                    title: Self.title(
-                        for: port,
-                        metadata: metadata,
-                        group: group,
-                    ),
-                    labels: labels,
-                ),
-            )
-        }
-
-        self.items = items
-        self.applicationPath = AppFeature.applicationPath(
-            for: group,
-            metadataByPID: metadataByPID,
-        )
-    }
-
-    private static func title(
-        for port: PortEntry,
-        metadata: PortProcessMetadata?,
-        group: PortProcessGroup,
-    ) -> String {
-        if let detailName = group.portProcessDetails[port.id] ?? metadata?.processDetailName,
-           !detailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        {
-            return "\(detailName) · PID \(port.pid)"
-        }
-
-        return "PID \(port.pid)"
-    }
-}
-
-struct PortProcessInfoItem: Equatable, Identifiable {
-    let pid: Int
-    let title: String
-    let labels: PortProcessInfoLabels
-
-    var copyPIDTitle: String {
-        String(
-            format: String(localized: "复制 PID (%@)", bundle: .main, comment: "复制 PID 菜单项，括号内显示实际进程 ID。"),
-            locale: Locale.current,
-            String(pid),
-        )
-    }
-
-    var id: Int {
-        pid
-    }
-}
-
-struct PortProcessInfoLabels: Equatable {
-    let source: String
-    let memory: String?
-    let path: String?
-    let executablePath: String?
-    let commandLineSummary: String?
-    let redactedCommandLineSummary: String?
-
-    var hasDetails: Bool {
-        memory != nil || path != nil || commandLineSummary != nil || redactedCommandLineSummary != nil
-    }
-
-    init(metadata: PortProcessMetadata?) {
-        guard let metadata else {
-            self.source = ""
-            self.memory = nil
-            self.path = nil
-            self.executablePath = nil
-            self.commandLineSummary = nil
-            self.redactedCommandLineSummary = nil
-            return
-        }
-
-        self.source = String(
-            format: String(localized: "来源：%@", bundle: .main, comment: "进程来源推断标签。"),
-            locale: Locale.current,
-            metadata.sources.map(\.label).joined(separator: " • "),
-        )
-        let memoryValue = metadata.residentMemoryBytes
-            .map { PortMemoryFormatter.string(bytes: $0) }
-            ?? String(localized: "不可用", bundle: .main, comment: "无法读取进程常驻内存。")
-        self.memory = String(
-            format: String(localized: "常驻内存：%@", bundle: .main, comment: "进程常驻内存。"),
-            locale: Locale.current,
-            memoryValue,
-        )
-        self.path = metadata.executablePath ?? metadata.path
-        self.executablePath = metadata.executablePath
-        self.commandLineSummary = metadata.commandLineSummary
-        self.redactedCommandLineSummary = metadata.redactedCommandLineSummary
-    }
-}
-
-enum PortMemoryFormatter {
-    static func string(bytes: UInt64, locale: Locale = .current) -> String {
-        let kilobyte = 1_024.0
-        let megabyte = kilobyte * 1_024.0
-        let gigabyte = megabyte * 1_024.0
-        let value = Double(bytes)
-
-        if value >= gigabyte {
-            return String(format: "%.1f GB", locale: locale, value / gigabyte)
-        }
-        if value >= megabyte {
-            return String(format: "%.1f MB", locale: locale, value / megabyte)
-        }
-        if value >= kilobyte {
-            return String(format: "%.1f KB", locale: locale, value / kilobyte)
-        }
-        return "\(bytes) B"
     }
 }
 
