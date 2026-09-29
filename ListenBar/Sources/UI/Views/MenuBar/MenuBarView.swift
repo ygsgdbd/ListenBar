@@ -286,140 +286,179 @@ private struct PortProcessGroupMenu: View {
                 }
             }
 
-            Divider()
+            if processInfoItems.singleItem?.details.hasDetails == true || processInfoItems.items.count > 1 || onlineSearchQuery != nil {
+                Section("信息与排查") {
+                    if let item = processInfoItems.singleItem, item.details.hasDetails {
+                        PortProcessSummaryContent(item: item)
+                        if onlineSearchQuery != nil { Divider() }
+                    } else if processInfoItems.items.count > 1 {
+                        ForEach(processInfoItems.items) { item in
+                            Menu {
+                                if item.details.hasDetails {
+                                    Section("信息与排查") {
+                                        PortProcessSummaryContent(item: item)
+                                    }
+                                }
 
-            Button {
-                onCopyGroupPorts(group)
-            } label: {
-                Label("复制全部端口", systemImage: "list.clipboard")
-            }
-
-            Button {
-                onCopyProcessInformation(group)
-            } label: {
-                Label("复制进程信息", systemImage: "doc.text")
-            }
-
-            if let onlineSearchQuery {
-                Menu {
-                    ForEach(PortProcessSearchProvider.allCases) { provider in
-                        if let url = provider.url(query: onlineSearchQuery) {
-                            Link(destination: url) {
-                                Text(verbatim: provider.displayName)
+                                Section("复制信息") {
+                                    Button {
+                                        onCopyPID(item.pid)
+                                    } label: {
+                                        Label(item.copyPIDTitle, systemImage: "number")
+                                            .monospacedDigit()
+                                    }
+                                    if item.details.hasDetails && (item.details.path != nil || item.details.redactedCommandLineSummary != nil || item.details.commandLineSummary != nil) {
+                                        Divider()
+                                        PortProcessCopyDetailsContent(
+                                            item: item,
+                                            onCopyProcessPath: onCopyProcessPath,
+                                            onCopyCommandLine: onCopyCommandLine,
+                                            onCopyRedactedCommandLine: onCopyRedactedCommandLine,
+                                        )
+                                    }
+                                }
+                                PortProcessInfoMenuContent(
+                                    item: item,
+                                    isLoading: isLoading,
+                                    onOpenSourceApplication: onOpenSourceApplication,
+                                    onRevealProcessPath: onRevealProcessPath,
+                                    onRevealApplicationPath: {
+                                        onRevealApplicationPath(group)
+                                    },
+                                )
+                            } label: {
+                                Text(verbatim: item.title)
+                                    .monospacedDigit()
                             }
                         }
+                        if onlineSearchQuery != nil { Divider() }
                     }
+
+                    if let onlineSearchQuery {
+                        Menu {
+                            ForEach(PortProcessSearchProvider.allCases) { provider in
+                                if let url = provider.url(query: onlineSearchQuery) {
+                                    Link(destination: url) {
+                                        Text(verbatim: provider.displayName)
+                                    }
+                                }
+                            }
+                        } label: {
+                            Label("搜索进程信息", systemImage: "magnifyingglass")
+                        }
+                    }
+                }
+            }
+
+            Section("复制信息") {
+                Button {
+                    onCopyGroupPorts(group)
                 } label: {
-                    Label("搜索进程信息", systemImage: "magnifyingglass")
+                    Label("复制全部端口", systemImage: "list.clipboard")
+                }
+
+                if let item = processInfoItems.singleItem {
+                    Button {
+                        onCopyPID(item.pid)
+                    } label: {
+                        Label(item.copyPIDTitle, systemImage: "number")
+                            .monospacedDigit()
+                    }
+                }
+                Button {
+                    onCopyProcessInformation(group)
+                } label: {
+                    Label("复制进程信息", systemImage: "doc.text")
+                }
+
+                if let item = processInfoItems.singleItem {
+                    if item.details.hasDetails && (item.details.path != nil || item.details.redactedCommandLineSummary != nil || item.details.commandLineSummary != nil) {
+                        Divider()
+                        PortProcessCopyDetailsContent(
+                            item: item,
+                            onCopyProcessPath: onCopyProcessPath,
+                            onCopyCommandLine: onCopyCommandLine,
+                            onCopyRedactedCommandLine: onCopyRedactedCommandLine,
+                        )
+                    }
                 }
             }
 
             if canIgnore || group.applicationBundleIdentifier != nil {
-                Divider()
-            }
+                Section("管理") {
+                    if canIgnore {
+                        Button {
+                            onIgnoreGroup(group)
+                        } label: {
+                            Label(
+                                IgnoredProcessMenuLabels.ignoreTitle(
+                                    isApplication: group.applicationBundleIdentifier != nil,
+                                ),
+                                systemImage: "eye.slash",
+                            )
+                        }
+                    }
+                    if group.applicationBundleIdentifier != nil {
+                        if canIgnore {
+                            Divider()
+                        }
+                        Button {
+                            onQuitApplication(group, .normal)
+                        } label: {
+                            Label(
+                                String(
+                                    format: String(localized: "退出 %@", bundle: .main, comment: "正常退出应用菜单项。"),
+                                    locale: Locale.current,
+                                    group.displayName,
+                                ),
+                                systemImage: "rectangle.portrait.and.arrow.right",
+                            )
+                        }
+                        .disabled(isLoading)
 
-            if canIgnore {
-                Button {
-                    onIgnoreGroup(group)
-                } label: {
-                    Label(
-                        IgnoredProcessMenuLabels.ignoreTitle(
-                            isApplication: group.applicationBundleIdentifier != nil,
-                        ),
-                        systemImage: "eye.slash",
-                    )
+                        Button(role: .destructive) {
+                            onQuitApplication(group, .force)
+                        } label: {
+                            Label(
+                                String(
+                                    format: String(localized: "强制退出 %@…", bundle: .main, comment: "强制退出应用菜单项。"),
+                                    locale: Locale.current,
+                                    group.displayName,
+                                ),
+                                systemImage: "exclamationmark.octagon",
+                            )
+                        }
+                        .disabled(isLoading)
+
+                        Divider()
+
+                        Button(role: PortKillMode.quit.isDestructive ? .destructive : nil) {
+                            onKillGroup(group, .quit)
+                        } label: {
+                            Label(PortKillMode.quit.groupMenuTitle, systemImage: "xmark.circle")
+                        }
+                        .disabled(isLoading)
+
+                        Button(role: PortKillMode.force.isDestructive ? .destructive : nil) {
+                            onKillGroup(group, .force)
+                        } label: {
+                            Label(PortKillMode.force.groupMenuTitle, systemImage: "exclamationmark.octagon")
+                        }
+                        .disabled(isLoading)
+                    }
                 }
-            }
-
-            if group.applicationBundleIdentifier != nil {
-                Button {
-                    onQuitApplication(group, .normal)
-                } label: {
-                    Label(
-                        String(
-                            format: String(localized: "退出 %@", bundle: .main, comment: "正常退出应用菜单项。"),
-                            locale: Locale.current,
-                            group.displayName,
-                        ),
-                        systemImage: "rectangle.portrait.and.arrow.right",
-                    )
-                }
-                .disabled(isLoading)
-
-                Button(role: .destructive) {
-                    onQuitApplication(group, .force)
-                } label: {
-                    Label(
-                        String(
-                            format: String(localized: "强制退出 %@…", bundle: .main, comment: "强制退出应用菜单项。"),
-                            locale: Locale.current,
-                            group.displayName,
-                        ),
-                        systemImage: "exclamationmark.octagon",
-                    )
-                }
-                .disabled(isLoading)
-
-                Divider()
-
-                Button(role: PortKillMode.quit.isDestructive ? .destructive : nil) {
-                    onKillGroup(group, .quit)
-                } label: {
-                    Label(PortKillMode.quit.groupMenuTitle, systemImage: "xmark.circle")
-                }
-                .disabled(isLoading)
-
-                Button(role: PortKillMode.force.isDestructive ? .destructive : nil) {
-                    onKillGroup(group, .force)
-                } label: {
-                    Label(PortKillMode.force.groupMenuTitle, systemImage: "exclamationmark.octagon")
-                }
-                .disabled(isLoading)
             }
 
             if let processInfoItem = processInfoItems.singleItem {
-                Divider()
-
                 PortProcessInfoMenuContent(
                     item: processInfoItem,
                     isLoading: isLoading,
-                    onCopyPID: onCopyPID,
-                    onCopyProcessPath: onCopyProcessPath,
-                    onCopyCommandLine: onCopyCommandLine,
-                    onCopyRedactedCommandLine: onCopyRedactedCommandLine,
                     onOpenSourceApplication: onOpenSourceApplication,
                     onRevealProcessPath: onRevealProcessPath,
                     onRevealApplicationPath: {
                         onRevealApplicationPath(group)
                     },
                 )
-            } else if !processInfoItems.items.isEmpty {
-                Divider()
-
-                Menu {
-                    ForEach(processInfoItems.items) { item in
-                        Menu {
-                            PortProcessInfoMenuContent(
-                                item: item,
-                                isLoading: isLoading,
-                                onCopyPID: onCopyPID,
-                                onCopyProcessPath: onCopyProcessPath,
-                                onCopyCommandLine: onCopyCommandLine,
-                                onCopyRedactedCommandLine: onCopyRedactedCommandLine,
-                                onOpenSourceApplication: onOpenSourceApplication,
-                                onRevealProcessPath: onRevealProcessPath,
-                                onRevealApplicationPath: {
-                                    onRevealApplicationPath(group)
-                                },
-                            )
-                        } label: {
-                            Text(verbatim: item.title)
-                                .monospacedDigit()
-                        }
-                    }
-                } label: {
-                    Label("进程详情", systemImage: "info.circle")
-                }
             }
         } label: {
             PortProcessIconView(icon: group.icon)
@@ -604,107 +643,120 @@ private struct PortMenu: View {
     }
 }
 
-private struct PortProcessInfoMenuContent: View {
+private struct PortProcessSummaryContent: View {
     let item: PortProcessInfoItem
-    let isLoading: Bool
-    let onCopyPID: (Int) -> Void
+
+    var body: some View {
+        if item.details.hasDetails {
+            Text(item.details.source)
+                .foregroundStyle(.secondary)
+            if let memory = item.details.memory {
+                Label(memory, systemImage: "memorychip")
+                    .monospacedDigit()
+            }
+        }
+    }
+}
+
+private struct PortProcessCopyDetailsContent: View {
+    let item: PortProcessInfoItem
     let onCopyProcessPath: (Int) -> Void
     let onCopyCommandLine: (Int) -> Void
     let onCopyRedactedCommandLine: (Int) -> Void
+
+    var body: some View {
+        if item.details.hasDetails {
+            if let path = item.details.path {
+                Button {
+                    onCopyProcessPath(item.pid)
+                } label: {
+                    Label {
+                        Text("复制路径")
+                        Text(verbatim: path)
+                            .fontDesign(.monospaced)
+                            .foregroundStyle(.secondary)
+                    } icon: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                }
+            }
+            if let redactedCommandLineSummary = item.details.redactedCommandLineSummary {
+                Button {
+                    onCopyRedactedCommandLine(item.pid)
+                } label: {
+                    Label {
+                        Text("复制脱敏启动命令")
+                        Text(verbatim: redactedCommandLineSummary)
+                            .fontDesign(.monospaced)
+                            .foregroundStyle(.secondary)
+                    } icon: {
+                        Image(systemName: "lock.doc")
+                    }
+                }
+            }
+
+            if item.details.commandLineSummary != nil {
+                Button {
+                    onCopyCommandLine(item.pid)
+                } label: {
+                    Label("复制启动命令", systemImage: "terminal")
+                }
+            }
+        }
+    }
+}
+
+private struct PortProcessInfoMenuContent: View {
+    let item: PortProcessInfoItem
+    let isLoading: Bool
     let onOpenSourceApplication: (Int) -> Void
     let onRevealProcessPath: (Int) -> Void
     let onRevealApplicationPath: () -> Void
 
     var body: some View {
-        Button {
-            onCopyPID(item.pid)
-        } label: {
-            Label(item.copyPIDTitle, systemImage: "number")
-                .monospacedDigit()
-        }
-
-        if item.details.hasDetails {
-            Section(item.details.source) {
-                if let title = item.details.openSourceApplicationTitle {
-                    Button {
-                        onOpenSourceApplication(item.pid)
-                    } label: {
-                        Label(title, systemImage: "arrow.up.forward.app")
-                    }
-                }
-
-                if let memory = item.details.memory {
-                    Label(memory, systemImage: "memorychip")
-                        .monospacedDigit()
-                }
-
-                if let applicationPath = item.applicationPath {
-                    Button {
-                        onRevealApplicationPath()
-                    } label: {
-                        Label {
-                            Text("在 Finder 中显示 App")
-                            Text(verbatim: applicationPath)
-                                .fontDesign(.monospaced)
-                                .foregroundStyle(.secondary)
-                        } icon: {
-                            Image(systemName: "folder")
+        let hasFiles = item.details.openSourceApplicationTitle != nil || item.applicationPath != nil
+            || item.executablePathToReveal != nil
+        if item.details.hasDetails && hasFiles {
+            Section("打开与定位") {
+                Group {
+                    if let title = item.details.openSourceApplicationTitle {
+                        Button {
+                            onOpenSourceApplication(item.pid)
+                        } label: {
+                            Label(title, systemImage: "arrow.up.forward.app")
                         }
                     }
-                    .disabled(isLoading)
-                }
 
-                if let executablePath = item.executablePathToReveal {
-                    Button {
-                        onRevealProcessPath(item.pid)
-                    } label: {
-                        Label {
-                            Text("在 Finder 中显示可执行文件")
-                            Text(verbatim: executablePath)
-                                .fontDesign(.monospaced)
-                                .foregroundStyle(.secondary)
-                        } icon: {
-                            Image(systemName: "folder")
+                    if let applicationPath = item.applicationPath {
+                        Button {
+                            onRevealApplicationPath()
+                        } label: {
+                            Label {
+                                Text("在 Finder 中显示 App")
+                                Text(verbatim: applicationPath)
+                                    .fontDesign(.monospaced)
+                                    .foregroundStyle(.secondary)
+                            } icon: {
+                                Image(systemName: "folder")
+                            }
                         }
+                        .disabled(isLoading)
                     }
-                    .disabled(isLoading)
-                }
 
-                if let path = item.details.path {
-                    Button {
-                        onCopyProcessPath(item.pid)
-                    } label: {
-                        Label {
-                            Text("复制路径")
-                            Text(verbatim: path)
-                                .fontDesign(.monospaced)
-                                .foregroundStyle(.secondary)
-                        } icon: {
-                            Image(systemName: "doc.on.doc")
+                    if let executablePath = item.executablePathToReveal {
+                        Button {
+                            onRevealProcessPath(item.pid)
+                        } label: {
+                            Label {
+                                Text("在 Finder 中显示可执行文件")
+                                Text(verbatim: executablePath)
+                                    .fontDesign(.monospaced)
+                                    .foregroundStyle(.secondary)
+                            } icon: {
+                                Image(systemName: "folder")
+                            }
                         }
-                    }
-                }
-
-                if let redactedCommandLineSummary = item.details.redactedCommandLineSummary {
-                    Button {
-                        onCopyRedactedCommandLine(item.pid)
-                    } label: {
-                        Label {
-                            Text("复制脱敏启动命令")
-                            Text(verbatim: redactedCommandLineSummary)
-                                .fontDesign(.monospaced)
-                                .foregroundStyle(.secondary)
-                        } icon: {
-                            Image(systemName: "lock.doc")
-                        }
-                    }
-                }
-
-                if item.details.commandLineSummary != nil {
-                    Button {
-                        onCopyCommandLine(item.pid)
-                    } label: {
-                        Label("复制启动命令", systemImage: "terminal")
+                        .disabled(isLoading)
                     }
                 }
             }

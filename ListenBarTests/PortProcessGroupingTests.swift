@@ -136,7 +136,7 @@ final class PortProcessGroupingTests: XCTestCase {
         let labels = PortProcessGroupMenuLabels(group: group)
         XCTAssertEqual(labels.title, "GitHub Desktop（Helper）")
         XCTAssertEqual(labels.subtitle, "61305")
-        XCTAssertEqual(labels.portSectionTitle, "端口（1）")
+        XCTAssertEqual(labels.portSectionTitle, "监听端口（1）")
     }
 
     func testGroupsMultipleHelperProcessesUnderOwnerApp() {
@@ -271,7 +271,7 @@ final class PortProcessGroupingTests: XCTestCase {
         let labels = PortProcessGroupMenuLabels(group: group)
 
         XCTAssertEqual(labels.title, "Example（2 个子进程）")
-        XCTAssertEqual(labels.portSectionTitle, "端口（3）")
+        XCTAssertEqual(labels.portSectionTitle, "监听端口（3）")
     }
 
     func testClassifiesRootProcessWithoutMetadataAsSystemOrOtherUser() {
