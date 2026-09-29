@@ -50,6 +50,7 @@ struct PortKillNotificationClient {
 struct ProcessInfoActionsClient {
     var copyText: @Sendable (String) async -> Void
     var revealPath: @Sendable (String) async -> Void
+    var activateApplication: @Sendable (SourceApplication) async -> SourceApplicationActivationResult = { _ in .failed }
 }
 
 extension ProcessInfoActionsClient: DependencyKey {
@@ -64,6 +65,9 @@ extension ProcessInfoActionsClient: DependencyKey {
             await MainActor.run {
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
             }
+        },
+        activateApplication: { source in
+            await SourceApplicationActivationService.activate(source)
         },
     )
 

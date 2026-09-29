@@ -2,6 +2,31 @@
 import XCTest
 
 final class PortProcessDetailsTests: XCTestCase {
+    func testSourceApplicationActionUsesEachPIDWithoutChangingSourceLabels() {
+        let sources = [
+            SourceApplication(name: "Editor One", pid: 501, bundleIdentifier: "com.example.one", bundlePath: "/Applications/One.app", launchDate: Date(timeIntervalSince1970: 1)),
+            SourceApplication(name: "Editor Two", pid: 502, bundleIdentifier: "com.example.two", bundlePath: "/Applications/Two.app", launchDate: Date(timeIntervalSince1970: 2)),
+        ]
+        let ports = [101, 102].map {
+            PortEntry(networkProtocol: .tcp, address: "127.0.0.1", port: 3000, pid: $0, command: "node", user: "501")
+        }
+        var metadata: [Int: PortProcessMetadata] = [:]
+        for (port, source) in zip(ports, sources) {
+            var value = PortProcessMetadata.executable(name: "node", path: "/opt/homebrew/bin/node", sources: [.homebrew])
+            value.sourceApplication = source
+            metadata[port.pid] = value
+        }
+        let group = PortProcessGroup(id: "test", displayName: "node", subtitle: "3000", icon: .process, ports: ports)
+        let items = PortProcessInfoItems(group: group, metadataByPID: metadata).items
+        XCTAssertEqual(items.map(\.details.sourceApplication), sources.map(Optional.some))
+        for item in items {
+            XCTAssertEqual(item.details.source, PortProcessDetails(metadata: .executable(name: "node", path: nil, sources: [.homebrew])).source)
+            XCTAssertTrue(item.details.openSourceApplicationTitle?.contains(item.details.sourceApplication!.name) == true)
+        }
+        XCTAssertNil(PortProcessDetails(metadata: nil).openSourceApplicationTitle)
+        XCTAssertNil(PortProcessDetails(metadata: .executable(name: "node", path: nil)).openSourceApplicationTitle)
+    }
+
     func testApplicationPathSelectorReturnsOneUnambiguousOuterAppPath() throws {
         let rendererPort = PortEntry(
             networkProtocol: .tcp,

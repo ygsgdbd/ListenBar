@@ -200,6 +200,9 @@ struct MenuBarView: View {
                     onCopyLsofCommand: { port in
                         store.send(.view(.copyLsofCommandTapped(port)))
                     },
+                    onOpenSourceApplication: { pid in
+                        store.send(.view(.openSourceApplicationTapped(pid: pid)))
+                    },
                     onRevealProcessPath: { pid in
                         store.send(.view(.revealProcessPathTapped(pid: pid)))
                     },
@@ -244,6 +247,7 @@ private struct PortProcessGroupMenu: View {
     let onCopyCommandLine: (Int) -> Void
     let onCopyRedactedCommandLine: (Int) -> Void
     let onCopyLsofCommand: (PortEntry) -> Void
+    let onOpenSourceApplication: (Int) -> Void
     let onRevealProcessPath: (Int) -> Void
     let onRevealApplicationPath: (PortProcessGroup) -> Void
     let onKillPort: (PortEntry, PortKillMode) -> Void
@@ -383,6 +387,7 @@ private struct PortProcessGroupMenu: View {
                     onCopyProcessPath: onCopyProcessPath,
                     onCopyCommandLine: onCopyCommandLine,
                     onCopyRedactedCommandLine: onCopyRedactedCommandLine,
+                    onOpenSourceApplication: onOpenSourceApplication,
                     onRevealProcessPath: onRevealProcessPath,
                     onRevealApplicationPath: {
                         onRevealApplicationPath(group)
@@ -401,6 +406,7 @@ private struct PortProcessGroupMenu: View {
                                 onCopyProcessPath: onCopyProcessPath,
                                 onCopyCommandLine: onCopyCommandLine,
                                 onCopyRedactedCommandLine: onCopyRedactedCommandLine,
+                                onOpenSourceApplication: onOpenSourceApplication,
                                 onRevealProcessPath: onRevealProcessPath,
                                 onRevealApplicationPath: {
                                     onRevealApplicationPath(group)
@@ -605,6 +611,7 @@ private struct PortProcessInfoMenuContent: View {
     let onCopyProcessPath: (Int) -> Void
     let onCopyCommandLine: (Int) -> Void
     let onCopyRedactedCommandLine: (Int) -> Void
+    let onOpenSourceApplication: (Int) -> Void
     let onRevealProcessPath: (Int) -> Void
     let onRevealApplicationPath: () -> Void
 
@@ -618,6 +625,14 @@ private struct PortProcessInfoMenuContent: View {
 
         if item.details.hasDetails {
             Section(item.details.source) {
+                if let title = item.details.openSourceApplicationTitle {
+                    Button {
+                        onOpenSourceApplication(item.pid)
+                    } label: {
+                        Label(title, systemImage: "arrow.up.forward.app")
+                    }
+                }
+
                 if let memory = item.details.memory {
                     Label(memory, systemImage: "memorychip")
                         .monospacedDigit()
