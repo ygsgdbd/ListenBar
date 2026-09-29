@@ -164,13 +164,74 @@ final class ProcessInfoActionTests: XCTestCase {
         XCTAssertEqual(calls, [.copy(expectedText), .copy(expectedText), .copy("3000"), .copy("http://localhost:3000")])
     }
 
+    func testOpenSourceApplicationDispatchesSelectedPIDAndLeavesSnapshotUnchanged() async {
+        let first = SourceApplication(name: "First", pid: 500, bundleIdentifier: "com.example.first", bundlePath: "/Applications/First.app", launchDate: Date(timeIntervalSince1970: 10))
+        let second = SourceApplication(name: "Second", pid: 600, bundleIdentifier: "com.example.second", bundlePath: "/Applications/Second.app", launchDate: Date(timeIntervalSince1970: 20))
+        var firstMetadata = PortProcessMetadata.executable(name: "node", path: "/opt/homebrew/bin/node")
+        firstMetadata.sourceApplication = first
+        var secondMetadata = firstMetadata
+        secondMetadata.sourceApplication = second
+        let recorder = ProcessInfoActionRecorder()
+        let store = makeStore(ports: [port(pid: 101), port(pid: 102)], metadata: [101: firstMetadata, 102: secondMetadata], recorder: recorder, isMenuPresented: true)
+        store.dependencies.processInfoActions.activateApplication = {
+            await recorder.record(.activate($0))
+            return .success
+        }
+        let snapshot = store.state.portVisibility
+        let pendingSnapshot = PortScanSnapshot(ports: [port(pid: 102)], metadataByPID: [102: firstMetadata], processGroups: [])
+        await store.send(.response(.portsLoaded(.success(pendingSnapshot)))) {
+            $0.deferredMenuUpdate = .portsLoaded(.success(pendingSnapshot))
+        }
+
+        await store.send(.view(.openSourceApplicationTapped(pid: 102)))
+        await store.receive(.response(.sourceApplicationActivationFinished(.success)))
+        let calls = await recorder.values()
+        XCTAssertEqual(calls, [.activate(second)])
+        XCTAssertEqual(store.state.portVisibility, snapshot)
+        XCTAssertNil(store.state.errorMessage)
+    }
+
+    func testMissingSourceApplicationDoesNotActivate() async {
+        let recorder = ProcessInfoActionRecorder()
+        let store = makeStore(ports: [port(pid: 101)], metadata: [101: .executable(name: "node", path: nil)], recorder: recorder)
+        store.dependencies.processInfoActions.activateApplication = {
+            await recorder.record(.activate($0))
+            return .success
+        }
+        for pid in [101, 999] {
+            await store.send(.view(.openSourceApplicationTapped(pid: pid))).finish()
+        }
+        let calls = await recorder.values()
+        XCTAssertEqual(calls, [])
+    }
+
+    func testActivationFailuresOnlySetErrorMessage() async {
+        let source = SourceApplication(name: "Editor", pid: 500, bundleIdentifier: "com.example.editor", bundlePath: "/Applications/Editor.app", launchDate: Date(timeIntervalSince1970: 10))
+        var metadata = PortProcessMetadata.executable(name: "node", path: nil)
+        metadata.sourceApplication = source
+        let cases: [(SourceApplicationActivationResult, String)] = [
+            (.stale, String(localized: "来源应用已退出或发生变化，请刷新后重试。", bundle: .main)),
+            (.failed, String(localized: "无法打开来源应用，请重试。", bundle: .main)),
+        ]
+        for (result, message) in cases {
+            let store = makeStore(ports: [port(pid: 101)], metadata: [101: metadata], recorder: ProcessInfoActionRecorder())
+            store.dependencies.processInfoActions.activateApplication = { _ in result }
+            await store.send(.view(.openSourceApplicationTapped(pid: 101)))
+            await store.receive(.response(.sourceApplicationActivationFinished(result))) {
+                $0.errorMessage = message
+            }
+        }
+    }
+
     private func makeStore(
         ports: [PortEntry],
         metadata: [Int: PortProcessMetadata],
         recorder: ProcessInfoActionRecorder,
         ignoredProcesses: [IgnoredProcessItem] = [],
+        isMenuPresented: Bool = false,
     ) -> TestStoreOf<AppFeature> {
         var state = AppFeature.State()
+        state.isMenuPresented = isMenuPresented
         state.portVisibility = PortVisibility(
             snapshot: PortScanSnapshot(
                 ports: ports,
@@ -194,6 +255,7 @@ final class ProcessInfoActionTests: XCTestCase {
 }
 
 private enum ProcessInfoActionCall: Equatable, Sendable {
+    case activate(SourceApplication)
     case copy(String)
     case reveal(String)
 }

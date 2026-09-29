@@ -5,7 +5,7 @@ final class LocalizationCatalogTests: XCTestCase {
     func testCatalogContainsEverySupportedLocalization() throws {
         let strings = try Self.catalogStrings()
 
-        XCTAssertEqual(strings.count, 111)
+        XCTAssertEqual(strings.count, 114)
         XCTAssertNil(strings["进程"])
 
         for (key, entry) in strings {

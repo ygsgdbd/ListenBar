@@ -187,6 +187,7 @@ enum PortProcessSource: Equatable, Hashable, Sendable {
 }
 
 struct PortProcessMetadata: Equatable, Sendable {
+    var sourceApplication: SourceApplication? = nil
     let kind: PortProcessMetadataKind
     let name: String
     let path: String?

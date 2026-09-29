@@ -20,6 +20,7 @@ enum PortProcessMetadataService {
         let processName: String?
         let commandLineArguments: [String]?
         let parentProcessNames: [String]
+        let ancestry: [SourceProcess]
         let residentMemoryBytes: UInt64?
     }
 
@@ -28,6 +29,7 @@ enum PortProcessMetadataService {
         let bundlePath: String?
         let executablePath: String?
         let localizedName: String?
+        let sourceApplication: SourceApplication?
     }
 
     private struct MetadataDetails {
@@ -74,10 +76,17 @@ enum PortProcessMetadataService {
         portsByPID: [Int: PortEntry],
     ) -> [Int: PortProcessMetadata] {
         var metadataByPID: [Int: PortProcessMetadata] = [:]
+        let sourceApplications = runningApplicationsByPID.values.compactMap(\.sourceApplication)
 
         for pid in pids {
             let runningApplication = runningApplicationsByPID[pid]
             let runtime = runtimeByPID[pid]
+            defer {
+                metadataByPID[pid]?.sourceApplication = sourceApplication(
+                    ancestry: runtime?.ancestry ?? [],
+                    applications: sourceApplications,
+                )
+            }
             let executablePath = runtime?.executablePath ?? runningApplication?.executablePath
 
             if let executablePath, isOwnApplicationExecutablePath(executablePath) {
@@ -481,7 +490,7 @@ enum PortProcessMetadataService {
     @MainActor
     private static func runningApplicationSnapshots(for pids: Set<Int>) -> [Int: RunningApplicationSnapshot] {
         Dictionary(
-            uniqueKeysWithValues: pids.compactMap { pid in
+            uniqueKeysWithValues: pids.union(NSWorkspace.shared.runningApplications.map { Int($0.processIdentifier) }).compactMap { pid in
                 guard let app = NSRunningApplication(processIdentifier: pid_t(pid)) else {
                     return nil
                 }
@@ -492,10 +501,81 @@ enum PortProcessMetadataService {
                         bundlePath: app.bundleURL?.path,
                         executablePath: app.executableURL?.path,
                         localizedName: app.localizedName,
+                        sourceApplication: sourceApplicationSnapshot(app),
                     ),
                 )
             },
         )
+    }
+
+    @MainActor
+    private static func sourceApplicationSnapshot(_ app: NSRunningApplication) -> SourceApplication? {
+        guard !app.isTerminated,
+              app.activationPolicy != .prohibited,
+              let bundleIdentifier = app.bundleIdentifier,
+              let bundlePath = app.bundleURL?.path,
+              let launchDate = app.launchDate
+        else { return nil }
+        if let executablePath = app.executableURL?.path,
+           let ownerURL = applicationBundleURL(forExecutablePath: executablePath),
+           ownerURL.path != bundlePath
+        {
+            return nil
+        }
+        return SourceApplication(
+            name: app.localizedName ?? bundleIdentifier,
+            pid: Int(app.processIdentifier),
+            bundleIdentifier: bundleIdentifier,
+            bundlePath: bundlePath,
+            launchDate: launchDate,
+        )
+    }
+
+    struct SourceProcess: Equatable, Sendable {
+        let pid: Int
+        let parentPID: Int?
+        let executablePath: String?
+    }
+
+    static func sourceAncestry(startingAt pid: Int, resolve: (Int) -> SourceProcess) -> [SourceProcess] {
+        var ancestry: [SourceProcess] = []
+        var currentPID: Int? = pid
+        var visited: Set<Int> = []
+        // Include the listening process itself and at most eight ancestors.
+        for _ in 0 ... 8 {
+            guard let nextPID = currentPID, nextPID > 0, visited.insert(nextPID).inserted else { break }
+            let process = resolve(nextPID)
+            ancestry.append(process)
+            currentPID = process.parentPID
+        }
+        return ancestry
+    }
+
+    static func sourceApplication(ancestry: [SourceProcess], applications: [SourceApplication]) -> SourceApplication? {
+        var ambiguousOwnerPIDs: Set<Int>?
+        for process in ancestry {
+            if let ambiguousOwnerPIDs, !ambiguousOwnerPIDs.contains(process.pid) {
+                continue
+            }
+            if let application = applications.first(where: { $0.pid == process.pid }) {
+                if let path = process.executablePath,
+                   applicationBundleURL(forExecutablePath: path)?.path != application.bundlePath
+                {
+                    return nil
+                }
+                return application
+            }
+            guard let path = process.executablePath,
+                  let ownerURL = applicationBundleURL(forExecutablePath: path)
+            else { continue }
+            let owners = applications.filter { $0.bundlePath == ownerURL.path }
+            if owners.count == 1 { return owners[0] }
+            if owners.count > 1 {
+                // Only an exact ancestor PID can disambiguate this nearest owner.
+                ambiguousOwnerPIDs = Set(owners.map(\.pid))
+            }
+        }
+        return nil
     }
 
     private static func runtimeInfo(for pids: Set<Int>) -> [Int: ProcessRuntimeInfo] {
@@ -503,6 +583,13 @@ enum PortProcessMetadataService {
         return Dictionary(
             uniqueKeysWithValues: pids.map { pid in
                 let snapshot = resolver.processSnapshot(for: pid)
+                let ancestry = sourceAncestry(startingAt: pid) { ancestorPID in
+                    SourceProcess(
+                        pid: ancestorPID,
+                        parentPID: resolver.processSnapshot(for: ancestorPID)?.parentPID,
+                        executablePath: resolver.executablePath(for: ancestorPID),
+                    )
+                }
                 return (
                     pid,
                     ProcessRuntimeInfo(
@@ -510,7 +597,17 @@ enum PortProcessMetadataService {
                         processSnapshot: snapshot,
                         processName: resolver.processName(for: pid),
                         commandLineArguments: commandLineArguments(for: pid),
-                        parentProcessNames: resolver.parentProcessNames(startingAt: snapshot?.parentPID),
+                        parentProcessNames: ancestry.dropFirst().flatMap { process -> [String] in
+                            if let path = process.executablePath {
+                                var names = [URL(fileURLWithPath: path).lastPathComponent]
+                                if let appURL = applicationBundleURL(forExecutablePath: path) {
+                                    names.append(appURL.deletingPathExtension().lastPathComponent)
+                                }
+                                return names
+                            }
+                            return resolver.processName(for: process.pid).map { [$0] } ?? []
+                        },
+                        ancestry: ancestry,
                         residentMemoryBytes: residentMemoryBytes(for: pid),
                     ),
                 )
@@ -729,74 +826,6 @@ enum PortProcessMetadataService {
             processNames[pid] = .resolved(value)
             return value
         }
-
-        mutating func parentProcessNames(startingAt parentPID: Int?) -> [String] {
-            var names: [String] = []
-            var currentPID = parentPID
-            var visitedPIDs: Set<Int> = []
-
-            for _ in 0 ..< 8 {
-                guard
-                    let pid = currentPID,
-                    pid > 0,
-                    !visitedPIDs.contains(pid)
-                else {
-                    break
-                }
-                visitedPIDs.insert(pid)
-
-                if let path = executablePath(for: pid) {
-                    names.append(URL(fileURLWithPath: path).lastPathComponent)
-                    if let applicationURL = applicationBundleURL(forExecutablePath: path) {
-                        names.append(applicationURL.deletingPathExtension().lastPathComponent)
-                    }
-                } else if let name = processName(for: pid) {
-                    names.append(name)
-                }
-
-                let nextPID = processSnapshot(for: pid)?.parentPID
-                guard nextPID != pid else {
-                    break
-                }
-                currentPID = nextPID
-            }
-
-            return names
-        }
-    }
-
-    private static func parentProcessNames(startingAt parentPID: Int?) -> [String] {
-        var names: [String] = []
-        var currentPID = parentPID
-        var visitedPIDs: Set<Int> = []
-
-        for _ in 0 ..< 8 {
-            guard
-                let pid = currentPID,
-                pid > 0,
-                !visitedPIDs.contains(pid)
-            else {
-                break
-            }
-            visitedPIDs.insert(pid)
-
-            if let path = executablePath(for: pid) {
-                names.append(URL(fileURLWithPath: path).lastPathComponent)
-                if let applicationURL = applicationBundleURL(forExecutablePath: path) {
-                    names.append(applicationURL.deletingPathExtension().lastPathComponent)
-                }
-            } else if let name = processName(for: pid) {
-                names.append(name)
-            }
-
-            let nextPID = processSnapshot(for: pid)?.parentPID
-            guard nextPID != pid else {
-                break
-            }
-            currentPID = nextPID
-        }
-
-        return names
     }
 
     private static func metadataDetails(

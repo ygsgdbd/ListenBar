@@ -1666,6 +1666,30 @@
         }
       }
     },
+    "打开来源应用：%@" : {
+      "comment" : "打开已运行的来源应用。",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Source App: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开来源应用：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟來源應用程式：%@"
+          }
+        }
+      }
+    },
     "打开登录项设置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1827,6 +1851,30 @@
         }
       }
     },
+    "无法打开来源应用，请重试。" : {
+      "comment" : "来源应用激活失败。",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to open the source app. Try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开来源应用，请重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法開啟來源應用程式，請再試一次。"
+          }
+        }
+      }
+    },
     "无法终止 PID %lld：%@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1983,6 +2031,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "來源：%@"
+          }
+        }
+      }
+    },
+    "来源应用已退出或发生变化，请刷新后重试。" : {
+      "comment" : "来源应用实例失效。",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The source app has quit or changed. Refresh and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来源应用已退出或发生变化，请刷新后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "來源應用程式已結束或發生變更，請重新整理後再試。"
           }
         }
       }

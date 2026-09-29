@@ -90,6 +90,7 @@ struct AppFeature {
         case ignoreGroupTapped(PortProcessGroup)
         case killGroupTapped(PortProcessGroup, PortKillMode)
         case killPortTapped(PortEntry, PortKillMode)
+        case openSourceApplicationTapped(pid: Int)
         case openLocalhostTapped(PortEntry)
         case quitApplicationTapped(PortProcessGroup, ApplicationQuitMode)
         case revealApplicationPathTapped(PortProcessGroup)
@@ -101,6 +102,7 @@ struct AppFeature {
     }
 
     enum ResponseAction: Equatable, Sendable {
+        case sourceApplicationActivationFinished(SourceApplicationActivationResult)
         case applicationQuitFinished(ApplicationQuitResult)
         case launchAtLoginLoaded(LaunchAtLoginStatus)
         case menuOpenPortsLoaded(Result<PortScanSnapshot, PortScannerFailure>)
@@ -243,6 +245,24 @@ struct AppFeature {
             case let .view(.copyRedactedCommandLineTapped(pid)):
                 guard let commandLine = PortProcessDetails(metadata: state.metadataByPID[pid]).redactedCommandLine else { return .none }
                 return copyTextEffect(commandLine)
+
+            case let .view(.openSourceApplicationTapped(pid)):
+                guard let source = state.metadataByPID[pid]?.sourceApplication else { return .none }
+                return .run { send in
+                    let result = await processInfoActions.activateApplication(source)
+                    await send(.response(.sourceApplicationActivationFinished(result)))
+                }
+
+            case let .response(.sourceApplicationActivationFinished(result)):
+                switch result {
+                case .success:
+                    break
+                case .stale:
+                    state.errorMessage = String(localized: "来源应用已退出或发生变化，请刷新后重试。", bundle: .main, comment: "来源应用实例失效。")
+                case .failed:
+                    state.errorMessage = String(localized: "无法打开来源应用，请重试。", bundle: .main, comment: "来源应用激活失败。")
+                }
+                return .none
 
             case let .view(.copyPIDTapped(pid)):
                 return copyTextEffect(String(pid))

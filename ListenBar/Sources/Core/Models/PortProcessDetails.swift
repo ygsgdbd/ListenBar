@@ -139,6 +139,19 @@ struct PortProcessDetails: Equatable {
         metadata != nil
     }
 
+    var sourceApplication: SourceApplication? {
+        metadata?.sourceApplication
+    }
+
+    var openSourceApplicationTitle: String? {
+        guard let sourceApplication else { return nil }
+        return String(
+            format: String(localized: "打开来源应用：%@", bundle: .main, comment: "打开已运行的来源应用。"),
+            locale: Locale.current,
+            sourceApplication.name,
+        )
+    }
+
     var source: String {
         guard let metadata else { return "" }
         return String(
