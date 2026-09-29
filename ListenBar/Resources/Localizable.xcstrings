@@ -727,6 +727,29 @@
         }
       }
     },
+    "信息与排查" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Info & Troubleshooting"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信息与排查"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資訊與疑難排解"
+          }
+        }
+      }
+    },
     "关闭" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -997,6 +1020,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "複製 URL"
+          }
+        }
+      }
+    },
+    "复制信息" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Information"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制信息"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製資訊"
           }
         }
       }
@@ -1321,6 +1367,29 @@
         }
       }
     },
+    "打开与定位" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open & Locate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开与定位"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟與定位"
+          }
+        }
+      }
+    },
     "开发者：%@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1390,25 +1459,25 @@
         }
       }
     },
-    "强制终止全部监听进程…" : {
+    "强制终止此 App 的监听进程…" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Force Kill All Listening Processes…"
+            "value" : "Force Kill This App’s Listening Processes…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "强制终止全部监听进程…"
+            "value" : "强制终止此 App 的监听进程…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "強制終止所有監聽程序…"
+            "value" : "強制終止此 App 的監聽程序…"
           }
         }
       }
@@ -2197,25 +2266,25 @@
         }
       }
     },
-    "端口（%lld）" : {
+    "监听端口（%lld）" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ports (%lld)"
+            "value" : "Listening Ports (%lld)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "端口（%lld）"
+            "value" : "监听端口（%lld）"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "連接埠（%lld）"
+            "value" : "監聽連接埠（%lld）"
           }
         }
       }
@@ -2239,6 +2308,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連接埠所屬程序已變更，請重新確認。"
+          }
+        }
+      }
+    },
+    "管理" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Management"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理"
           }
         }
       }
@@ -2312,25 +2404,25 @@
         }
       }
     },
-    "终止全部监听进程…" : {
+    "终止此 App 的监听进程…" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Terminate All Listening Processes…"
+            "value" : "Terminate This App’s Listening Processes…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "终止全部监听进程…"
+            "value" : "终止此 App 的监听进程…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "終止所有監聽程序…"
+            "value" : "終止此 App 的監聽程序…"
           }
         }
       }
@@ -2492,29 +2584,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這似乎是系統程序。"
-          }
-        }
-      }
-    },
-    "进程详情" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Process Details"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "进程详情"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "程序詳細資訊"
           }
         }
       }

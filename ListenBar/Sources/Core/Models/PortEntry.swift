@@ -51,9 +51,9 @@ enum PortKillMode: Equatable, Sendable {
     var groupMenuTitle: String {
         switch self {
         case .quit:
-            return String(localized: "终止全部监听进程…", bundle: .main, comment: "正常终止应用分组全部监听进程的菜单项。")
+            return String(localized: "终止此 App 的监听进程…", bundle: .main, comment: "正常终止应用分组全部监听进程的菜单项。")
         case .force:
-            return String(localized: "强制终止全部监听进程…", bundle: .main, comment: "强制终止应用分组全部监听进程的菜单项。")
+            return String(localized: "强制终止此 App 的监听进程…", bundle: .main, comment: "强制终止应用分组全部监听进程的菜单项。")
         }
     }
 

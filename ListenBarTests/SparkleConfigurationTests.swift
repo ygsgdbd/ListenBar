@@ -31,7 +31,7 @@ final class SparkleConfigurationTests: XCTestCase {
         )
     }
 
-    func testEnglishProcessDetailsLocalization() throws {
+    func testEnglishOpenAndLocateLocalization() throws {
         let localizationURL = try XCTUnwrap(
             Bundle.main.url(forResource: "en", withExtension: "lproj"),
         )
@@ -39,11 +39,11 @@ final class SparkleConfigurationTests: XCTestCase {
 
         XCTAssertEqual(
             englishBundle.localizedString(
-                forKey: "进程详情",
+                forKey: "打开与定位",
                 value: nil,
                 table: nil,
             ),
-            "Process Details",
+            "Open & Locate",
         )
     }
 

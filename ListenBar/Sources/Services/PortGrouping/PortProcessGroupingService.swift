@@ -205,7 +205,7 @@ struct PortProcessGroupMenuLabels: Equatable {
 
         subtitle = group.subtitle
         portSectionTitle = String(
-            format: String(localized: "端口（%lld）", bundle: .main, comment: "进程子菜单的端口分区标题。"),
+            format: String(localized: "监听端口（%lld）", bundle: .main, comment: "进程子菜单的端口分区标题。"),
             locale: Locale.current,
             Int64(group.ports.count),
         )

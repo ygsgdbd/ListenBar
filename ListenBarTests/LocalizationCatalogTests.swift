@@ -5,7 +5,7 @@ final class LocalizationCatalogTests: XCTestCase {
     func testCatalogContainsEverySupportedLocalization() throws {
         let strings = try Self.catalogStrings()
 
-        XCTAssertEqual(strings.count, 114)
+        XCTAssertEqual(strings.count, 117)
         XCTAssertNil(strings["进程"])
 
         for (key, entry) in strings {
@@ -67,7 +67,12 @@ final class LocalizationCatalogTests: XCTestCase {
             "正在检查更新…": "Checking for Updates…",
             "新版本 %@ 可用…": "New Version %@ Available…",
             "+%lld 个": "+%lld more",
-            "端口（%lld）": "Ports (%lld)",
+            "监听端口（%lld）": "Listening Ports (%lld)",
+            "信息与排查": "Info & Troubleshooting",
+            "复制信息": "Copy Information",
+            "打开与定位": "Open & Locate",
+            "管理": "Management",
+            "终止此 App 的监听进程…": "Terminate This App’s Listening Processes…",
             "帮助与关于": "Help & About",
             "复制诊断信息": "Copy Diagnostics",
             "报告问题…": "Report an Issue…",
@@ -75,7 +80,7 @@ final class LocalizationCatalogTests: XCTestCase {
             "终止进程 (SIGTERM)": "Terminate Process (SIGTERM)",
             "终止全部监听进程 (SIGTERM)": "Terminate All Listening Processes (SIGTERM)",
             "强制终止进程…": "Force Kill Process…",
-            "强制终止全部监听进程…": "Force Kill All Listening Processes…",
+            "强制终止此 App 的监听进程…": "Force Kill This App’s Listening Processes…",
             "SIGKILL 无法由进程处理。": "SIGKILL cannot be handled by the process.",
             "忽略此 App": "Ignore This App",
             "忽略此进程": "Ignore This Process",
@@ -96,7 +101,13 @@ final class LocalizationCatalogTests: XCTestCase {
             "正在检查更新…": "正在檢查更新…",
             "新版本 %@ 可用…": "新版本 %@ 可用…",
             "+%lld 个": "+%lld 個",
-            "端口（%lld）": "連接埠（%lld）",
+            "监听端口（%lld）": "監聽連接埠（%lld）",
+            "信息与排查": "資訊與疑難排解",
+            "复制信息": "複製資訊",
+            "打开与定位": "開啟與定位",
+            "管理": "管理",
+            "终止此 App 的监听进程…": "終止此 App 的監聽程序…",
+            "强制终止此 App 的监听进程…": "強制終止此 App 的監聽程序…",
             "帮助与关于": "說明與關於",
             "复制诊断信息": "複製診斷資訊",
             "报告问题…": "回報問題…",
@@ -131,8 +142,8 @@ final class LocalizationCatalogTests: XCTestCase {
         let traditionalChineseBundle = try XCTUnwrap(Bundle(url: localizationURL))
 
         XCTAssertEqual(
-            traditionalChineseBundle.localizedString(forKey: "进程详情", value: nil, table: nil),
-            "程序詳細資訊",
+            traditionalChineseBundle.localizedString(forKey: "打开与定位", value: nil, table: nil),
+            "開啟與定位",
         )
     }
 
